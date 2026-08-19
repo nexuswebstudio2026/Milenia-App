@@ -11,6 +11,8 @@ import { ReviewsView } from './components/reviews/ReviewsView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { CartDrawer } from './components/cart/CartDrawer';
 import { ItemCustomizeModal } from './components/menu/ItemCustomizeModal';
+import { UpsellModal } from './components/menu/UpsellModal';
+import { MileniaRewardsModal } from './components/rewards/MileniaRewardsModal';
 import { CheckoutModal } from './components/checkout/CheckoutModal';
 import { PwaInstallModal } from './components/pwa/PwaInstallModal';
 import { PwaInstallBanner } from './components/pwa/PwaInstallBanner';
@@ -28,12 +30,12 @@ const AppContent: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-amber-500 selection:text-slate-950 antialiased transition-colors duration-300 pb-20 md:pb-0">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-amber-500 selection:text-slate-950 antialiased transition-colors duration-300 pb-20 md:pb-0 w-full max-w-full overflow-x-clip">
       {/* Header */}
       <Header onOpenInstallModal={() => setIsInstallModalOpen(true)} />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 overflow-hidden">
         
         {/* PWA Install Banner */}
         <PwaInstallBanner onOpenModal={() => setIsInstallModalOpen(true)} />
@@ -65,6 +67,8 @@ const AppContent: React.FC = () => {
       {/* Modals & Overlays */}
       <CartDrawer />
       <ItemCustomizeModal />
+      <UpsellModal />
+      <MileniaRewardsModal />
       <CheckoutModal />
       <PwaInstallModal 
         isOpen={isInstallModalOpen} 

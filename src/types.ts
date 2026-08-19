@@ -27,6 +27,32 @@ export interface OptionGroup {
   choices: OptionChoice[];
 }
 
+export type DietaryPreference = 'vegetarian' | 'vegan' | 'gluten_free' | 'keto' | 'spicy' | 'chef_special' | 'popular' | 'halal' | 'organic';
+
+export interface WinePairing {
+  id: string;
+  name: string;
+  nameEn?: string;
+  vintage?: string;
+  grapeVariety?: string;
+  region?: string;
+  description: string;
+  descriptionEn?: string;
+  price: number;
+  image: string;
+  type: 'red' | 'white' | 'sparkling' | 'rose';
+}
+
+export interface SuggestedSide {
+  id: string;
+  name: string;
+  nameEn?: string;
+  description: string;
+  descriptionEn?: string;
+  price: number;
+  image: string;
+}
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -39,8 +65,11 @@ export interface MenuItem {
   image: string;
   prepTimeMinutes: number;
   calories?: number;
-  dietary: ('vegetarian' | 'vegan' | 'gluten_free' | 'spicy' | 'chef_special' | 'popular')[];
+  dietary: DietaryPreference[];
   inStock: boolean;
+  isMainCourse?: boolean;
+  winePairing?: WinePairing;
+  suggestedSide?: SuggestedSide;
   optionGroups?: OptionGroup[];
 }
 
@@ -115,6 +144,8 @@ export interface Order {
   }[];
 }
 
+export type SeatingArea = 'terrace' | 'main_dining' | 'private_cava' | 'indoor' | 'patio' | 'bar' | 'vip_rooftop';
+
 export interface TableReservation {
   id: string;
   reservationCode: string;
@@ -125,11 +156,49 @@ export interface TableReservation {
   guestsCount: number;
   date: string;
   time: string;
-  seatingArea: 'indoor' | 'patio' | 'bar' | 'vip_rooftop';
+  seatingArea: SeatingArea;
   occasion?: string;
   specialRequests?: string;
   status: ReservationStatus;
   tableAssigned?: string;
+}
+
+export type RewardsTier = 'Silver' | 'Gold' | 'Platinum' | 'Black Diamond';
+
+export interface RewardsBenefit {
+  id: string;
+  title: string;
+  titleEn: string;
+  description: string;
+  descriptionEn: string;
+  tierRequired: RewardsTier;
+  pointsRequired: number;
+  icon: string;
+  unlocked: boolean;
+  code?: string;
+  discountAmount?: number;
+}
+
+export interface RewardsActivity {
+  id: string;
+  title: string;
+  titleEn: string;
+  date: string;
+  points: number;
+  type: 'earned' | 'redeemed';
+}
+
+export interface MileniaRewardsProfile {
+  userName: string;
+  membershipNumber: string;
+  currentPoints: number;
+  lifetimePoints: number;
+  tier: RewardsTier;
+  nextTier: RewardsTier | null;
+  pointsToNextTier: number;
+  tierProgressPercentage: number;
+  benefits: RewardsBenefit[];
+  recentActivity: RewardsActivity[];
 }
 
 export interface RestaurantLocation {

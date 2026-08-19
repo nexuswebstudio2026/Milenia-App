@@ -103,10 +103,10 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'bg-01',
-    name: 'TastyIgniter Monster Smash Burger',
-    nameEn: 'TastyIgniter Monster Smash Burger',
-    description: 'Doble disco de 100g Black Angus smash crujiente, queso cheddar americano fundido, bacon caramelizado, pepinillos y salsa secreta Igniter.',
-    descriptionEn: 'Double 100g Black Angus smashed patties, melted American cheddar, crispy caramelized bacon, pickles, and signature Igniter sauce.',
+    name: 'MILENIA Monster Smash Burger',
+    nameEn: 'MILENIA Monster Smash Burger',
+    description: 'Doble disco de 100g Black Angus smash crujiente, queso cheddar americano fundido, bacon caramelizado, pepinillos y salsa secreta MILENIA.',
+    descriptionEn: 'Double 100g Black Angus smashed patties, melted American cheddar, crispy caramelized bacon, pickles, and signature MILENIA sauce.',
     price: 13.90,
     originalPrice: 15.50,
     categoryId: 'burgers',
@@ -179,32 +179,41 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
     inStock: true,
   },
   {
-    id: 'st-01',
-    name: 'Tequeños Artesanales de Queso (6 uds)',
-    nameEn: 'Artisan Cheese Tequeños (6 pcs)',
-    description: 'Crujientes deditos de hojaldre rellenos de queso latino fundente, servidos con salsa tártara casera y mermelada de pimientos.',
-    descriptionEn: 'Crispy golden pastry fingers filled with gooey white melting cheese, served with house tartar sauce and sweet pepper jam.',
-    price: 8.50,
-    categoryId: 'starters',
-    image: 'https://images.unsplash.com/photo-1628294895950-9805252327bc?auto=format&fit=crop&w=800&q=80',
-    prepTimeMinutes: 10,
-    calories: 520,
-    dietary: ['vegetarian', 'popular'],
+    id: 'mn-00-wagyu',
+    name: 'Solomillo de Wagyu A5 con Reducción de Oporto',
+    nameEn: 'A5 Wagyu Tenderloin with Vintage Port Reduction',
+    description: 'Solomillo de Wagyu japonés A5 Kagoshima marcado al sarmiento, flor de sal Maldon, chalotas glaseadas y jugo concentrado de trufa negra.',
+    descriptionEn: 'Japanese A5 Kagoshima Wagyu tenderloin seared over grapevine charcoal, Maldon salt flakes, glazed shallots, and concentrated black truffle jus.',
+    price: 34.00,
+    categoryId: 'mains',
+    image: 'https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=800&q=80',
+    prepTimeMinutes: 20,
+    calories: 720,
+    dietary: ['chef_special', 'keto', 'gluten_free'],
     inStock: true,
-  },
-  {
-    id: 'st-02',
-    name: 'Nachos Supremos Tasty con Guacamole y Pulled Pork',
-    nameEn: 'Supreme Loaded Nachos with Pulled Pork',
-    description: 'Totopos de maíz crujientes horneados con doble queso cheddar, pulled pork ahumado 12h, jalapeños, crema agria y guacamole.',
-    descriptionEn: 'Crispy corn tortilla chips baked with sharp cheddar, 12h smoked pulled pork, jalapeños, sour cream, and fresh guacamole.',
-    price: 11.50,
-    categoryId: 'starters',
-    image: 'https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?auto=format&fit=crop&w=800&q=80',
-    prepTimeMinutes: 12,
-    calories: 890,
-    dietary: ['popular', 'gluten_free'],
-    inStock: true,
+    isMainCourse: true,
+    winePairing: {
+      id: 'wine-ribera-reserva',
+      name: 'Maridaje Sommelier: Ribera del Duero Reserva 2019',
+      nameEn: 'Sommelier Pairing: Ribera del Duero Reserva 2019',
+      vintage: '2019',
+      grapeVariety: '100% Tempranillo Tinta del País',
+      region: 'Ribera del Duero, España',
+      description: 'Crianza de 24 meses en roble francés. Notas a frutos negros maduros, cacao fino, cuero y taninos sedosos que potencian el Wagyu.',
+      descriptionEn: 'Aged 24 months in French oak. Notes of ripe dark berries, fine cocoa, leather, and silky tannins that elevate Wagyu.',
+      price: 8.50,
+      image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=600&q=80',
+      type: 'red'
+    },
+    suggestedSide: {
+      id: 'side-pure-robuchon',
+      name: 'Puré Cremoso Robuchon con Trufa Negra Melanosporum',
+      nameEn: 'Robuchon Velvety Truffle Potato Puree',
+      description: 'Puré sedoso con mantequilla normanda artesanal y láminas de trufa negra fresca rallada al momento.',
+      descriptionEn: 'Silky whipped potato purée with cultured Normandy butter and freshly shaved black winter truffle.',
+      price: 5.50,
+      image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80'
+    }
   },
   {
     id: 'mn-01',
@@ -219,6 +228,29 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
     calories: 780,
     dietary: ['chef_special'],
     inStock: true,
+    isMainCourse: true,
+    winePairing: {
+      id: 'wine-chablis-premier',
+      name: 'Maridaje Sommelier: Chablis Premier Cru Domaine 2021',
+      nameEn: 'Sommelier Pairing: Chablis Premier Cru 2021',
+      vintage: '2021',
+      grapeVariety: '100% Chardonnay',
+      region: 'Borgoña, Francia',
+      description: 'Elegancia mineral con recuerdos a cítricos frescos, manzana verde y mantequilla fina, ideal para la cremosidad de la pasta.',
+      descriptionEn: 'Mineral elegance with fresh citrus, green apple, and fine butter notes, perfect for creamy pasta.',
+      price: 7.90,
+      image: 'https://images.unsplash.com/photo-1569919659476-f0852f6834b7?auto=format&fit=crop&w=600&q=80',
+      type: 'white'
+    },
+    suggestedSide: {
+      id: 'side-esparragos-brasa',
+      name: 'Espárragos Trigueros a la Brasa con Parmesano Crujiente',
+      nameEn: 'Charcoal Grilled Asparagus with Crispy Parmesan',
+      description: 'Espárragos verdes asados al carbón con aceite de oliva virgen extra, sal en escamas y crujiente de queso curado.',
+      descriptionEn: 'Charcoal grilled green asparagus with extra virgin olive oil, sea salt flakes, and aged parmesan crisp.',
+      price: 4.80,
+      image: 'https://images.unsplash.com/photo-1515543237350-b3eea1ec8082?auto=format&fit=crop&w=600&q=80'
+    }
   },
   {
     id: 'mn-02',
@@ -233,6 +265,63 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
     calories: 1120,
     dietary: ['gluten_free', 'popular'],
     inStock: true,
+    isMainCourse: true,
+    winePairing: {
+      id: 'wine-priorat-crianza',
+      name: 'Maridaje Sommelier: Priorat Tinto Finca Dofí 2020',
+      nameEn: 'Sommelier Pairing: Priorat Tinto Finca Dofí 2020',
+      vintage: '2020',
+      grapeVariety: 'Garnacha & Cariñena',
+      region: 'Priorat, Cataluña',
+      description: 'Gran potencia aromática de fruta madura, hierbas mediterráneas y fondo de pizarra licorella que acompaña el ahumado.',
+      descriptionEn: 'Aromatic intensity of ripe berry fruit, Mediterranean herbs, and slate mineral notes complementing smoked meat.',
+      price: 9.00,
+      image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=600&q=80',
+      type: 'red'
+    }
+  },
+  {
+    id: 'mn-03-salmon-keto',
+    name: 'Lomo de Salmón Noruego Salvaje & Aguacate Braseado',
+    nameEn: 'Wild Norwegian Salmon & Charred Avocado (Keto)',
+    description: 'Suprema de salmón salvaje al punto sobre crema de aguacate Hass al limón verde, espárragos trigueros y sésamo tostado.',
+    descriptionEn: 'Wild Norwegian salmon supreme over smooth Hass avocado lime crema, grilled green asparagus, and toasted sesame.',
+    price: 21.50,
+    categoryId: 'mains',
+    image: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=800&q=80',
+    prepTimeMinutes: 16,
+    calories: 590,
+    dietary: ['keto', 'gluten_free', 'chef_special'],
+    inStock: true,
+    isMainCourse: true,
+    winePairing: {
+      id: 'wine-albarino-rias',
+      name: 'Maridaje Sommelier: Albariño Rías Baixas Selección 2022',
+      nameEn: 'Sommelier Pairing: Albariño Rías Baixas 2022',
+      vintage: '2022',
+      grapeVariety: '100% Albariño',
+      region: 'Rías Baixas, Galicia',
+      description: 'Fresco, salino y vibrante con matices de flor blanca y melocotón de viña, ideal para el salmón graso y el aguacate.',
+      descriptionEn: 'Crisp, saline, and vibrant with white peach and floral notes, pairing harmoniously with wild salmon.',
+      price: 6.80,
+      image: 'https://images.unsplash.com/photo-1569919659476-f0852f6834b7?auto=format&fit=crop&w=600&q=80',
+      type: 'white'
+    }
+  },
+  {
+    id: 'mn-04-risotto-vegano',
+    name: 'Risotto Cremoso de Boletus Edulis & Espinacas Baby',
+    nameEn: 'Vegan Creamy Porcini & Baby Spinach Risotto',
+    description: 'Arroz Carnaroli mantecado con leche de almendra tostada casera, boletus silvestres, aceite de trufa blanca y piñones tostados.',
+    descriptionEn: 'Carnaroli rice folded with house toasted almond cream, wild porcini mushrooms, white truffle oil, and roasted pine nuts.',
+    price: 17.50,
+    categoryId: 'mains',
+    image: 'https://images.unsplash.com/photo-1633964913295-ceb43826e7c9?auto=format&fit=crop&w=800&q=80',
+    prepTimeMinutes: 18,
+    calories: 540,
+    dietary: ['vegan', 'vegetarian', 'gluten_free', 'chef_special'],
+    inStock: true,
+    isMainCourse: true
   },
   {
     id: 'ds-01',
@@ -295,11 +384,11 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
 export const INITIAL_LOCATIONS: RestaurantLocation[] = [
   {
     id: 'loc-center',
-    name: 'MENIA Central Bistro & Cava',
+    name: 'MILENIA Central Bistro & Cava',
     address: 'Av. Principal del Gourmet 42, Centro',
     city: 'Madrid / Capital',
     phone: '+34 912 345 678',
-    email: 'central@menia-restaurant.com',
+    email: 'central@milenia-restaurant.com',
     rating: 4.9,
     reviewCount: 428,
     isOpen: true,
@@ -318,11 +407,11 @@ export const INITIAL_LOCATIONS: RestaurantLocation[] = [
   },
   {
     id: 'loc-north',
-    name: 'MENIA North Patio & Grill',
+    name: 'MILENIA North Patio & Grill',
     address: 'Paseo de la Terraza 118, Zona Norte',
     city: 'Madrid Norte',
     phone: '+34 915 889 900',
-    email: 'norte@menia-restaurant.com',
+    email: 'norte@milenia-restaurant.com',
     rating: 4.8,
     reviewCount: 290,
     isOpen: true,
@@ -484,7 +573,7 @@ export const INITIAL_RESERVATIONS: TableReservation[] = [
 ];
 
 export const DEFAULT_CONFIG: RestaurantConfig = {
-  name: "MENIA",
+  name: "MILENIA",
   tagline: "Alta Cocina, Pedidos & Reservas de Autor",
   currency: 'EUR',
   currencySymbol: '€',
@@ -493,4 +582,98 @@ export const DEFAULT_CONFIG: RestaurantConfig = {
   freeDeliveryThreshold: 35.00,
   acceptingOrders: true,
   acceptingReservations: true,
+};
+
+export const INITIAL_REWARDS_PROFILE = {
+  userName: 'Alejandro Morales',
+  membershipNumber: 'MIL-8829-VIP',
+  currentPoints: 850,
+  lifetimePoints: 1350,
+  tier: 'Gold' as const,
+  nextTier: 'Platinum' as const,
+  pointsToNextTier: 650,
+  tierProgressPercentage: 56,
+  benefits: [
+    {
+      id: 'ben-champagne',
+      title: 'Copa de Champagne Francés de Bienvenida',
+      titleEn: 'Complimentary Glass of French Champagne',
+      description: 'Disfruta de una copa de cortesía en cualquiera de nuestras sucursales al reservar mesa.',
+      descriptionEn: 'Enjoy a complimentary glass at any of our branches upon reservation.',
+      tierRequired: 'Silver' as const,
+      pointsRequired: 300,
+      icon: 'Wine',
+      unlocked: true,
+      code: 'CHAMPAGNE-GOLD'
+    },
+    {
+      id: 'ben-tasting',
+      title: 'Degustación de Quesos de Autor',
+      titleEn: 'Signature Artisan Cheese Board Tasting',
+      description: 'Tabla de quesos artesanos de pequeños productores con maridaje de mermeladas de higo.',
+      descriptionEn: 'Artisan cheese board pairing with fresh fig jam.',
+      tierRequired: 'Gold' as const,
+      pointsRequired: 800,
+      icon: 'Sparkles',
+      unlocked: true,
+      code: 'CHEESE-PAIRING'
+    },
+    {
+      id: 'ben-discount-15',
+      title: '15% Descuento en Reserva de Aniversario',
+      titleEn: '15% Off on Anniversary Dining',
+      description: 'Descuento especial aplicable a tu cuenta total para celebraciones especiales.',
+      descriptionEn: 'Special discount on your total bill for special celebrations.',
+      tierRequired: 'Platinum' as const,
+      pointsRequired: 1500,
+      icon: 'Award',
+      unlocked: false,
+      discountAmount: 15
+    },
+    {
+      id: 'ben-cava-priority',
+      title: 'Mesa Preferente en Cava Privada & Valet Parking',
+      titleEn: 'VIP Private Wine Cava Seating & Valet Parking',
+      description: 'Acceso exclusivo a nuestra Cava Privada con sommelier dedicado sin consumo mínimo previo.',
+      descriptionEn: 'Exclusive access to our Private Wine Cava with dedicated sommelier.',
+      tierRequired: 'Black Diamond' as const,
+      pointsRequired: 3000,
+      icon: 'Crown',
+      unlocked: false
+    }
+  ],
+  recentActivity: [
+    {
+      id: 'act-1',
+      title: 'Pedido Solomillo Wagyu A5 & Maridaje',
+      titleEn: 'Order Wagyu A5 & Wine Pairing',
+      date: 'Hoy, 14:30',
+      points: 120,
+      type: 'earned' as const
+    },
+    {
+      id: 'act-2',
+      title: 'Reserva confirmada en Terraza Central',
+      titleEn: 'Reservation confirmed at Central Terrace',
+      date: 'Ayer',
+      points: 80,
+      type: 'earned' as const
+    },
+    {
+      id: 'act-3',
+      title: 'Opinión verificada 5 estrellas',
+      titleEn: 'Verified 5-star Review',
+      date: 'Hace 3 días',
+      points: 50,
+      type: 'earned' as const
+    },
+    {
+      id: 'act-4',
+      title: 'Canje de Cupón Degustación',
+      titleEn: 'Redeemed Tasting Coupon',
+      date: 'Hace 1 semana',
+      points: -250,
+      type: 'redeemed' as const
+    }
+  ]
 };

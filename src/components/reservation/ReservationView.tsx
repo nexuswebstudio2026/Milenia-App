@@ -38,7 +38,7 @@ export const ReservationView: React.FC = () => {
     return today.toISOString().split('T')[0];
   });
   const [timeSlot, setTimeSlot] = useState('21:00');
-  const [seatingArea, setSeatingArea] = useState<TableReservation['seatingArea']>('patio');
+  const [seatingArea, setSeatingArea] = useState<TableReservation['seatingArea']>('terrace');
   const [occasion, setOccasion] = useState('Cena Romántica / Velada de Autor');
   const [guestName, setGuestName] = useState('María Rodríguez');
   const [guestEmail, setGuestEmail] = useState('maria.rodriguez@example.com');
@@ -52,36 +52,44 @@ export const ReservationView: React.FC = () => {
 
   const seatingAreasList = [
     {
-      id: 'indoor' as const,
+      id: 'terrace' as const,
+      titleEs: 'Terraza Panorámica & Jardín',
+      titleEn: 'Panoramic Garden Terrace',
+      descEs: 'Espacio al aire libre con vegetación mediterránea, velas aromáticas y calefactores de diseño.',
+      descEn: 'Open-air Mediterranean terrace with lush botanicals, candlelit atmosphere and warm heaters.',
+      badgeEs: 'Ambiente Natural',
+      badgeEn: 'Open Air & Garden',
+      icon: <Trees className="w-5 h-5 text-emerald-400" />
+    },
+    {
+      id: 'main_dining' as const,
       titleEs: 'Salón Principal Haute Cuisine',
-      titleEn: 'Haute Cuisine Main Room',
-      descEs: 'Ambiente climatizado, mesas con mantelería de lino y jazz acústico',
-      descEn: 'Air conditioned, pure linen tables & warm acoustic jazz',
-      icon: <Wine className="w-5 h-5 text-amber-500" />
+      titleEn: 'Haute Cuisine Main Salon',
+      descEs: 'Elegante mantelería de lino, vajilla artesanal, iluminación cálida y música jazz acústica.',
+      descEn: 'Pure linen tablecloths, artisan tableware, warm ambient lighting and soft acoustic jazz.',
+      badgeEs: 'Clásico & Sofisticado',
+      badgeEn: 'Classic & Refined',
+      icon: <Wine className="w-5 h-5 text-amber-400" />
     },
     {
-      id: 'patio' as const,
-      titleEs: 'Terraza & Jardín Botánico',
-      titleEn: 'Botanical Garden Patio',
-      descEs: 'Espacio al aire libre con vegetación mediterránea, velas aromáticas y calefactores',
-      descEn: 'Outdoor open-air terrace with lush garden greenery & candles',
-      icon: <Trees className="w-5 h-5 text-emerald-500" />
-    },
-    {
-      id: 'bar' as const,
-      titleEs: 'Barra Sommelier & Mixología',
-      titleEn: 'Sommelier Bar & Mixology Lounge',
-      descEs: 'Ideal para parejas con degustación de maridajes y showcooking en directo',
-      descEn: 'Ideal for pairs with fine wine pairings & front-row chef kitchen',
-      icon: <Sparkles className="w-5 h-5 text-amber-400" />
+      id: 'private_cava' as const,
+      titleEs: 'Cava Privada & Sommelier',
+      titleEn: 'Private Wine Cellar & Sommelier',
+      descEs: 'Bodega subterránea íntima rodeada de grandes añadas con atención exclusiva del sommelier jefe.',
+      descEn: 'Intimate cellar surrounded by vintage reserves with dedicated master sommelier service.',
+      badgeEs: 'Experiencia Exclusiva VIP',
+      badgeEn: 'Exclusive VIP Experience',
+      icon: <Award className="w-5 h-5 text-amber-300" />
     },
     {
       id: 'vip_rooftop' as const,
-      titleEs: 'Rooftop VIP & Bodega Privada',
-      titleEn: 'Panoramic VIP Rooftop & Cellar',
-      descEs: 'Vistas panorámicas a la ciudad, servicio de sommelier dedicado y carta privada',
-      descEn: 'Panoramic skyline views, dedicated sommelier & private reserve menu',
-      icon: <Award className="w-5 h-5 text-amber-300" />
+      titleEs: 'Rooftop VIP Lounge & Mixología',
+      titleEn: 'VIP Rooftop Lounge & Mixology',
+      descEs: 'Vistas panorámicas a la ciudad con coctelería de autor y bocados de alta cocina.',
+      descEn: 'Panoramic city views featuring signature mixology pairings and chef aperitifs.',
+      badgeEs: 'Vistas Panorámicas',
+      badgeEn: 'City Skyline',
+      icon: <Sparkles className="w-5 h-5 text-purple-400" />
     }
   ];
 
@@ -308,7 +316,7 @@ export const ReservationView: React.FC = () => {
               <span>3. {language === 'es' ? 'Ambiente y Mesa Preferida' : 'Seating Area Preference'}</span>
             </label>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {seatingAreasList.map((area) => {
                 const isSelected = seatingArea === area.id;
                 return (
@@ -316,22 +324,44 @@ export const ReservationView: React.FC = () => {
                     key={area.id}
                     type="button"
                     onClick={() => setSeatingArea(area.id)}
-                    className={`p-4 rounded-2xl border text-left transition flex items-start gap-3 cursor-pointer ${
+                    className={`p-4 sm:p-4.5 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer relative overflow-hidden ${
                       isSelected
-                        ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 shadow-xs'
+                        ? 'border-amber-500 bg-amber-50/80 dark:bg-amber-950/40 shadow-md ring-1 ring-amber-500/50'
                         : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
-                    <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl shadow-2xs border border-slate-200 dark:border-slate-700 shrink-0">
-                      {area.icon}
+                    <div className="flex items-start justify-between gap-3 w-full">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2.5 rounded-xl shadow-2xs border shrink-0 ${
+                          isSelected 
+                            ? 'bg-amber-500/20 border-amber-500/40' 
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                        }`}>
+                          {area.icon}
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                            <span>{language === 'es' ? area.titleEs : area.titleEn}</span>
+                          </div>
+                          <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 ${
+                            isSelected
+                              ? 'bg-amber-500 text-slate-950 font-bold'
+                              : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400'
+                          }`}>
+                            {language === 'es' ? area.badgeEs : area.badgeEn}
+                          </span>
+                        </div>
+                      </div>
+
+                      {isSelected && (
+                        <div className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <div className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
-                        {language === 'es' ? area.titleEs : area.titleEn}
-                      </div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                        {language === 'es' ? area.descEs : area.descEn}
-                      </div>
+
+                    <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-3 leading-snug">
+                      {language === 'es' ? area.descEs : area.descEn}
                     </div>
                   </button>
                 );

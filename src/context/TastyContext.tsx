@@ -14,7 +14,11 @@ import {
   RestaurantConfig,
   OrderCustomerInfo,
   ThemeMode,
-  FirebaseSyncStatus
+  FirebaseSyncStatus,
+  DietaryPreference,
+  WinePairing,
+  SuggestedSide,
+  MileniaRewardsProfile
 } from '../types';
 import { 
   INITIAL_CATEGORIES, 
@@ -23,7 +27,8 @@ import {
   INITIAL_REVIEWS, 
   INITIAL_ORDERS, 
   INITIAL_RESERVATIONS, 
-  DEFAULT_CONFIG 
+  DEFAULT_CONFIG,
+  INITIAL_REWARDS_PROFILE
 } from '../data/mockData';
 import { 
   db, 
@@ -124,11 +129,30 @@ interface TastyContextType {
   removeToast: (id: string) => void;
   triggerConfetti: () => void;
 
-  // Modal helpers
+  // Modals & UI Helpers
   customizingItem: MenuItem | null;
   setCustomizingItem: (item: MenuItem | null) => void;
   isCheckoutOpen: boolean;
   setIsCheckoutOpen: (open: boolean) => void;
+
+  // Upsell Modal
+  isUpsellOpen: boolean;
+  setIsUpsellOpen: (open: boolean) => void;
+  upsellItem: MenuItem | null;
+  setUpsellItem: (item: MenuItem | null) => void;
+  addWinePairingToCart: (wine: WinePairing) => void;
+  addSideToCart: (side: SuggestedSide) => void;
+
+  // Milenia Rewards & Loyalty
+  isRewardsOpen: boolean;
+  setIsRewardsOpen: (open: boolean) => void;
+  rewardsProfile: MileniaRewardsProfile;
+  setRewardsProfile: React.Dispatch<React.SetStateAction<MileniaRewardsProfile>>;
+  redeemRewardBenefit: (benefitId: string) => boolean;
+
+  // Global Dietary Filter
+  dietaryFilter: DietaryPreference | 'all';
+  setDietaryFilter: (filter: DietaryPreference | 'all') => void;
 }
 
 // Automatic theme calculation:
@@ -244,6 +268,25 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Upsell & Pairings State
+  const [isUpsellOpen, setIsUpsellOpen] = useState(false);
+  const [upsellItem, setUpsellItem] = useState<MenuItem | null>(null);
+
+  // Global Dietary Filter
+  const [dietaryFilter, setDietaryFilter] = useState<DietaryPreference | 'all'>('all');
+
+  // Milenia Rewards State
+  const [isRewardsOpen, setIsRewardsOpen] = useState(false);
+  const [rewardsProfile, setRewardsProfile] = useState<MileniaRewardsProfile>(() => {
+    const saved = localStorage.getItem('milenia_rewards');
+    return saved ? JSON.parse(saved) : INITIAL_REWARDS_PROFILE;
+  });
+
+  // Synchronize rewards with localStorage
+  useEffect(() => {
+    localStorage.setItem('milenia_rewards', JSON.stringify(rewardsProfile));
+  }, [rewardsProfile]);
 
   // Toast notifications helper
   const addToast = (type: ToastMessage['type'], title: string, message: string) => {
@@ -449,6 +492,90 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
 
     addToast('success', language === 'es' ? 'Plato Añadido' : 'Added to Cart', `${quantity}x ${item.name}`);
+
+    // Trigger Upsell modal if this is a main course or has wine pairing / side recommendation
+    if (item.winePairing || item.suggestedSide || item.isMainCourse || item.categoryId === 'mains') {
+      setUpsellItem(item);
+      setIsUpsellOpen(true);
+    }
+  };
+
+  const addWinePairingToCart = (wine: WinePairing) => {
+    const wineMenuItem: MenuItem = {
+      id: wine.id,
+      name: wine.name,
+      nameEn: wine.nameEn || wine.name,
+      description: wine.description,
+      descriptionEn: wine.descriptionEn,
+      price: wine.price,
+      categoryId: 'drinks',
+      image: wine.image,
+      prepTimeMinutes: 2,
+      dietary: ['chef_special'],
+      inStock: true
+    };
+
+    addToCart(wineMenuItem, 1, []);
+    addToast('success', language === 'es' ? 'Maridaje Añadido' : 'Wine Pairing Added', wine.name);
+  };
+
+  const addSideToCart = (side: SuggestedSide) => {
+    const sideMenuItem: MenuItem = {
+      id: side.id,
+      name: side.name,
+      nameEn: side.nameEn || side.name,
+      description: side.description,
+      descriptionEn: side.descriptionEn,
+      price: side.price,
+      categoryId: 'starters',
+      image: side.image,
+      prepTimeMinutes: 5,
+      dietary: ['chef_special'],
+      inStock: true
+    };
+
+    addToCart(sideMenuItem, 1, []);
+    addToast('success', language === 'es' ? 'Guarnición Añadida' : 'Side Dish Added', side.name);
+  };
+
+  const redeemRewardBenefit = (benefitId: string): boolean => {
+    const benefit = rewardsProfile.benefits.find(b => b.id === benefitId);
+    if (!benefit) return false;
+
+    if (!benefit.unlocked && rewardsProfile.currentPoints < benefit.pointsRequired) {
+      addToast('error', language === 'es' ? 'Puntos Insuficientes' : 'Not Enough Points', `Necesitas ${benefit.pointsRequired} pts para canjear este beneficio.`);
+      return false;
+    }
+
+    // Deduct points if it was a point redemption
+    const cost = benefit.unlocked ? 0 : benefit.pointsRequired;
+    const newPoints = Math.max(0, rewardsProfile.currentPoints - cost);
+
+    // If it has a discount amount, apply discount to cart
+    if (benefit.discountAmount) {
+      setDiscount(benefit.discountAmount);
+      setPromoCode(benefit.code || 'REWARDS-VOUCHER');
+    }
+
+    setRewardsProfile(prev => ({
+      ...prev,
+      currentPoints: newPoints,
+      recentActivity: [
+        {
+          id: `act-${Date.now()}`,
+          title: `Canje: ${benefit.title}`,
+          titleEn: `Redeemed: ${benefit.titleEn}`,
+          date: 'Hoy',
+          points: -cost,
+          type: 'redeemed'
+        },
+        ...prev.recentActivity
+      ]
+    }));
+
+    triggerConfetti();
+    addToast('success', language === 'es' ? 'Beneficio Activado' : 'Reward Claimed', benefit.title);
+    return true;
   };
 
   const removeFromCart = (cartId: string) => {
@@ -561,6 +688,36 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsCheckoutOpen(false);
     triggerConfetti();
 
+    // Award loyalty rewards points (+10 pts per 1€)
+    const pointsEarned = Math.max(10, Math.round(total * 10));
+    setRewardsProfile((prev) => {
+      const newPoints = prev.currentPoints + pointsEarned;
+      const newLifetime = prev.lifetimePoints + pointsEarned;
+      const newTier = newLifetime >= 3000 ? 'Black Diamond' : newLifetime >= 1500 ? 'Platinum' : newLifetime >= 500 ? 'Gold' : 'Silver';
+      const ptsToNext = newTier === 'Black Diamond' ? 0 : (newTier === 'Platinum' ? 3000 - newLifetime : newTier === 'Gold' ? 1500 - newLifetime : 500 - newLifetime);
+      const progress = newTier === 'Black Diamond' ? 100 : Math.min(100, Math.round((newLifetime / (newTier === 'Platinum' ? 3000 : newTier === 'Gold' ? 1500 : 500)) * 100));
+
+      return {
+        ...prev,
+        currentPoints: newPoints,
+        lifetimePoints: newLifetime,
+        tier: newTier,
+        pointsToNextTier: Math.max(0, ptsToNext),
+        tierProgressPercentage: progress,
+        recentActivity: [
+          {
+            id: `act-${Date.now()}`,
+            title: `Comanda #${newOrderNumber} (+${pointsEarned} pts)`,
+            titleEn: `Order #${newOrderNumber} (+${pointsEarned} pts)`,
+            date: 'Hoy',
+            points: pointsEarned,
+            type: 'earned'
+          },
+          ...prev.recentActivity
+        ]
+      };
+    });
+
     setDoc(doc(db, 'orders', orderId), newOrder).catch((err) => {
       handleFirestoreError(err, OperationType.CREATE, `orders/${orderId}`);
     });
@@ -568,7 +725,7 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addToast(
       'success', 
       language === 'es' ? '¡Pedido Confirmado!' : 'Order Placed!', 
-      language === 'es' ? `Comanda #${newOrderNumber} enviada a cocina` : `Ticket #${newOrderNumber} sent to kitchen`
+      language === 'es' ? `Comanda #${newOrderNumber} enviada a cocina (+${pointsEarned} pts Milenia)` : `Ticket #${newOrderNumber} sent to kitchen (+${pointsEarned} pts)`
     );
 
     return newOrder;
@@ -610,7 +767,9 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const createReservation = (data: Omit<TableReservation, 'id' | 'reservationCode' | 'createdAt' | 'status'>): TableReservation => {
     const code = `RES-${Math.floor(1000 + Math.random() * 9000)}`;
     const id = `res-${Date.now()}`;
-    const tableAssigned = data.seatingArea === 'patio' ? 'Mesa Terraza T-04' :
+    const tableAssigned = data.seatingArea === 'terrace' || data.seatingArea === 'patio' ? 'Terraza Panorámica T-04' :
+                          data.seatingArea === 'private_cava' ? 'Cava Privada Sommelier C-01' :
+                          data.seatingArea === 'main_dining' || data.seatingArea === 'indoor' ? 'Salón Principal S-12' :
                           data.seatingArea === 'bar' ? 'Barra Gourmet B-02' :
                           data.seatingArea === 'vip_rooftop' ? 'Mesa Rooftop R-01' : 'Mesa Salón S-12';
 
@@ -776,7 +935,20 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         customizingItem,
         setCustomizingItem,
         isCheckoutOpen,
-        setIsCheckoutOpen
+        setIsCheckoutOpen,
+        isUpsellOpen,
+        setIsUpsellOpen,
+        upsellItem,
+        setUpsellItem,
+        addWinePairingToCart,
+        addSideToCart,
+        isRewardsOpen,
+        setIsRewardsOpen,
+        rewardsProfile,
+        setRewardsProfile,
+        redeemRewardBenefit,
+        dietaryFilter,
+        setDietaryFilter
       }}
     >
       {children}
