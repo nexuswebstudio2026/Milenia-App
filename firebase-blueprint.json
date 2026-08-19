@@ -1,0 +1,126 @@
+{
+  "entities": {
+    "MenuItem": {
+      "title": "MenuItem",
+      "description": "Plato gastronómico o bebida del menú del restaurante",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 150 },
+        "nameEn": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 500 },
+        "descriptionEn": { "type": "string", "maxLength": 500 },
+        "price": { "type": "number" },
+        "originalPrice": { "type": "number" },
+        "categoryId": { "type": "string", "maxLength": 50 },
+        "image": { "type": "string", "maxLength": 1000 },
+        "inStock": { "type": "boolean" },
+        "prepTimeMinutes": { "type": "number" },
+        "calories": { "type": "number" },
+        "dietary": { "type": "array" },
+        "optionGroups": { "type": "array" }
+      },
+      "required": ["name", "price", "categoryId", "inStock"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Pedido de cliente a domicilio o para llevar",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNumber": { "type": "string", "maxLength": 20 },
+        "orderType": { "type": "string", "enum": ["delivery", "pickup", "dine_in"] },
+        "status": { "type": "string", "enum": ["received", "confirmed", "preparing", "ready", "out_for_delivery", "delivered", "cancelled"] },
+        "customer": { "type": "object" },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "deliveryFee": { "type": "number" },
+        "serviceFee": { "type": "number" },
+        "discount": { "type": "number" },
+        "tip": { "type": "number" },
+        "total": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "paymentStatus": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "estimatedDeliveryTime": { "type": "string" },
+        "notes": { "type": "string", "maxLength": 500 }
+      },
+      "required": ["orderNumber", "orderType", "status", "total", "items", "createdAt"]
+    },
+    "TableReservation": {
+      "title": "TableReservation",
+      "description": "Reserva de mesa en el restaurante",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "reservationCode": { "type": "string", "maxLength": 20 },
+        "guestName": { "type": "string", "maxLength": 100 },
+        "guestEmail": { "type": "string", "maxLength": 100 },
+        "guestPhone": { "type": "string", "maxLength": 30 },
+        "guestsCount": { "type": "number" },
+        "date": { "type": "string", "maxLength": 20 },
+        "time": { "type": "string", "maxLength": 20 },
+        "seatingArea": { "type": "string" },
+        "occasion": { "type": "string", "maxLength": 100 },
+        "specialRequests": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["confirmed", "seated", "completed", "cancelled"] },
+        "tableAssigned": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["reservationCode", "guestName", "guestsCount", "date", "time", "status"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Valoración y opinión de cliente",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "author": { "type": "string", "maxLength": 100 },
+        "rating": { "type": "number" },
+        "comment": { "type": "string", "maxLength": 1000 },
+        "date": { "type": "string", "maxLength": 50 },
+        "foodRating": { "type": "number" },
+        "serviceRating": { "type": "number" },
+        "speedRating": { "type": "number" },
+        "verifiedOrder": { "type": "boolean" },
+        "avatar": { "type": "string", "maxLength": 500 }
+      },
+      "required": ["author", "rating", "comment"]
+    },
+    "RestaurantConfig": {
+      "title": "RestaurantConfig",
+      "description": "Configuración global operativa de L'AURA Gastronomy",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "acceptingOrders": { "type": "boolean" },
+        "freeDeliveryThreshold": { "type": "number" },
+        "taxRate": { "type": "number" },
+        "serviceFeeRate": { "type": "number" }
+      },
+      "required": ["name", "acceptingOrders"]
+    }
+  },
+  "firestore": {
+    "/menu_items/{itemId}": {
+      "schema": "MenuItem",
+      "description": "Platos de la carta gastronómica"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Pedidos tramitados por comensales"
+    },
+    "/reservations/{reservationId}": {
+      "schema": "TableReservation",
+      "description": "Reservas de mesas en el restaurante"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Reseñas públicas de comensales"
+    },
+    "/restaurant_config/settings": {
+      "schema": "RestaurantConfig",
+      "description": "Configuración general del restaurante"
+    }
+  }
+}
