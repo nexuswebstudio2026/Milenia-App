@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import confetti from 'canvas-confetti';
 import { 
   MenuItem, 
@@ -18,7 +18,11 @@ import {
   DietaryPreference,
   WinePairing,
   SuggestedSide,
-  MileniaRewardsProfile
+  MileniaRewardsProfile,
+  TenantRestaurant,
+  TenantEmployee,
+  RestaurantTable,
+  TableStatus
 } from '../types';
 import { 
   INITIAL_CATEGORIES, 
@@ -30,6 +34,15 @@ import {
   DEFAULT_CONFIG,
   INITIAL_REWARDS_PROFILE
 } from '../data/mockData';
+import { 
+  INITIAL_TENANTS, 
+  INITIAL_EMPLOYEES, 
+  INITIAL_TABLES, 
+  CAMILO_CATEGORIES, 
+  CAMILO_MENU_ITEMS, 
+  CAMILO_ORDERS 
+} from '../data/multiTenantData';
+import { useTenantRoute, ParsedTenantRoute, AppRouteType } from '../hooks/useTenantRoute';
 import { 
   db, 
   handleFirestoreError, 
@@ -47,7 +60,7 @@ import {
   getDocs 
 } from 'firebase/firestore';
 
-export type AppView = 'menu' | 'reservations' | 'locations' | 'reviews' | 'tracking' | 'admin';
+export type AppView = 'menu' | 'reservations' | 'locations' | 'reviews' | 'tracking' | 'admin' | 'superadmin' | 'dashboard';
 export type Language = 'es' | 'en';
 
 export interface ToastMessage {
@@ -58,6 +71,32 @@ export interface ToastMessage {
 }
 
 interface TastyContextType {
+  // Multi-Tenant SaaS State
+  tenants: TenantRestaurant[];
+  currentTenantId: string;
+  currentTenant: TenantRestaurant;
+  switchTenant: (tenantId: string) => void;
+  addTenant: (tenant: TenantRestaurant) => void;
+  
+  // Staff & Employees (Tenant-isolated)
+  currentEmployeeId: string;
+  currentEmployee: TenantEmployee | null;
+  tenantEmployees: TenantEmployee[];
+  switchEmployee: (empId: string) => void;
+
+  // Tables & Salón (Tenant-isolated)
+  tenantTables: RestaurantTable[];
+  updateTableStatus: (tableId: string, status: TableStatus, currentOrderId?: string) => void;
+
+  // Dynamic Routing
+  currentRoute: ParsedTenantRoute;
+  navigateTo: (options: {
+    restaurantId?: string;
+    employeeId?: string;
+    routeType?: AppRouteType;
+    subView?: string;
+  }) => void;
+
   // Navigation & General
   currentView: AppView;
   setCurrentView: (view: AppView) => void;
@@ -109,6 +148,7 @@ interface TastyContextType {
   activeOrder: Order | null;
   setActiveOrder: (order: Order | null) => void;
   placeOrder: (customer: OrderCustomerInfo, paymentMethod: Order['paymentMethod'], notes?: string) => Order;
+  addOrder: (order: Order) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus, note?: string) => void;
 
   // Reservations
@@ -126,6 +166,7 @@ interface TastyContextType {
   // UI Toast & Celebrations
   toasts: ToastMessage[];
   addToast: (type: ToastMessage['type'], title: string, message: string) => void;
+  showToast: (title: string, message: string, type?: ToastMessage['type']) => void;
   removeToast: (id: string) => void;
   triggerConfetti: () => void;
 
@@ -169,8 +210,96 @@ function getAutomaticTheme(): ThemeMode {
 const TastyContext = createContext<TastyContextType | undefined>(undefined);
 
 export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Navigation & Language
-  const [currentView, setCurrentView] = useState<AppView>('menu');
+  // Dynamic Multi-Tenant Routing
+  const { currentRoute, navigateTo } = useTenantRoute();
+
+  // Multi-Tenant Data States
+  const [tenants, setTenants] = useState<TenantRestaurant[]>(INITIAL_TENANTS);
+  const [employees, setEmployees] = useState<TenantEmployee[]>(INITIAL_EMPLOYEES);
+  const [tables, setTables] = useState<RestaurantTable[]>(INITIAL_TABLES);
+
+  const currentTenantId = currentRoute.restaurantId || '1';
+  const currentTenant = useMemo(() => {
+    return tenants.find(t => t.id === currentTenantId || t.slug === currentTenantId) || tenants[0];
+  }, [tenants, currentTenantId]);
+
+  const tenantEmployees = useMemo(() => {
+    return employees.filter(e => e.restaurantId === currentTenant.id);
+  }, [employees, currentTenant.id]);
+
+  const currentEmployeeId = currentRoute.employeeId || (tenantEmployees[0]?.id || 'emp-101');
+  const currentEmployee = useMemo(() => {
+    return tenantEmployees.find(e => e.id === currentEmployeeId) || tenantEmployees[0] || null;
+  }, [tenantEmployees, currentEmployeeId]);
+
+  const tenantTables = useMemo(() => {
+    return tables.filter(t => t.restaurantId === currentTenant.id);
+  }, [tables, currentTenant.id]);
+
+  const updateTableStatus = (tableId: string, status: TableStatus, currentOrderId?: string) => {
+    setTables(prev => prev.map(tbl => tbl.id === tableId ? { ...tbl, status, currentOrderId } : tbl));
+  };
+
+  const switchTenant = (tenantId: string) => {
+    const validTenant = tenants.find(t => t.id === tenantId || t.slug === tenantId);
+    if (!validTenant) return;
+    const firstEmp = employees.find(e => e.restaurantId === validTenant.id);
+    navigateTo({
+      restaurantId: validTenant.id,
+      employeeId: firstEmp ? firstEmp.id : 'emp-101'
+    });
+  };
+
+  const switchEmployee = (empId: string) => {
+    navigateTo({
+      employeeId: empId
+    });
+  };
+
+  const addTenant = (newTenant: TenantRestaurant) => {
+    setTenants(prev => [...prev, newTenant]);
+  };
+
+  // Dynamic Categories per Tenant
+  const categories = useMemo(() => {
+    if (currentTenant.id === '1') {
+      return CAMILO_CATEGORIES;
+    }
+    return INITIAL_CATEGORIES;
+  }, [currentTenant.id]);
+
+  // Dynamic Menu Items per Tenant
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
+    return CAMILO_MENU_ITEMS;
+  });
+
+  useEffect(() => {
+    if (currentTenant.id === '1') {
+      setMenuItems(CAMILO_MENU_ITEMS);
+    } else {
+      setMenuItems(INITIAL_MENU_ITEMS.map(it => ({ ...it, restaurantId: currentTenant.id })));
+    }
+  }, [currentTenant.id]);
+
+  // Dynamic View synchronized with Route
+  const currentView: AppView = useMemo(() => {
+    if (currentRoute.routeType === 'superadmin') return 'superadmin';
+    if (currentRoute.routeType === 'employee_dashboard') return 'dashboard';
+    if (currentRoute.routeType === 'tenant_admin') return 'admin';
+    if (currentRoute.routeType === 'customer_reservations') return 'reservations';
+    if (currentRoute.routeType === 'customer_tracking') return 'tracking';
+    return 'menu';
+  }, [currentRoute.routeType]);
+
+  const setCurrentView = (view: AppView) => {
+    if (view === 'superadmin') navigateTo({ routeType: 'superadmin' });
+    else if (view === 'admin') navigateTo({ routeType: 'tenant_admin' });
+    else if (view === 'dashboard') navigateTo({ routeType: 'employee_dashboard' });
+    else if (view === 'reservations') navigateTo({ routeType: 'customer_reservations' });
+    else if (view === 'tracking') navigateTo({ routeType: 'customer_tracking' });
+    else navigateTo({ routeType: 'customer_menu' });
+  };
+
   const [language, setLanguage] = useState<Language>('es');
   const [orderType, setOrderType] = useState<OrderType>('delivery');
 
@@ -217,27 +346,22 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Firebase status
   const [firebaseStatus, setFirebaseStatus] = useState<FirebaseSyncStatus>('syncing');
 
-  // Locations & Categories
+  // Locations
   const [locations] = useState<RestaurantLocation[]>(INITIAL_LOCATIONS);
   const [selectedLocation, setSelectedLocation] = useState<RestaurantLocation>(INITIAL_LOCATIONS[0]);
-  const [categories] = useState<MenuCategory[]>(INITIAL_CATEGORIES);
-
-  // Dynamic Data with fallback to initial mock data
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
-    const saved = localStorage.getItem('milenia_menu_items') || localStorage.getItem('laura_menu_items');
-    return saved ? JSON.parse(saved) : INITIAL_MENU_ITEMS;
-  });
 
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('milenia_orders') || localStorage.getItem('laura_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    return CAMILO_ORDERS;
   });
 
   const [activeOrder, setActiveOrder] = useState<Order | null>(() => {
-    const saved = localStorage.getItem('milenia_orders') || localStorage.getItem('laura_orders');
-    const list = saved ? JSON.parse(saved) : INITIAL_ORDERS;
-    return list.length > 0 ? list[0] : null;
+    return CAMILO_ORDERS.length > 0 ? CAMILO_ORDERS[0] : null;
   });
+
+  const addOrder = (order: Order) => {
+    setOrders(prev => [order, ...prev]);
+    setActiveOrder(order);
+  };
 
   const [reservations, setReservations] = useState<TableReservation[]>(() => {
     const saved = localStorage.getItem('milenia_reservations') || localStorage.getItem('laura_reservations');
@@ -876,9 +1000,29 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
+  const showToast = (title: string, message: string, type: ToastMessage['type'] = 'info') => {
+    addToast(type, title, message);
+  };
+
   return (
     <TastyContext.Provider
       value={{
+        // Multi-Tenant SaaS
+        tenants,
+        currentTenantId,
+        currentTenant,
+        switchTenant,
+        addTenant,
+        currentEmployeeId,
+        currentEmployee,
+        tenantEmployees,
+        switchEmployee,
+        tenantTables,
+        updateTableStatus,
+        currentRoute,
+        navigateTo,
+
+        // Navigation & State
         currentView,
         setCurrentView,
         language,
@@ -919,6 +1063,7 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         activeOrder,
         setActiveOrder,
         placeOrder,
+        addOrder,
         updateOrderStatus,
         reservations,
         createReservation,
@@ -930,6 +1075,7 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateConfig,
         toasts,
         addToast,
+        showToast,
         removeToast,
         triggerConfetti,
         customizingItem,

@@ -33,6 +33,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onOpenInstallModal }) => {
   const { 
+    currentTenant,
+    currentEmployee,
     currentView, 
     setCurrentView, 
     language, 
@@ -50,7 +52,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenInstallModal }) => {
     toggleTheme,
     firebaseStatus,
     setIsRewardsOpen,
-    rewardsProfile
+    rewardsProfile,
+    navigateTo
   } = useTasty();
 
   const { deviceInfo, triggerInstall, hasNativePrompt, isInstalled } = usePwaInstall();
@@ -184,14 +187,51 @@ export const Header: React.FC<HeaderProps> = ({ onOpenInstallModal }) => {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 w-full">
         <div className="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-4">
           
-          {/* Brand Logo - MILENIA */}
+          {/* Brand Logo - Dynamic Tenant & MILENIA */}
           <div className="flex items-center gap-3 sm:gap-6 shrink-0">
             <button
               onClick={() => setCurrentView('menu')}
               id="brand-logo-btn"
-              className="group cursor-pointer focus:outline-none"
+              className="group cursor-pointer focus:outline-none flex items-center gap-3 text-left"
             >
-              <MeniaLogo size="md" />
+              {currentTenant.id === '1' ? (
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-orange-500/20 border border-orange-400/40">
+                    🔥
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-black text-sm sm:text-base text-slate-900 dark:text-white tracking-tight">
+                        {currentTenant.name}
+                      </span>
+                      <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded">
+                        ID: 1
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                      NIT: {currentTenant.branding.nit} • {currentTenant.city.split(',')[0]}
+                    </p>
+                  </div>
+                </div>
+              ) : currentTenant.id === '2' ? (
+                <div className="flex items-center gap-2">
+                  <MeniaLogo size="md" />
+                </div>
+              ) : (
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white font-black text-lg shadow-md">
+                    🥑
+                  </div>
+                  <div>
+                    <span className="font-black text-sm sm:text-base text-slate-900 dark:text-white tracking-tight">
+                      {currentTenant.name}
+                    </span>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      {currentTenant.city} • SaaS Milenia
+                    </p>
+                  </div>
+                </div>
+              )}
             </button>
 
             {/* Fulfillment Type Toggle (Desktop XL) */}

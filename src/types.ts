@@ -1,3 +1,5 @@
+export * from './types/saas';
+
 export type OrderType = 'delivery' | 'pickup' | 'dinein';
 
 export type OrderStatus = 
@@ -55,6 +57,7 @@ export interface SuggestedSide {
 
 export interface MenuItem {
   id: string;
+  restaurantId?: string; // Multi-tenant identifier
   name: string;
   nameEn?: string;
   description: string;
@@ -75,6 +78,7 @@ export interface MenuItem {
 
 export interface MenuCategory {
   id: string;
+  restaurantId?: string; // Multi-tenant identifier
   name: string;
   nameEn: string;
   icon: string;
@@ -113,6 +117,9 @@ export interface OrderCustomerInfo {
 
 export interface Order {
   id: string;
+  restaurantId?: string; // Multi-tenant identifier
+  employeeId?: string; // Staff member who took or handled the order
+  tableNumber?: string;
   orderNumber: string;
   createdAt: string;
   orderType: OrderType;
@@ -126,7 +133,7 @@ export interface Order {
   discount: number;
   discountCode?: string;
   total: number;
-  paymentMethod: 'card' | 'cash' | 'paypal' | 'applepay';
+  paymentMethod: 'card' | 'cash' | 'paypal' | 'applepay' | 'nequi' | 'daviplata';
   paymentStatus: 'paid' | 'pending' | 'cash_on_delivery';
   estimatedDeliveryTime: string;
   scheduledFor?: string;
@@ -148,6 +155,7 @@ export type SeatingArea = 'terrace' | 'main_dining' | 'private_cava' | 'indoor' 
 
 export interface TableReservation {
   id: string;
+  restaurantId?: string; // Multi-tenant identifier
   reservationCode: string;
   createdAt: string;
   guestName: string;
