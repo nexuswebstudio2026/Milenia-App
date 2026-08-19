@@ -1,7 +1,7 @@
 {
-  "name": "MILENIA Gastronomy by Ana Milena",
-  "short_name": "MILENIA",
-  "description": "Alta cocina, atelier de autor, pedidos en línea y reservas exclusivas por Ana Milena.",
+  "name": "MENIA - Restaurant & Gastronomy",
+  "short_name": "MENIA",
+  "description": "Plataforma de alta cocina, pedidos en línea, reservas de mesa y cartas gourmet de MENIA.",
   "start_url": "/",
   "id": "/",
   "display": "standalone",
@@ -15,23 +15,11 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
     {
-      "name": "Ver Carta Gastronómica",
+      "name": "Ver Carta MENIA",
       "short_name": "Carta",
       "description": "Explora los platos de autor y cavas",
       "url": "/?view=menu"
@@ -39,11 +27,11 @@
     {
       "name": "Reservar Mesa",
       "short_name": "Reservas",
-      "description": "Reserva tu mesa en el atelier o terraza",
+      "description": "Reserva tu mesa en sala o terraza",
       "url": "/?view=reservations"
     },
     {
-      "name": "Mis Pedidos en Vivo",
+      "name": "Mis Pedidos",
       "short_name": "Pedidos",
       "description": "Seguimiento en tiempo real de tu comanda",
       "url": "/?view=tracking"

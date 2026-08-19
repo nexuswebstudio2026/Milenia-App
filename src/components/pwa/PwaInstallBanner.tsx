@@ -42,12 +42,12 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onOpenModal 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 relative z-10">
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 p-1">
-              <img src="/icon.svg" alt="MILENIA Icon" className="w-7 h-7 object-contain" />
+              <img src="/icon.svg" alt="MENIA Icon" className="w-7 h-7 object-contain" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="font-serif font-bold text-sm text-white truncate">
-                  MILENIA App
+                <span className="font-serif font-bold text-sm text-white tracking-wider truncate">
+                  MENIA App
                 </span>
                 <span className="bg-amber-500 text-slate-950 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
                   {isIOS ? 'iOS / Safari' : isAndroid ? 'Android' : 'Desktop / Web'}
@@ -55,8 +55,8 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onOpenModal 
               </div>
               <p className="text-xs text-slate-300 truncate">
                 {language === 'es'
-                  ? 'Instala la aplicación en tu pantalla de inicio para pedidos y reservas rápidas.'
-                  : 'Install the app to your home screen for rapid bookings & live dining tickets.'}
+                  ? 'Instala la aplicación MENIA para pedidos directos y reservas en tu restaurante.'
+                  : 'Install the MENIA app for direct orders and restaurant bookings.'}
               </p>
             </div>
           </div>

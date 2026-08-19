@@ -58,7 +58,7 @@ export const ReviewsView: React.FC = () => {
             <span>{language === 'es' ? 'Experiencia & Críticas' : 'Verified Reviews'}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-slate-900 dark:text-white">
-            {language === 'es' ? 'Opiniones en MILENIA by Ana Milena' : 'Guest Reviews at MILENIA'}
+            {language === 'es' ? 'Opiniones de Comensales en MENIA' : 'Guest Reviews at MENIA'}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md">
             {language === 'es'

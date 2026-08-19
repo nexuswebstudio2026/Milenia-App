@@ -63,7 +63,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
             <div className="inline-flex relative">
               <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-amber-400 to-amber-600 p-0.5 shadow-lg shadow-amber-500/25">
                 <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                  <img src="/icon.svg" alt="MILENIA Icon" className="w-10 h-10 object-contain" />
+                  <img src="/icon.svg" alt="MENIA Icon" className="w-11 h-11 object-contain" />
                 </div>
               </div>
               <span className="absolute -top-1 -right-1 flex h-4 w-4">
@@ -77,13 +77,13 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                 <Sparkles className="w-3 h-3 text-amber-400" />
                 <span>{language === 'es' ? 'App Oficial & PWA' : 'Official Web App'}</span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-serif font-bold text-white tracking-wide">
-                {language === 'es' ? 'Instalar MILENIA' : 'Install MILENIA'}
+              <h2 className="text-xl sm:text-2xl font-serif font-black text-white tracking-wider">
+                {language === 'es' ? 'Instalar MENIA' : 'Install MENIA'}
               </h2>
               <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
                 {language === 'es'
-                  ? 'Accede a la alta cocina de Ana Milena con 1 toque desde tu pantalla de inicio.'
-                  : 'Instant access to Ana Milena haute cuisine from your home screen or desktop.'}
+                  ? 'Accede a la carta, reservas y pedidos de MENIA con 1 toque desde tu dispositivo.'
+                  : 'Instant access to MENIA dining, booking, and orders from your home screen.'}
               </p>
             </div>
           </div>
@@ -115,7 +115,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
             <div className="bg-emerald-950/40 border border-emerald-800/60 rounded-2xl p-4 text-center space-y-2">
               <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
               <p className="text-xs font-bold text-emerald-300">
-                {language === 'es' ? '¡MILENIA ya está instalada en este dispositivo!' : 'MILENIA is already installed!'}
+                {language === 'es' ? '¡MENIA ya está instalada en este dispositivo!' : 'MENIA is already installed!'}
               </p>
             </div>
           ) : isIOS ? (

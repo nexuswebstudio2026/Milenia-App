@@ -295,11 +295,11 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
 export const INITIAL_LOCATIONS: RestaurantLocation[] = [
   {
     id: 'loc-center',
-    name: 'TastyIgniter Central Bistro',
+    name: 'MENIA Central Bistro & Cava',
     address: 'Av. Principal del Gourmet 42, Centro',
     city: 'Madrid / Capital',
     phone: '+34 912 345 678',
-    email: 'central@tastyigniter-demo.com',
+    email: 'central@menia-restaurant.com',
     rating: 4.9,
     reviewCount: 428,
     isOpen: true,
@@ -318,11 +318,11 @@ export const INITIAL_LOCATIONS: RestaurantLocation[] = [
   },
   {
     id: 'loc-north',
-    name: 'TastyIgniter North Patio & Grill',
+    name: 'MENIA North Patio & Grill',
     address: 'Paseo de la Terraza 118, Zona Norte',
     city: 'Madrid Norte',
     phone: '+34 915 889 900',
-    email: 'norte@tastyigniter-demo.com',
+    email: 'norte@menia-restaurant.com',
     rating: 4.8,
     reviewCount: 290,
     isOpen: true,
@@ -484,8 +484,8 @@ export const INITIAL_RESERVATIONS: TableReservation[] = [
 ];
 
 export const DEFAULT_CONFIG: RestaurantConfig = {
-  name: "MILENIA Gastronomy",
-  tagline: "Alta Cocina, Atelier de Autor & Cava por Ana Milena",
+  name: "MENIA",
+  tagline: "Alta Cocina, Pedidos & Reservas de Autor",
   currency: 'EUR',
   currencySymbol: '€',
   taxRate: 0.10, // 10% IVA

@@ -28,7 +28,7 @@ export const LocationsView: React.FC = () => {
           <span>{language === 'es' ? 'Nuestros Restaurantes' : 'Our Restaurant Locations'}</span>
         </div>
         <h1 className="text-2xl sm:text-4xl font-serif font-bold text-slate-900 dark:text-white tracking-tight">
-          {language === 'es' ? 'Sucursales MILENIA by Ana Milena' : 'MILENIA by Ana Milena Locations'}
+          {language === 'es' ? 'Sucursales & Espacios MENIA' : 'MENIA Restaurant Locations'}
         </h1>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
           {language === 'es'

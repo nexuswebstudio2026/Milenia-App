@@ -138,7 +138,7 @@ export const AdminDashboard: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-serif font-bold text-white tracking-wide">
-                  MILENIA Staff & Kitchen Hub
+                  MENIA Staff & Kitchen Hub
                 </h1>
                 <span className="bg-amber-500/20 text-amber-300 text-[10px] font-bold uppercase px-2 py-0.5 rounded border border-amber-500/30 flex items-center gap-1">
                   <Database className="w-2.5 h-2.5" />

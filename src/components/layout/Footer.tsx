@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTasty, AppView } from '../../context/TastyContext';
+import { MeniaLogo } from '../ui/MeniaLogo';
 import { 
   Sparkles, 
   MapPin, 
@@ -75,19 +76,14 @@ export const Footer: React.FC = () => {
           
           {/* Brand Info */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-linear-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 shadow-md">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <span className="font-serif font-bold text-2xl tracking-wide text-white">
-                MILENIA <span className="text-amber-400 text-xs tracking-widest font-sans font-bold uppercase">BY ANA MILENA</span>
-              </span>
-            </div>
+            <button onClick={() => setCurrentView('menu')} className="cursor-pointer text-left">
+              <MeniaLogo size="lg" />
+            </button>
 
             <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
               {language === 'es'
-                ? "Atelier culinario de alta gastronomía concebido por Ana Milena. Platos de autor, maridajes exclusivos, carnes maduradas y cava selecta para disfrutar en sala o a domicilio."
-                : "Haute cuisine culinary atelier by Ana Milena. Signature gastronomy, exclusive wine pairings, aged cuts and cellar selections."}
+                ? "MENIA - Plataforma y concepto gastronómico de alta cocina. Platos de autor, maridajes exclusivos, carnes maduradas y cava selecta para disfrutar en sala o a domicilio."
+                : "MENIA - Haute cuisine culinary platform and restaurant concept. Signature gastronomy, exclusive wine pairings, and premium cellar selections."}
             </p>
 
             <div className="pt-2 flex items-center gap-2 text-xs text-slate-400">
@@ -105,7 +101,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2 text-xs">
               <li>
                 <button onClick={() => setCurrentView('menu')} className="hover:text-amber-400 transition cursor-pointer">
-                  {language === 'es' ? 'Carta & Menú Digital' : 'Digital Menu & Order'}
+                  {language === 'es' ? 'Carta MENIA' : 'MENIA Menu & Order'}
                 </button>
               </li>
               <li>
@@ -169,7 +165,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom copyright */}
         <div className="pt-8 mt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <p>© {new Date().getFullYear()} MILENIA Gastronomy by Ana Milena. Todos los derechos reservados.</p>
+          <p>© {new Date().getFullYear()} MENIA Restaurant Platform. Todos los derechos reservados.</p>
           <div className="flex items-center gap-4 text-slate-400">
             <span>Privacidad</span>
             <span>Términos</span>

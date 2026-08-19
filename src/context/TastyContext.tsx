@@ -462,11 +462,11 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const applyPromoCode = (code: string): boolean => {
     const clean = code.trim().toUpperCase();
-    if (clean === 'MILENIA10' || clean === 'ANAMILENA' || clean === 'LAURA10' || clean === 'TASTY10') {
+    if (clean === 'MENIA10' || clean === 'MILENIA10' || clean === 'ANAMILENA' || clean === 'LAURA10' || clean === 'TASTY10') {
       const disc = Number((subtotal * 0.10).toFixed(2));
       setDiscount(disc);
       setPromoCode(clean);
-      addToast('success', language === 'es' ? 'Cupón Aplicado' : 'Promo Applied', '10% de descuento en tu comanda de alta cocina');
+      addToast('success', language === 'es' ? 'Cupón Aplicado' : 'Promo Applied', '10% de descuento en tu comanda MENIA');
       return true;
     } else if (clean === 'ENVIOGRATIS' || clean === 'FREEDELIVERY') {
       setDiscount(deliveryFee);
@@ -524,7 +524,7 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         {
           status: 'received',
           timestamp: nowTime,
-          note: 'Pedido recibido y registrado en el sistema L\'AURA Gastronomy'
+          note: 'Pedido recibido y registrado en el sistema MENIA'
         }
       ],
       driver: orderType === 'delivery' ? {

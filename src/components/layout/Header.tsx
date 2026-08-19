@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTasty, AppView } from '../../context/TastyContext';
+import { MeniaLogo } from '../ui/MeniaLogo';
 import { 
   Sparkles, 
   ShoppingBag, 
@@ -185,29 +186,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenInstallModal }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20 gap-4">
           
-          {/* Brand Logo - MILENIA Gastronomy by Ana Milena */}
+          {/* Brand Logo - MENIA */}
           <div className="flex items-center gap-6">
             <button
               onClick={() => setCurrentView('menu')}
               id="brand-logo-btn"
-              className="flex items-center gap-3 text-left group cursor-pointer focus:outline-none"
+              className="group cursor-pointer focus:outline-none"
             >
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-linear-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform duration-200">
-                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-slate-950" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-serif font-bold text-xl sm:text-2xl tracking-wide text-slate-900 dark:text-white group-hover:text-amber-500 transition">
-                    MILENIA
-                  </span>
-                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest bg-linear-to-r from-amber-500/20 to-amber-600/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md border border-amber-500/30">
-                    BY ANA MILENA
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block tracking-wide">
-                  {language === 'es' ? 'Alta Cocina & Atelier Gastronómico' : 'Haute Cuisine & Artisan Atelier'}
-                </p>
-              </div>
+              <MeniaLogo size="md" />
             </button>
 
             {/* Fulfillment Type Toggle (Desktop) */}

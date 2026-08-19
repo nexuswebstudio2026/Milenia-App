@@ -81,7 +81,7 @@ export const MenuExplorer: React.FC = () => {
         <div className="relative z-10 max-w-2xl space-y-3">
           <div className="inline-flex items-center gap-2 bg-amber-500/20 text-amber-300 border border-amber-500/30 px-3.5 py-1.5 rounded-full text-xs font-bold backdrop-blur-xs">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>{language === 'es' ? 'Cupón Activo: MILENIA10 (10% de Descuento)' : 'Active Promo: MILENIA10 (10% OFF)'}</span>
+            <span>{language === 'es' ? 'Cupón Activo: MENIA10 (10% de Descuento)' : 'Active Promo: MENIA10 (10% OFF)'}</span>
           </div>
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-white">
             {language === 'es' ? 'Alta Cocina & Experiencia Gastronómica' : 'Haute Cuisine & Culinary Experience'}
