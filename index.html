@@ -8,18 +8,22 @@
     
     <!-- PWA & Mobile Web App Meta Tags -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#f59e0b" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#090d16" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#090d16" />
+    <meta name="mobile-web-app-capable" content="yes" />
     
-    <!-- iOS / Safari Web App Support -->
+    <!-- iOS / Safari Web App Support with Official Logo Icons -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="MENIA" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     
     <!-- Microsoft / Windows Tile -->
     <meta name="msapplication-TileColor" content="#090d16" />
+    <meta name="msapplication-TileImage" content="/icon-192.png" />
     <meta name="application-name" content="MENIA" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,5 +35,3 @@
     <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>
-
-

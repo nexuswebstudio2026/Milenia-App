@@ -6,15 +6,39 @@
   "id": "/",
   "display": "standalone",
   "background_color": "#090d16",
-  "theme_color": "#f59e0b",
+  "theme_color": "#090d16",
   "orientation": "portrait-primary",
   "categories": ["food", "lifestyle", "shopping"],
   "icons": [
     {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -22,19 +46,22 @@
       "name": "Ver Carta MENIA",
       "short_name": "Carta",
       "description": "Explora los platos de autor y cavas",
-      "url": "/?view=menu"
+      "url": "/?view=menu",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Reservar Mesa",
       "short_name": "Reservas",
       "description": "Reserva tu mesa en sala o terraza",
-      "url": "/?view=reservations"
+      "url": "/?view=reservations",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Mis Pedidos",
       "short_name": "Pedidos",
       "description": "Seguimiento en tiempo real de tu comanda",
-      "url": "/?view=tracking"
+      "url": "/?view=tracking",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

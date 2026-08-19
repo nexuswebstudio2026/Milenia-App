@@ -1,9 +1,16 @@
-const CACHE_NAME = 'milenia-v1';
+const CACHE_NAME = 'menia-pwa-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon.svg'
+  '/icon.svg',
+  '/apple-touch-icon.png',
+  '/apple-touch-icon-precomposed.png',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/icon-maskable-512.png',
+  '/favicon.png',
+  '/favicon-32x32.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -33,7 +40,6 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network first with cache fallback for HTML, stale-while-revalidate for assets
   if (event.request.method !== 'GET') return;
   
   event.respondWith(

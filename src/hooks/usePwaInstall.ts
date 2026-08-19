@@ -14,14 +14,12 @@ export function usePwaInstall() {
   const [isInsideIframe, setIsInsideIframe] = useState(false);
 
   useEffect(() => {
-    // Check if running in iframe
     try {
       setIsInsideIframe(window.self !== window.top);
     } catch {
       setIsInsideIframe(true);
     }
 
-    // Check if already in standalone / installed mode
     const isStandaloneMode = 
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as any).standalone === true ||
@@ -58,7 +56,8 @@ export function usePwaInstall() {
     };
   }, []);
 
-  const triggerInstall = async (): Promise<'accepted' | 'dismissed' | 'manual_guide' | 'opened_top_window'> => {
+  const triggerInstall = async (): Promise<'accepted' | 'dismissed' | 'shared' | 'manual_guide' | 'opened_top_window'> => {
+    // 1. Native Chromium Prompt (Android / Windows / Mac / Linux / ChromeOS)
     if (deferredPrompt) {
       try {
         await deferredPrompt.prompt();
@@ -71,11 +70,28 @@ export function usePwaInstall() {
         return choiceResult.outcome;
       } catch (err) {
         console.warn('Install prompt error:', err);
+      }
+    }
+
+    // 2. Web Share API on iOS/Safari / Mobile browsers to open the native Share menu automatically
+    if (typeof navigator !== 'undefined' && navigator.share && (deviceInfo.os === 'ios' || deviceInfo.os === 'ipados' || deviceInfo.isMobile)) {
+      try {
+        await navigator.share({
+          title: 'MENIA | Restaurant & Haute Gastronomy',
+          text: 'Instala la aplicación oficial de MENIA en tu dispositivo con acceso directo y soporte offline.',
+          url: window.location.href
+        });
+        return 'shared';
+      } catch (err: any) {
+        // User cancelled share or abort error
+        if (err.name !== 'AbortError') {
+          console.log('Share sheet non-fatal:', err);
+        }
         return 'manual_guide';
       }
     }
 
-    // If inside iframe and no native prompt is captured yet, can open in standalone tab to trigger native install
+    // 3. If inside iframe without captured prompt, open top window
     if (isInsideIframe && typeof window !== 'undefined') {
       try {
         window.open(window.location.href, '_blank');
@@ -92,7 +108,7 @@ export function usePwaInstall() {
     isInstallable,
     isInstalled,
     deviceInfo,
-    browserInfo: deviceInfo, // Backward compatibility
+    browserInfo: deviceInfo,
     isIOS: deviceInfo.os === 'ios',
     isIPad: deviceInfo.os === 'ipados',
     isAndroid: deviceInfo.os === 'android',
