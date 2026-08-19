@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTasty } from '../../context/TastyContext';
+import { usePwaInstall } from '../../hooks/usePwaInstall';
 import { 
   Utensils, 
   CalendarDays, 
@@ -16,10 +17,22 @@ interface MobileNavProps {
 
 export const MobileNav: React.FC<MobileNavProps> = ({ onOpenInstallModal }) => {
   const { currentView, setCurrentView, orders, language } = useTasty();
+  const { triggerInstall, hasNativePrompt, isInstalled } = usePwaInstall();
 
   const activeOrdersCount = orders.filter(
     (o) => o.status !== 'delivered' && o.status !== 'cancelled'
   ).length;
+
+  const handleInstallClick = async () => {
+    if (hasNativePrompt) {
+      const res = await triggerInstall();
+      if (res !== 'accepted') {
+        onOpenInstallModal();
+      }
+    } else {
+      onOpenInstallModal();
+    }
+  };
 
   const navItems = [
     {
@@ -51,14 +64,14 @@ export const MobileNav: React.FC<MobileNavProps> = ({ onOpenInstallModal }) => {
       onClick: () => setCurrentView('locations'),
       active: currentView === 'locations'
     },
-    {
+    ...(!isInstalled ? [{
       id: 'install',
       label: language === 'es' ? 'Instalar' : 'Install',
       icon: Download,
-      onClick: onOpenInstallModal,
+      onClick: handleInstallClick,
       active: false,
       isAction: true
-    }
+    }] : [])
   ];
 
   return (

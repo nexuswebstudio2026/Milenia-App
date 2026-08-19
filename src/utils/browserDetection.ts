@@ -28,6 +28,7 @@ export interface DeviceInfo {
   deviceType: DeviceType;
   deviceTypeName: string;
   deviceModel: string;
+  isMobile: boolean;
   isTouchDevice: boolean;
   screenWidth: number;
   screenHeight: number;
@@ -56,7 +57,8 @@ export function detectBrowserAndOS(): DeviceInfo {
       osName: 'Windows',
       deviceType: 'desktop',
       deviceTypeName: 'Computadora de Escritorio',
-      deviceModel: 'PC / Laptop',
+      deviceModel: 'PC Windows',
+      isMobile: false,
       isTouchDevice: false,
       screenWidth: 1920,
       screenHeight: 1080,
@@ -64,9 +66,9 @@ export function detectBrowserAndOS(): DeviceInfo {
       isInApp: false,
       supportsNativePrompt: true,
       canInstallPwa: true,
-      installHeadline: 'Instalar MENIA en tu Ordenador',
-      installSubheadline: 'Acceso directo desde tu escritorio con soporte offline.',
-      installButtonText: 'Instalar Aplicación'
+      installHeadline: 'Instalar MENIA en tu PC Windows',
+      installSubheadline: 'Acceso directo en tu barra de tareas y escritorio con soporte offline.',
+      installButtonText: 'Instalar en tu PC Windows'
     };
   }
 
@@ -84,6 +86,7 @@ export function detectBrowserAndOS(): DeviceInfo {
   let deviceType: DeviceType = 'desktop';
   let deviceTypeName = 'Computadora';
   let deviceModel = 'Dispositivo';
+  let isMobile = false;
 
   // Check iPad specifically (including modern iPadOS which reports MacIntel with touch points)
   const isIPad = /ipad/.test(ua) || (platform.includes('mac') && maxTouchPoints > 1 && screenWidth >= 768);
@@ -96,20 +99,22 @@ export function detectBrowserAndOS(): DeviceInfo {
 
   if (isIPad) {
     os = 'ipados';
-    osName = 'iPadOS (Apple)';
+    osName = 'iPadOS';
     deviceType = 'tablet';
     deviceTypeName = 'Tablet (iPad)';
-    deviceModel = 'Apple iPad';
+    deviceModel = 'iPad';
+    isMobile = true;
   } else if (isIPhone) {
     os = 'ios';
-    osName = 'iOS (Apple)';
+    osName = 'iOS';
     deviceType = 'smartphone';
-    deviceTypeName = 'Smartphone (iPhone)';
-    deviceModel = 'Apple iPhone';
+    deviceTypeName = 'Dispositivo Móvil';
+    deviceModel = 'Dispositivo Móvil (iPhone)';
+    isMobile = true;
   } else if (isAndroid) {
     os = 'android';
-    osName = 'Android OS';
-    // Distinguish Android Tablet vs Smartphone by screen size & user agent
+    osName = 'Android';
+    isMobile = true;
     const isAndroidTablet = !/mobile/.test(ua) || screenWidth >= 600 || (Math.min(screenWidth, screenHeight) >= 600);
     if (isAndroidTablet) {
       deviceType = 'tablet';
@@ -117,42 +122,42 @@ export function detectBrowserAndOS(): DeviceInfo {
       deviceModel = 'Tablet Android';
     } else {
       deviceType = 'smartphone';
-      deviceTypeName = 'Smartphone Android';
-      deviceModel = 'Teléfono Android';
+      deviceTypeName = 'Dispositivo Móvil';
+      deviceModel = 'Dispositivo Móvil Android';
     }
   } else if (isMac) {
     os = 'macos';
-    osName = 'macOS (Apple)';
-    // Differentiate Laptop (MacBook) vs Desktop (iMac/Mac Mini/Studio)
-    // Most Macs with battery or standard laptop screens are MacBooks
+    osName = 'macOS';
+    isMobile = false;
     deviceType = (screenWidth <= 1728 && screenHeight <= 1117) ? 'laptop' : 'desktop';
-    deviceTypeName = deviceType === 'laptop' ? 'Portátil (MacBook)' : 'Computadora Mac';
-    deviceModel = deviceType === 'laptop' ? 'Apple MacBook' : 'Apple Mac / iMac';
+    deviceTypeName = deviceType === 'laptop' ? 'Portátil (MacBook)' : 'Mac de Escritorio';
+    deviceModel = deviceType === 'laptop' ? 'MacBook' : 'Mac';
   } else if (isWindows) {
     os = 'windows';
-    osName = 'Microsoft Windows';
-    // If it has touch or typical laptop resolution, classify as Laptop vs Desktop PC
-    if (isTouch || (screenWidth <= 1920 && screenHeight <= 1080 && /laptop|notebook|portable/.test(ua))) {
-      deviceType = 'laptop';
-      deviceTypeName = 'Computadora Portátil';
-      deviceModel = 'Laptop Windows';
-    } else {
-      deviceType = 'desktop';
-      deviceTypeName = 'Computadora de Escritorio';
-      deviceModel = 'PC Windows';
-    }
+    osName = 'Windows';
+    isMobile = false;
+    deviceType = (isTouch || screenWidth <= 1920 && screenHeight <= 1080 && /laptop|notebook|portable/.test(ua)) ? 'laptop' : 'desktop';
+    deviceTypeName = 'PC Windows';
+    deviceModel = 'PC Windows';
   } else if (isChromeOS) {
     os = 'chromeos';
-    osName = 'Google ChromeOS';
+    osName = 'ChromeOS';
+    isMobile = false;
     deviceType = 'laptop';
     deviceTypeName = 'Chromebook';
-    deviceModel = 'Chromebook Laptop';
+    deviceModel = 'Chromebook';
   } else if (isLinux) {
     os = 'linux';
     osName = 'Linux';
+    isMobile = false;
     deviceType = isTouch ? 'laptop' : 'desktop';
-    deviceTypeName = deviceType === 'laptop' ? 'Laptop Linux' : 'Computadora Linux';
+    deviceTypeName = 'PC Linux';
     deviceModel = 'PC Linux';
+  } else if (/mobile|phone|arm/.test(ua)) {
+    isMobile = true;
+    deviceType = 'smartphone';
+    deviceTypeName = 'Dispositivo Móvil';
+    deviceModel = 'Dispositivo Móvil';
   }
 
   // --- 2. IN-APP WEBVIEW DETECTION ---
@@ -194,7 +199,7 @@ export function detectBrowserAndOS(): DeviceInfo {
     browserName = 'Samsung Internet';
   } else if (/opr\/|opera|opt\/|opios/.test(ua)) {
     browser = 'opera';
-    browserName = 'Opera Browser';
+    browserName = 'Opera';
   } else if (/edg\/|edge\/|edga|edgios/.test(ua)) {
     browser = 'edge';
     browserName = 'Microsoft Edge';
@@ -206,75 +211,42 @@ export function detectBrowserAndOS(): DeviceInfo {
     browserName = 'Brave Browser';
   } else if ((os === 'ios' || os === 'ipados') && (/crios/.test(ua) || (/chrome/.test(ua) && !/safari/.test(ua)))) {
     browser = 'chrome';
-    browserName = 'Google Chrome iOS';
+    browserName = 'Google Chrome';
   } else if ((os === 'ios' || os === 'ipados') && /safari/.test(ua) && !/crios|fxios|opios|edgios/.test(ua)) {
     browser = 'safari';
-    browserName = 'Apple Safari';
+    browserName = 'Safari';
   } else if (/chrome|chromium/.test(ua) && !/edg|opr|opera|samsungbrowser/.test(ua)) {
     browser = 'chrome';
     browserName = 'Google Chrome';
   } else if (/safari/.test(ua) && !/chrome|chromium/.test(ua)) {
     browser = 'safari';
-    browserName = 'Apple Safari';
+    browserName = 'Safari';
   }
 
   const supportsNativePrompt = (browser === 'chrome' || browser === 'edge' || browser === 'opera' || browser === 'samsung' || browser === 'brave') && (os !== 'ios' && os !== 'ipados');
   const canInstallPwa = true;
 
-  // --- 4. TAILORED INSTALLATION MESSAGING ---
+  // --- 4. TAILORED AUTOMATIC INSTALLATION HEADLINES ---
   let installHeadline = 'Instalar MENIA';
   let installSubheadline = 'Acceso rápido con un toque en tu dispositivo.';
-  let installButtonText = 'Instalar Aplicación';
+  let installButtonText = 'Instalar en tu Dispositivo';
 
-  if (deviceType === 'smartphone') {
-    if (os === 'ios') {
-      installHeadline = 'Instalar MENIA en tu iPhone';
-      installSubheadline = 'Añade el acceso directo a tu pantalla de inicio desde Safari.';
-      installButtonText = 'Ver Pasos para iPhone';
-    } else {
-      installHeadline = 'Instalar MENIA en tu Smartphone Android';
-      installSubheadline = 'Instala la aplicación web ligera en tu móvil con 1 toque.';
-      installButtonText = 'Instalar en Android';
-    }
-  } else if (deviceType === 'tablet') {
-    if (os === 'ipados') {
-      installHeadline = 'Instalar MENIA en tu iPad';
-      installSubheadline = 'Disfruta de la carta de autor en pantalla completa en tu iPad.';
-      installButtonText = 'Ver Pasos para iPad';
-    } else {
-      installHeadline = 'Instalar MENIA en tu Tablet';
-      installSubheadline = 'Instalación optimizada para pantalla panorámica.';
-      installButtonText = 'Instalar en Tablet';
-    }
-  } else if (deviceType === 'laptop') {
-    if (os === 'macos') {
-      installHeadline = 'Instalar MENIA en tu MacBook';
-      installSubheadline = 'Crea una aplicación de escritorio nativa en tu Dock y Launchpad.';
-      installButtonText = 'Instalar en MacBook';
-    } else if (os === 'windows') {
-      installHeadline = 'Instalar MENIA en tu Laptop Windows';
-      installSubheadline = 'Acceso directo en la barra de tareas y menú de inicio de Windows.';
-      installButtonText = 'Instalar en Laptop Windows';
-    } else {
-      installHeadline = 'Instalar MENIA en tu Portátil';
-      installSubheadline = 'Aplicación de escritorio rápida y sin consumo extra de memoria.';
-      installButtonText = 'Instalar en Portátil';
-    }
+  if (isMobile) {
+    installHeadline = 'Instalar MENIA en tu dispositivo móvil';
+    installSubheadline = `Instala la aplicación web de MENIA en tu dispositivo móvil desde ${browserName}.`;
+    installButtonText = 'Instalar en tu dispositivo móvil';
+  } else if (os === 'windows') {
+    installHeadline = 'Instalar MENIA en tu PC Windows';
+    installSubheadline = 'Acceso directo en tu barra de tareas y escritorio con soporte offline.';
+    installButtonText = 'Instalar en tu PC Windows';
+  } else if (os === 'macos') {
+    installHeadline = 'Instalar MENIA en tu Mac';
+    installSubheadline = 'Aplicación de escritorio nativa optimizada para macOS.';
+    installButtonText = 'Instalar en tu Mac';
   } else {
-    // Desktop
-    if (os === 'macos') {
-      installHeadline = 'Instalar MENIA en tu Mac';
-      installSubheadline = 'Aplicación de escritorio optimizada para macOS.';
-      installButtonText = 'Instalar en Mac';
-    } else if (os === 'windows') {
-      installHeadline = 'Instalar MENIA en tu PC Windows';
-      installSubheadline = 'Acceso rápido en tu barra de tareas y escritorio.';
-      installButtonText = 'Instalar en PC Windows';
-    } else {
-      installHeadline = 'Instalar MENIA en este Ordenador';
-      installSubheadline = 'Aplicación de escritorio independiente con soporte offline.';
-      installButtonText = 'Instalar en Ordenador';
-    }
+    installHeadline = 'Instalar MENIA en tu ordenador';
+    installSubheadline = 'Aplicación de escritorio independiente con soporte offline.';
+    installButtonText = 'Instalar en tu ordenador';
   }
 
   return {
@@ -285,6 +257,7 @@ export function detectBrowserAndOS(): DeviceInfo {
     deviceType,
     deviceTypeName,
     deviceModel,
+    isMobile,
     isTouchDevice: isTouch,
     screenWidth,
     screenHeight,
