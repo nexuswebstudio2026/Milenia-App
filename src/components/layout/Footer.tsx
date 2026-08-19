@@ -124,6 +124,20 @@ export const Footer: React.FC = () => {
                   {language === 'es' ? 'Opiniones de Comensales' : 'Guest Reviews'}
                 </button>
               </li>
+              <li>
+                <button 
+                  onClick={() => {
+                    const bannerBtn = document.getElementById('pwa-banner-install-btn') || document.getElementById('header-install-app-btn');
+                    if (bannerBtn) bannerBtn.click();
+                    else window.dispatchEvent(new CustomEvent('open-pwa-modal'));
+                  }}
+                  id="footer-install-pwa-btn"
+                  className="text-amber-400 hover:text-amber-300 font-bold transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  <span>{language === 'es' ? 'Instalar App en este Dispositivo' : 'Install App on this Device'}</span>
+                </button>
+              </li>
             </ul>
           </div>
 

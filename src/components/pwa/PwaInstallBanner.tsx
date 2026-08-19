@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTasty } from '../../context/TastyContext';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
-import { Download, Smartphone, Laptop, Sparkles, X, ChevronRight, Compass } from 'lucide-react';
+import { Download, Smartphone, Tablet, Laptop, Monitor, Sparkles, X, ChevronRight, Compass } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface PwaInstallBannerProps {
@@ -10,7 +10,7 @@ interface PwaInstallBannerProps {
 
 export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onOpenModal }) => {
   const { language } = useTasty();
-  const { isInstalled, browserInfo } = usePwaInstall();
+  const { isInstalled, deviceInfo } = usePwaInstall();
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
@@ -27,6 +27,16 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onOpenModal 
   };
 
   if (isInstalled || dismissed) return null;
+
+  const renderDeviceIcon = () => {
+    switch (deviceInfo.deviceType) {
+      case 'smartphone': return <Smartphone className="w-3.5 h-3.5" />;
+      case 'tablet': return <Tablet className="w-3.5 h-3.5" />;
+      case 'laptop': return <Laptop className="w-3.5 h-3.5" />;
+      case 'desktop': return <Monitor className="w-3.5 h-3.5" />;
+      default: return <Smartphone className="w-3.5 h-3.5" />;
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -50,14 +60,14 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onOpenModal 
                   MENIA App
                 </span>
                 <span className="bg-amber-500 text-slate-950 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
-                  <Compass className="w-2.5 h-2.5" />
-                  {browserInfo.browserName} • {browserInfo.osName}
+                  {renderDeviceIcon()}
+                  <span>{deviceInfo.deviceModel} • {deviceInfo.osName}</span>
                 </span>
               </div>
               <p className="text-xs text-slate-300 truncate">
                 {language === 'es'
-                  ? `Instala MENIA directamente desde ${browserInfo.browserName} en tu pantalla de inicio.`
-                  : `Install MENIA directly from ${browserInfo.browserName} to your home screen.`}
+                  ? `Dispositivo detectado: ${deviceInfo.deviceModel} con ${deviceInfo.browserName}. Pulsa para instalar.`
+                  : `Detected device: ${deviceInfo.deviceModel} on ${deviceInfo.browserName}. Tap to install.`}
               </p>
             </div>
           </div>
@@ -69,7 +79,7 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onOpenModal 
               className="flex-1 sm:flex-initial bg-linear-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer active:scale-95 whitespace-nowrap"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>{language === 'es' ? 'Instalar App' : 'Install App'}</span>
+              <span>{language === 'es' ? `Instalar en ${deviceInfo.deviceModel}` : `Install on ${deviceInfo.deviceModel}`}</span>
             </button>
 
             <button
@@ -86,4 +96,5 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onOpenModal 
     </AnimatePresence>
   );
 };
+
 

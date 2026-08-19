@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTasty } from '../../context/TastyContext';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
-import { BrowserType } from '../../utils/browserDetection';
+import { BrowserType, DeviceType, OperatingSystem } from '../../utils/browserDetection';
 import { 
   Download, 
   Smartphone, 
+  Tablet,
   Laptop, 
+  Monitor,
   Share2, 
   PlusSquare, 
   CheckCircle2, 
@@ -20,7 +22,9 @@ import {
   ExternalLink,
   Info,
   Layers,
-  Globe
+  Globe,
+  Cpu,
+  Fingerprint
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -31,16 +35,32 @@ interface PwaInstallModalProps {
 
 export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClose }) => {
   const { language } = useTasty();
-  const { isInstalled, browserInfo, triggerInstall, hasNativePrompt } = usePwaInstall();
+  const { 
+    isInstalled, 
+    deviceInfo, 
+    triggerInstall, 
+    hasNativePrompt,
+    isIOS,
+    isIPad,
+    isAndroid,
+    isMac,
+    isWindows,
+    isSmartphone,
+    isTablet,
+    isLaptop,
+    isDesktop
+  } = usePwaInstall();
   
-  // Allow user to toggle between detected browser and other browsers
-  const [selectedBrowserTab, setSelectedBrowserTab] = useState<BrowserType>(browserInfo.browser);
+  // Selected tabs
+  const [selectedDeviceTab, setSelectedDeviceTab] = useState<DeviceType>(deviceInfo.deviceType);
+  const [selectedBrowserTab, setSelectedBrowserTab] = useState<BrowserType>(deviceInfo.browser);
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedBrowserTab(browserInfo.browser);
+      setSelectedDeviceTab(deviceInfo.deviceType);
+      setSelectedBrowserTab(deviceInfo.browser);
     }
-  }, [isOpen, browserInfo]);
+  }, [isOpen, deviceInfo]);
 
   if (!isOpen) return null;
 
@@ -51,16 +71,24 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
     }
   };
 
-  const isCurrentActiveTabDetected = selectedBrowserTab === browserInfo.browser;
+  const getDeviceIcon = (type: DeviceType) => {
+    switch (type) {
+      case 'smartphone': return <Smartphone className="w-5 h-5 text-amber-400" />;
+      case 'tablet': return <Tablet className="w-5 h-5 text-amber-400" />;
+      case 'laptop': return <Laptop className="w-5 h-5 text-amber-400" />;
+      case 'desktop': return <Monitor className="w-5 h-5 text-amber-400" />;
+      default: return <Smartphone className="w-5 h-5 text-amber-400" />;
+    }
+  };
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.92, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.92, y: 20 }}
-          className="relative w-full max-w-lg bg-slate-900 border border-amber-500/30 text-white rounded-3xl p-5 sm:p-7 shadow-2xl shadow-amber-500/10 overflow-hidden my-auto max-h-[90vh] flex flex-col"
+          className="relative w-full max-w-xl bg-slate-900 border border-amber-500/30 text-white rounded-3xl p-5 sm:p-7 shadow-2xl shadow-amber-500/10 overflow-hidden my-auto max-h-[92vh] flex flex-col"
         >
           {/* Ambient Glow */}
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
@@ -77,67 +105,151 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
           </button>
 
           {/* Scrollable Container */}
-          <div className="overflow-y-auto pr-1 space-y-5 custom-scrollbar">
+          <div className="overflow-y-auto pr-1 space-y-4 custom-scrollbar">
             
             {/* Header */}
-            <div className="text-center space-y-2.5 pt-2">
+            <div className="text-center space-y-2 pt-1">
               <div className="inline-flex relative">
-                <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-amber-400 to-amber-600 p-0.5 shadow-lg shadow-amber-500/25">
+                <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-amber-400 to-amber-600 p-0.5 shadow-lg shadow-amber-500/25">
                   <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                    <img src="/icon.svg" alt="MENIA Icon" className="w-11 h-11 object-contain" />
+                    <img src="/icon.svg" alt="MENIA Icon" className="w-10 h-10 object-contain" />
                   </div>
                 </div>
-                <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-4 w-4 bg-amber-500 border-2 border-slate-950"></span>
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500 border-2 border-slate-950"></span>
                 </span>
               </div>
 
               <div>
                 <div className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 text-[10px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full border border-amber-500/20 mb-1">
                   <Sparkles className="w-3 h-3 text-amber-400" />
-                  <span>{language === 'es' ? 'App Web Oficial • PWA' : 'Official Web App • PWA'}</span>
+                  <span>{language === 'es' ? 'Instalación Multi-Dispositivo • PWA' : 'Multi-Device Installation • PWA'}</span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-serif font-black text-white tracking-wider">
-                  {language === 'es' ? 'Instalar MENIA en tu Dispositivo' : 'Install MENIA on Your Device'}
+                  {deviceInfo.installHeadline}
                 </h2>
-                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                  {language === 'es'
-                    ? 'Accede a la carta de autor, reservas y pedidos con 1 toque en tu pantalla de inicio.'
-                    : 'Instant access to dining, table reservations, and live orders from your home screen.'}
+                <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                  {deviceInfo.installSubheadline}
                 </p>
               </div>
             </div>
 
-            {/* Detected Browser Badge */}
-            <div className="bg-slate-950/80 border border-amber-500/30 rounded-2xl p-3 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
-                  <Compass className="w-4 h-4 text-amber-400" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] uppercase font-bold text-amber-400 block tracking-wider">
-                    {language === 'es' ? 'Navegador Detectado' : 'Detected Browser'}
+            {/* LIVE DETECTED HARDWARE & OS CARD */}
+            <div className="bg-slate-950/90 border border-amber-500/30 rounded-2xl p-3.5 sm:p-4 space-y-2.5 shadow-inner">
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <div className="flex items-center gap-2">
+                  <Cpu className="w-4 h-4 text-amber-400 animate-pulse" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-300">
+                    {language === 'es' ? 'Dispositivo y Sistema Detectados' : 'Detected Device & System'}
                   </span>
-                  <p className="text-xs font-bold text-white truncate">
-                    {browserInfo.browserName} <span className="text-slate-400 font-normal">({browserInfo.osName})</span>
-                  </p>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  {language === 'es' ? '100% Compatible' : 'Ready'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                {/* Device Type */}
+                <div className="bg-slate-900/80 border border-slate-800 p-2 rounded-xl flex items-center gap-2">
+                  {getDeviceIcon(deviceInfo.deviceType)}
+                  <div className="min-w-0">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">{language === 'es' ? 'Dispositivo' : 'Device'}</span>
+                    <span className="font-bold text-white text-xs truncate block">{deviceInfo.deviceModel}</span>
+                  </div>
+                </div>
+
+                {/* Operating System */}
+                <div className="bg-slate-900/80 border border-slate-800 p-2 rounded-xl flex items-center gap-2">
+                  <Fingerprint className="w-4 h-4 text-sky-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">{language === 'es' ? 'Sistema (OS)' : 'System'}</span>
+                    <span className="font-bold text-white text-xs truncate block">{deviceInfo.osName}</span>
+                  </div>
+                </div>
+
+                {/* Browser */}
+                <div className="col-span-2 sm:col-span-1 bg-slate-900/80 border border-slate-800 p-2 rounded-xl flex items-center gap-2">
+                  <Compass className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">{language === 'es' ? 'Navegador' : 'Browser'}</span>
+                    <span className="font-bold text-white text-xs truncate block">{deviceInfo.browserName}</span>
+                  </div>
                 </div>
               </div>
-              <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                {language === 'es' ? 'Compatible' : 'Ready'}
-              </span>
             </div>
 
-            {/* Browser Selector Chips */}
+            {/* Direct 1-Click Install Button if supported & Native prompt available */}
+            {hasNativePrompt && (
+              <div className="bg-linear-to-r from-amber-500/20 via-amber-500/10 to-transparent border border-amber-500/40 rounded-2xl p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs font-bold text-amber-300">
+                      {language === 'es' ? 'Instalación Instantánea Disponible' : 'Direct 1-Tap Install Ready'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-amber-400/80 font-semibold">{deviceInfo.deviceModel}</span>
+                </div>
+                <button
+                  onClick={handleInstallClick}
+                  id="direct-pwa-install-btn"
+                  className="w-full py-3.5 px-5 rounded-xl font-serif font-bold text-sm bg-linear-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 active:scale-98 transition cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>{language === 'es' ? `Instalar MENIA en tu ${deviceInfo.deviceModel}` : `Install MENIA on ${deviceInfo.deviceModel}`}</span>
+                </button>
+              </div>
+            )}
+
+            {/* DEVICE SELECTOR TABS */}
             <div className="space-y-1.5">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                {language === 'es' ? 'Guía paso a paso por navegador:' : 'Step-by-step guide by browser:'}
+                {language === 'es' ? 'Seleccionar tipo de dispositivo:' : 'Select device type:'}
+              </span>
+              <div className="grid grid-cols-4 gap-1.5 text-xs">
+                {[
+                  { id: 'smartphone', name: 'Smartphone', icon: Smartphone, label: 'iPhone / Android' },
+                  { id: 'tablet', name: 'Tablet', icon: Tablet, label: 'iPad / Android' },
+                  { id: 'laptop', name: 'Portátil', icon: Laptop, label: 'MacBook / Win' },
+                  { id: 'desktop', name: 'Escritorio', icon: Monitor, label: 'PC / Mac' },
+                ].map((d) => {
+                  const isActive = selectedDeviceTab === d.id;
+                  const isDetected = deviceInfo.deviceType === d.id;
+                  const Icon = d.icon;
+
+                  return (
+                    <button
+                      key={d.id}
+                      onClick={() => setSelectedDeviceTab(d.id as DeviceType)}
+                      className={`p-2 rounded-xl text-center flex flex-col items-center justify-center gap-1 transition cursor-pointer ${
+                        isActive
+                          ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
+                          : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700/60'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span className="text-[11px] font-bold leading-tight">{d.name}</span>
+                      {isDetected && (
+                        <span className={`text-[8px] uppercase px-1 rounded font-black ${isActive ? 'bg-slate-950 text-amber-300' : 'bg-amber-500/20 text-amber-400'}`}>
+                          {language === 'es' ? 'Detectado' : 'Active'}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* BROWSER SELECTOR CHIPS */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                {language === 'es' ? 'Navegadores compatibles:' : 'Supported browsers:'}
               </span>
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
                 {[
-                  { id: 'safari', name: 'Safari (iOS)' },
+                  { id: 'safari', name: 'Safari (Apple)' },
                   { id: 'chrome', name: 'Google Chrome' },
                   { id: 'opera', name: 'Opera / GX' },
                   { id: 'samsung', name: 'Samsung Internet' },
@@ -147,7 +259,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                   { id: 'inapp', name: 'Instagram / Redes' },
                 ].map((b) => {
                   const isActive = selectedBrowserTab === b.id;
-                  const isDetected = browserInfo.browser === b.id;
+                  const isDetected = deviceInfo.browser === b.id;
 
                   return (
                     <button
@@ -171,35 +283,17 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
               </div>
             </div>
 
-            {/* Direct 1-Click Install Button if supported & Native prompt available */}
-            {hasNativePrompt && (
-              <div className="bg-linear-to-r from-amber-500/20 via-amber-500/10 to-transparent border border-amber-500/40 rounded-2xl p-4 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-amber-400" />
-                  <span className="text-xs font-bold text-amber-300">
-                    {language === 'es' ? 'Instalación Directa Disponible' : 'Direct 1-Tap Install Ready'}
-                  </span>
-                </div>
-                <button
-                  onClick={handleInstallClick}
-                  id="direct-pwa-install-btn"
-                  className="w-full py-3 px-5 rounded-xl font-serif font-bold text-sm bg-linear-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 active:scale-98 transition cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>{language === 'es' ? 'Instalar MENIA con 1 Toque' : 'Install MENIA (1-Tap)'}</span>
-                </button>
-              </div>
-            )}
-
-            {/* Dynamic Step-by-Step Instructions based on selectedBrowserTab */}
-            <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3">
+            {/* DYNAMIC STEP-BY-STEP INSTRUCTIONS ACCORDING TO BROWSER & DEVICE */}
+            <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-3">
               
-              {/* SAFARI (iOS / iPadOS) */}
+              {/* SAFARI (iOS / iPadOS / macOS) */}
               {selectedBrowserTab === 'safari' && (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
-                    <Smartphone className="w-4 h-4" />
-                    <span>{language === 'es' ? 'Instrucciones en Safari (iPhone / iPad)' : 'Safari Instructions (iOS / iPadOS)'}</span>
+                  <div className="flex items-center justify-between text-xs font-bold text-amber-400 uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <Smartphone className="w-4 h-4" />
+                      <span>{selectedDeviceTab === 'tablet' ? 'Safari en iPad (iPadOS)' : selectedDeviceTab === 'laptop' || selectedDeviceTab === 'desktop' ? 'Safari en Mac (macOS Sonoma / Sequoia)' : 'Safari en iPhone (iOS)'}</span>
+                    </div>
                   </div>
                   <ol className="space-y-2 text-xs text-slate-300">
                     <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
@@ -212,7 +306,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                           <Share2 className="w-3 h-3 text-sky-400" />
                           {language === 'es' ? 'Compartir' : 'Share'}
                         </span>
-                        <span className="text-slate-400 text-[11px]">{language === 'es' ? '(en la barra inferior de Safari)' : '(in Safari toolbar)'}</span>
+                        <span className="text-slate-400 text-[11px]">{language === 'es' ? '(barra de navegación de Safari)' : '(in Safari toolbar)'}</span>
                       </div>
                     </li>
                     <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
@@ -220,10 +314,12 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                         2
                       </div>
                       <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-                        <span>{language === 'es' ? 'Desplaza la lista y pulsa' : 'Scroll down and tap'}</span>
+                        <span>{language === 'es' ? 'Desplaza la lista y pulsa' : 'Scroll down and select'}</span>
                         <span className="inline-flex items-center gap-1 font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                           <PlusSquare className="w-3 h-3 text-emerald-400" />
-                          {language === 'es' ? 'Añadir a pantalla de inicio' : 'Add to Home Screen'}
+                          {selectedDeviceTab === 'laptop' || selectedDeviceTab === 'desktop'
+                            ? (language === 'es' ? 'Añadir al Dock' : 'Add to Dock')
+                            : (language === 'es' ? 'Añadir a pantalla de inicio' : 'Add to Home Screen')}
                         </span>
                       </div>
                     </li>
@@ -241,12 +337,12 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                 </div>
               )}
 
-              {/* GOOGLE CHROME (Android / iOS / Desktop) */}
+              {/* GOOGLE CHROME (Android, Windows, macOS, Chromebook) */}
               {selectedBrowserTab === 'chrome' && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
                     <Globe className="w-4 h-4" />
-                    <span>{language === 'es' ? 'Instrucciones en Google Chrome' : 'Google Chrome Instructions'}</span>
+                    <span>{language === 'es' ? `Google Chrome (${selectedDeviceTab === 'laptop' || selectedDeviceTab === 'desktop' ? 'Portátil / PC' : 'Móvil / Tablet'})` : 'Google Chrome'}</span>
                   </div>
                   <ol className="space-y-2 text-xs text-slate-300">
                     <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
@@ -258,7 +354,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                         <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                           (⋮) {language === 'es' ? 'Menú' : 'Menu'}
                         </span>
-                        <span className="text-slate-400 text-[11px]">{language === 'es' ? 'arriba a la derecha' : 'top right'}</span>
+                        <span className="text-slate-400 text-[11px]">{language === 'es' ? 'en la esquina superior' : 'in top corner'}</span>
                       </div>
                     </li>
                     <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
@@ -279,9 +375,9 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                         3
                       </div>
                       <div className="flex-1">
-                        <span>{language === 'es' ? 'Pulsa ' : 'Tap '}</span>
+                        <span>{language === 'es' ? 'Pulsa ' : 'Click '}</span>
                         <strong className="text-amber-400">{language === 'es' ? '"Instalar"' : '"Install"'}</strong>
-                        <span>{language === 'es' ? ' en la ventana de confirmación.' : ' in the confirmation dialog.'}</span>
+                        <span>{language === 'es' ? ' para añadir MENIA como aplicación independiente.' : ' to finish setup.'}</span>
                       </div>
                     </li>
                   </ol>
@@ -293,7 +389,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
                     <Compass className="w-4 h-4" />
-                    <span>{language === 'es' ? 'Instrucciones en Opera / Opera GX' : 'Opera / Opera GX Instructions'}</span>
+                    <span>{language === 'es' ? 'Opera / Opera GX' : 'Opera Browser'}</span>
                   </div>
                   <ol className="space-y-2 text-xs text-slate-300">
                     <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
@@ -301,11 +397,11 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                         1
                       </div>
                       <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-                        <span>{language === 'es' ? 'Toca el icono de Opera' : 'Tap the Opera icon'}</span>
+                        <span>{language === 'es' ? 'Toca el icono' : 'Tap'}</span>
                         <span className="font-bold text-rose-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
-                          (O) {language === 'es' ? 'o menú' : 'or menu'}
+                          (O) {language === 'es' ? 'de Opera' : 'Opera Menu'}
                         </span>
-                        <span className="text-slate-400 text-[11px]">{language === 'es' ? 'en la barra inferior o superior' : 'in the toolbar'}</span>
+                        <span className="text-slate-400 text-[11px]">{language === 'es' ? 'o los tres puntos' : 'or three dots'}</span>
                       </div>
                     </li>
                     <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
@@ -313,22 +409,12 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                         2
                       </div>
                       <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-                        <span>{language === 'es' ? 'Pulsa en' : 'Tap on'}</span>
+                        <span>{language === 'es' ? 'Elige' : 'Choose'}</span>
                         <span className="inline-flex items-center gap-1 font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                           <PlusSquare className="w-3 h-3" />
-                          {language === 'es' ? 'Pantalla de inicio' : 'Home screen'}
+                          {language === 'es' ? 'Pantalla de inicio' : 'Home Screen'}
                         </span>
                         <span>{language === 'es' ? 'o "Instalar app"' : 'or "Install App"'}</span>
-                      </div>
-                    </li>
-                    <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
-                      <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px] shrink-0">
-                        3
-                      </div>
-                      <div className="flex-1">
-                        <span>{language === 'es' ? 'Pulsa ' : 'Tap '}</span>
-                        <strong className="text-amber-400">{language === 'es' ? '"Añadir"' : '"Add"'}</strong>
-                        <span>{language === 'es' ? ' para fijar MENIA en tu pantalla.' : ' to pin MENIA to your screen.'}</span>
                       </div>
                     </li>
                   </ol>
@@ -340,7 +426,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
                     <Smartphone className="w-4 h-4" />
-                    <span>{language === 'es' ? 'Instrucciones en Samsung Internet' : 'Samsung Internet Instructions'}</span>
+                    <span>{language === 'es' ? 'Samsung Internet (Galaxy Phones & Tablets)' : 'Samsung Internet'}</span>
                   </div>
                   <ol className="space-y-2 text-xs text-slate-300">
                     <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
@@ -348,11 +434,11 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                         1
                       </div>
                       <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-                        <span>{language === 'es' ? 'Toca el menú de 3 líneas' : 'Tap the 3 lines menu'}</span>
+                        <span>{language === 'es' ? 'Toca el menú' : 'Tap'}</span>
                         <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                           (≡)
                         </span>
-                        <span>{language === 'es' ? 'o el icono de descarga en la barra' : 'or the download icon in URL bar'}</span>
+                        <span>{language === 'es' ? 'o la flecha de descarga en la barra de direcciones' : 'or download icon'}</span>
                       </div>
                     </li>
                     <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
@@ -363,18 +449,8 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                         <span>{language === 'es' ? 'Selecciona' : 'Select'}</span>
                         <span className="inline-flex items-center gap-1 font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                           <PlusSquare className="w-3 h-3" />
-                          {language === 'es' ? '+ Añadir página a' : '+ Add page to'}
+                          {language === 'es' ? '+ Añadir página a > Pantalla de inicio' : '+ Add page to > Home Screen'}
                         </span>
-                      </div>
-                    </li>
-                    <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
-                      <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px] shrink-0">
-                        3
-                      </div>
-                      <div className="flex-1">
-                        <span>{language === 'es' ? 'Elige ' : 'Choose '}</span>
-                        <strong className="text-amber-400">{language === 'es' ? '"Pantalla de inicio"' : '"Home Screen"'}</strong>
-                        <span>{language === 'es' ? ' y pulsa Añadir.' : ' and tap Add.'}</span>
                       </div>
                     </li>
                   </ol>
@@ -386,7 +462,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
                     <Globe className="w-4 h-4" />
-                    <span>{language === 'es' ? 'Instrucciones en Mozilla Firefox' : 'Mozilla Firefox Instructions'}</span>
+                    <span>{language === 'es' ? 'Mozilla Firefox' : 'Mozilla Firefox'}</span>
                   </div>
                   <ol className="space-y-2 text-xs text-slate-300">
                     <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
@@ -394,11 +470,11 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                         1
                       </div>
                       <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-                        <span>{language === 'es' ? 'Toca los tres puntos' : 'Tap the 3 dots'}</span>
+                        <span>{language === 'es' ? 'Toca el menú' : 'Tap'}</span>
                         <span className="font-bold text-orange-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                           (⋮)
                         </span>
-                        <span className="text-slate-400 text-[11px]">{language === 'es' ? 'junto a la barra de direcciones' : 'next to the address bar'}</span>
+                        <span className="text-slate-400 text-[11px]">{language === 'es' ? 'junto a la barra de direcciones' : 'next to address bar'}</span>
                       </div>
                     </li>
                     <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
@@ -406,12 +482,11 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                         2
                       </div>
                       <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-                        <span>{language === 'es' ? 'Selecciona' : 'Select'}</span>
+                        <span>{language === 'es' ? 'Pulsa en' : 'Tap on'}</span>
                         <span className="inline-flex items-center gap-1 font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                           <Download className="w-3 h-3" />
-                          {language === 'es' ? 'Instalar' : 'Install'}
+                          {language === 'es' ? 'Instalar o Añadir a inicio' : 'Install or Add to Home'}
                         </span>
-                        <span>{language === 'es' ? 'o "Añadir a la pantalla de inicio"' : 'or "Add to Home Screen"'}</span>
                       </div>
                     </li>
                   </ol>
@@ -423,7 +498,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
                     <Laptop className="w-4 h-4" />
-                    <span>{language === 'es' ? 'Instrucciones en Microsoft Edge' : 'Microsoft Edge Instructions'}</span>
+                    <span>{language === 'es' ? 'Microsoft Edge (Windows / Mac / Android)' : 'Microsoft Edge'}</span>
                   </div>
                   <ol className="space-y-2 text-xs text-slate-300">
                     <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
@@ -431,47 +506,11 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                         1
                       </div>
                       <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-                        <span>{language === 'es' ? 'Toca el menú' : 'Tap the menu'}</span>
+                        <span>{language === 'es' ? 'Toca el menú' : 'Tap'}</span>
                         <span className="font-bold text-sky-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                           (···)
                         </span>
-                        <span className="text-slate-400 text-[11px]">{language === 'es' ? 'en la barra inferior o superior' : 'in the toolbar'}</span>
-                      </div>
-                    </li>
-                    <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
-                      <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px] shrink-0">
-                        2
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-                        <span>{language === 'es' ? 'Pulsa en' : 'Tap on'}</span>
-                        <span className="inline-flex items-center gap-1 font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
-                          <Download className="w-3 h-3" />
-                          {language === 'es' ? 'Añadir al teléfono / Instalar' : 'Add to Phone / Install'}
-                        </span>
-                      </div>
-                    </li>
-                  </ol>
-                </div>
-              )}
-
-              {/* BRAVE BROWSER */}
-              {selectedBrowserTab === 'brave' && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>{language === 'es' ? 'Instrucciones en Brave Browser' : 'Brave Browser Instructions'}</span>
-                  </div>
-                  <ol className="space-y-2 text-xs text-slate-300">
-                    <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
-                      <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px] shrink-0">
-                        1
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-                        <span>{language === 'es' ? 'Toca los tres puntos' : 'Tap the 3 dots'}</span>
-                        <span className="font-bold text-amber-500 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
-                          (⋮)
-                        </span>
-                        <span className="text-slate-400 text-[11px]">{language === 'es' ? 'abajo a la derecha' : 'bottom right'}</span>
+                        <span className="text-slate-400 text-[11px]">{language === 'es' ? 'en la barra de Edge' : 'in Edge toolbar'}</span>
                       </div>
                     </li>
                     <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
@@ -482,7 +521,43 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                         <span>{language === 'es' ? 'Selecciona' : 'Select'}</span>
                         <span className="inline-flex items-center gap-1 font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                           <Download className="w-3 h-3" />
-                          {language === 'es' ? 'Instalar app / Pantalla de inicio' : 'Install app / Add to Home'}
+                          {language === 'es' ? 'Instalar esta app / Añadir al teléfono' : 'Install this app'}
+                        </span>
+                      </div>
+                    </li>
+                  </ol>
+                </div>
+              )}
+
+              {/* BRAVE */}
+              {selectedBrowserTab === 'brave' && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>{language === 'es' ? 'Brave Browser' : 'Brave Browser'}</span>
+                  </div>
+                  <ol className="space-y-2 text-xs text-slate-300">
+                    <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+                      <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px] shrink-0">
+                        1
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-1 flex-wrap">
+                        <span>{language === 'es' ? 'Toca el menú' : 'Tap'}</span>
+                        <span className="font-bold text-amber-500 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                          (⋮)
+                        </span>
+                        <span className="text-slate-400 text-[11px]">{language === 'es' ? 'en la esquina' : 'menu'}</span>
+                      </div>
+                    </li>
+                    <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+                      <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px] shrink-0">
+                        2
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-1 flex-wrap">
+                        <span>{language === 'es' ? 'Selecciona' : 'Select'}</span>
+                        <span className="inline-flex items-center gap-1 font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                          <Download className="w-3 h-3" />
+                          {language === 'es' ? 'Instalar aplicación' : 'Install App'}
                         </span>
                       </div>
                     </li>
@@ -495,14 +570,14 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
                     <ExternalLink className="w-4 h-4" />
-                    <span>{language === 'es' ? 'Navegadores Integrados (Instagram / TikTok / Facebook)' : 'In-App WebViews'}</span>
+                    <span>{language === 'es' ? 'Navegador Integrado de Redes Sociales' : 'In-App WebViews'}</span>
                   </div>
                   <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-200 leading-relaxed flex items-start gap-2">
                     <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                     <span>
                       {language === 'es'
-                        ? 'Los navegadores dentro de redes sociales no permiten la instalación directa. Ábrelo en Safari o Chrome para instalar:'
-                        : 'Social in-app browsers do not support direct PWA install. Open in Safari or Chrome first:'}
+                        ? 'Las aplicaciones como Instagram o TikTok no permiten instalar PWAs de forma directa dentro de su visor. Para instalar MENIA:'
+                        : 'In-app social browsers restrict direct installation. Open in Safari or Chrome to install:'}
                     </span>
                   </div>
                   <ol className="space-y-2 text-xs text-slate-300">
@@ -511,11 +586,11 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                         1
                       </div>
                       <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-                        <span>{language === 'es' ? 'Toca los 3 puntos' : 'Tap the 3 dots'}</span>
+                        <span>{language === 'es' ? 'Toca los tres puntos' : 'Tap'}</span>
                         <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                           (···)
                         </span>
-                        <span className="text-slate-400 text-[11px]">{language === 'es' ? 'en la esquina superior o inferior' : 'in the top or bottom corner'}</span>
+                        <span className="text-slate-400 text-[11px]">{language === 'es' ? 'en la esquina superior' : 'in the corner'}</span>
                       </div>
                     </li>
                     <li className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
@@ -523,7 +598,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                         2
                       </div>
                       <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-                        <span>{language === 'es' ? 'Pulsa en' : 'Select'}</span>
+                        <span>{language === 'es' ? 'Pulsa en' : 'Tap on'}</span>
                         <span className="inline-flex items-center gap-1 font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                           <ExternalLink className="w-3 h-3" />
                           {language === 'es' ? '"Abrir en el navegador del sistema"' : '"Open in Browser"'}
@@ -561,7 +636,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
             {/* Bottom Security Note */}
             <div className="pt-2 border-t border-slate-800 flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{language === 'es' ? 'PWA Ligera • No consume almacenamiento • Cero publicidad' : 'Lightweight PWA • Zero clutter • Private & Secure'}</span>
+              <span>{language === 'es' ? 'PWA Ligera • No ocupa espacio • Cero descargas pesadas' : 'Lightweight PWA • Zero storage clutter • Secure'}</span>
             </div>
 
           </div>
@@ -570,4 +645,3 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
     </AnimatePresence>
   );
 };
-

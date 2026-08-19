@@ -21,6 +21,12 @@ const AppContent: React.FC = () => {
   const { currentView } = useTasty();
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
 
+  React.useEffect(() => {
+    const handleOpenModal = () => setIsInstallModalOpen(true);
+    window.addEventListener('open-pwa-modal', handleOpenModal);
+    return () => window.removeEventListener('open-pwa-modal', handleOpenModal);
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-amber-500 selection:text-slate-950 antialiased transition-colors duration-300 pb-20 md:pb-0">
       {/* Header */}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { detectBrowserAndOS, BrowserInfo } from '../utils/browserDetection';
+import { detectBrowserAndOS, DeviceInfo } from '../utils/browserDetection';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -10,7 +10,7 @@ export function usePwaInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [browserInfo, setBrowserInfo] = useState<BrowserInfo>(() => detectBrowserAndOS());
+  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>(() => detectBrowserAndOS());
 
   useEffect(() => {
     // Check if already in standalone / installed mode
@@ -22,9 +22,9 @@ export function usePwaInstall() {
     setIsInstalled(isStandaloneMode);
 
     const info = detectBrowserAndOS();
-    setBrowserInfo(info);
+    setDeviceInfo(info);
 
-    // On iOS or any supported mobile browser, it's installable via specific browser menus if not standalone
+    // On iOS/Android/Desktop, it's installable via native prompt or browser guided menu
     if (!isStandaloneMode) {
       setIsInstallable(true);
     }
@@ -74,12 +74,20 @@ export function usePwaInstall() {
   return {
     isInstallable,
     isInstalled,
-    isIOS: browserInfo.os === 'ios',
-    isAndroid: browserInfo.os === 'android',
-    isDesktop: browserInfo.os === 'desktop',
-    browserInfo,
+    deviceInfo,
+    browserInfo: deviceInfo, // Backward compatibility
+    isIOS: deviceInfo.os === 'ios',
+    isIPad: deviceInfo.os === 'ipados',
+    isAndroid: deviceInfo.os === 'android',
+    isMac: deviceInfo.os === 'macos',
+    isWindows: deviceInfo.os === 'windows',
+    isSmartphone: deviceInfo.deviceType === 'smartphone',
+    isTablet: deviceInfo.deviceType === 'tablet',
+    isLaptop: deviceInfo.deviceType === 'laptop',
+    isDesktop: deviceInfo.deviceType === 'desktop',
     triggerInstall,
     hasNativePrompt: !!deferredPrompt
   };
 }
+
 
