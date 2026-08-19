@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTasty } from '../../context/TastyContext';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
-import { Download, Smartphone, Laptop, Sparkles, X, ChevronRight } from 'lucide-react';
+import { Download, Smartphone, Laptop, Sparkles, X, ChevronRight, Compass } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface PwaInstallBannerProps {
@@ -10,7 +10,7 @@ interface PwaInstallBannerProps {
 
 export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onOpenModal }) => {
   const { language } = useTasty();
-  const { isInstalled, isIOS, isAndroid, isDesktop } = usePwaInstall();
+  const { isInstalled, browserInfo } = usePwaInstall();
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
@@ -41,22 +41,23 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onOpenModal 
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 relative z-10">
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 p-1">
+            <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 p-1 shadow-md shadow-amber-500/10">
               <img src="/icon.svg" alt="MENIA Icon" className="w-7 h-7 object-contain" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-serif font-bold text-sm text-white tracking-wider truncate">
                   MENIA App
                 </span>
-                <span className="bg-amber-500 text-slate-950 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
-                  {isIOS ? 'iOS / Safari' : isAndroid ? 'Android' : 'Desktop / Web'}
+                <span className="bg-amber-500 text-slate-950 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                  <Compass className="w-2.5 h-2.5" />
+                  {browserInfo.browserName} • {browserInfo.osName}
                 </span>
               </div>
               <p className="text-xs text-slate-300 truncate">
                 {language === 'es'
-                  ? 'Instala la aplicación MENIA para pedidos directos y reservas en tu restaurante.'
-                  : 'Install the MENIA app for direct orders and restaurant bookings.'}
+                  ? `Instala MENIA directamente desde ${browserInfo.browserName} en tu pantalla de inicio.`
+                  : `Install MENIA directly from ${browserInfo.browserName} to your home screen.`}
               </p>
             </div>
           </div>
@@ -64,7 +65,8 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onOpenModal 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
               onClick={onOpenModal}
-              className="flex-1 sm:flex-initial bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer active:scale-95 whitespace-nowrap"
+              id="pwa-banner-install-btn"
+              className="flex-1 sm:flex-initial bg-linear-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer active:scale-95 whitespace-nowrap"
             >
               <Download className="w-3.5 h-3.5" />
               <span>{language === 'es' ? 'Instalar App' : 'Install App'}</span>
@@ -72,6 +74,7 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onOpenModal 
 
             <button
               onClick={handleDismiss}
+              id="pwa-banner-dismiss-btn"
               className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
               aria-label="Descartar"
             >
@@ -83,3 +86,4 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onOpenModal 
     </AnimatePresence>
   );
 };
+

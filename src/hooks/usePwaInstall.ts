@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { detectBrowserAndOS, BrowserInfo } from '../utils/browserDetection';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -9,9 +10,7 @@ export function usePwaInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isAndroid, setIsAndroid] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [browserInfo, setBrowserInfo] = useState<BrowserInfo>(() => detectBrowserAndOS());
 
   useEffect(() => {
     // Check if already in standalone / installed mode
@@ -22,18 +21,11 @@ export function usePwaInstall() {
 
     setIsInstalled(isStandaloneMode);
 
-    // Detect Device OS / Platform
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
-    const isAndroidDevice = /android/.test(userAgent);
-    const isDesktopDevice = !isIosDevice && !isAndroidDevice && !/mobile/.test(userAgent);
+    const info = detectBrowserAndOS();
+    setBrowserInfo(info);
 
-    setIsIOS(isIosDevice);
-    setIsAndroid(isAndroidDevice);
-    setIsDesktop(isDesktopDevice);
-
-    // On iOS, it's installable via Safari Share sheet if not already standalone
-    if (isIosDevice && !isStandaloneMode) {
+    // On iOS or any supported mobile browser, it's installable via specific browser menus if not standalone
+    if (!isStandaloneMode) {
       setIsInstallable(true);
     }
 
@@ -59,32 +51,35 @@ export function usePwaInstall() {
     };
   }, []);
 
-  const triggerInstall = async (): Promise<'accepted' | 'dismissed' | 'manual_ios' | 'unsupported'> => {
+  const triggerInstall = async (): Promise<'accepted' | 'dismissed' | 'manual_guide' | 'unsupported'> => {
     if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const choiceResult = await deferredPrompt.userChoice;
-      if (choiceResult.outcome === 'accepted') {
-        setIsInstalled(true);
-        setIsInstallable(false);
+      try {
+        await deferredPrompt.prompt();
+        const choiceResult = await deferredPrompt.userChoice;
+        if (choiceResult.outcome === 'accepted') {
+          setIsInstalled(true);
+          setIsInstallable(false);
+        }
+        setDeferredPrompt(null);
+        return choiceResult.outcome;
+      } catch (err) {
+        console.warn('Install prompt error:', err);
+        return 'manual_guide';
       }
-      setDeferredPrompt(null);
-      return choiceResult.outcome;
     }
 
-    if (isIOS) {
-      return 'manual_ios';
-    }
-
-    return 'unsupported';
+    return 'manual_guide';
   };
 
   return {
     isInstallable,
     isInstalled,
-    isIOS,
-    isAndroid,
-    isDesktop,
+    isIOS: browserInfo.os === 'ios',
+    isAndroid: browserInfo.os === 'android',
+    isDesktop: browserInfo.os === 'desktop',
+    browserInfo,
     triggerInstall,
     hasNativePrompt: !!deferredPrompt
   };
 }
+
