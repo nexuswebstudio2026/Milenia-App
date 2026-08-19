@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTasty } from '../../context/TastyContext';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
-import { Download, Smartphone, Monitor, X, Sparkles } from 'lucide-react';
+import { Download, Smartphone, Monitor, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface PwaInstallBannerProps {
@@ -52,8 +52,8 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onOpenModal 
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 relative z-10">
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 p-1 shadow-md shadow-amber-500/10">
-              <img src="/icon.svg" alt="MENIA Icon" className="w-7 h-7 object-contain" />
+            <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 p-1 shadow-md shadow-amber-500/10 overflow-hidden">
+              <img src="/apple-touch-icon.png" alt="MILENIA Icon" className="w-8 h-8 object-contain rounded-lg" onError={(e) => { (e.target as HTMLImageElement).src = '/icon.svg'; }} />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">

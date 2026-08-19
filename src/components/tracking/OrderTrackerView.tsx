@@ -49,8 +49,8 @@ export const OrderTrackerView: React.FC = () => {
       labelEs: 'Comanda Recibida', 
       labelEn: 'Order Received', 
       icon: <Receipt className="w-4 h-4" />,
-      descEs: 'Registrado en la nube de L’AURA',
-      descEn: 'Registered in L’AURA Cloud'
+      descEs: 'Registrado en la nube de MILENIA',
+      descEn: 'Registered in MILENIA Cloud'
     },
     { 
       key: 'confirmed', 

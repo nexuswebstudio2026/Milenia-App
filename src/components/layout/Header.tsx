@@ -17,8 +17,6 @@ import {
   X, 
   Languages,
   Radio,
-  Sun,
-  Moon,
   Cloud,
   CheckCircle2,
   Wine,
@@ -145,33 +143,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenInstallModal }) => {
           </div>
         </div>
 
-        {/* Top Right: Theme Toggle, Language, and Staff/Admin Toggle */}
+        {/* Top Right: Language and Staff/Admin Toggle */}
         <div className="flex items-center gap-3">
-          
-          {/* Day / Night Theme Button */}
-          <button
-            onClick={toggleTheme}
-            id="theme-toggle-btn"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-amber-400 font-semibold transition cursor-pointer text-xs"
-            title={theme === 'dark' ? 'Cambiar a Modo Día (Luz)' : 'Cambiar a Modo Noche (Oscuro)'}
-          >
-            {theme === 'dark' ? (
-              <>
-                <Sun className="w-3.5 h-3.5 text-amber-400 animate-spin" style={{ animationDuration: '12s' }} />
-                <span className="hidden sm:inline text-[11px] text-slate-200">Día</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-3.5 h-3.5 text-amber-300" />
-                <span className="hidden sm:inline text-[11px] text-slate-200">Noche</span>
-              </>
-            )}
-          </button>
-
           {/* Language Toggle */}
           <button
             onClick={() => setLanguage(language === 'es' ? 'en' : 'es')}
-            className="flex items-center gap-1 text-slate-300 hover:text-white px-2 py-0.5 rounded hover:bg-slate-800 transition cursor-pointer"
+            className="flex items-center gap-1 text-slate-300 hover:text-white px-2.5 py-1 rounded-full hover:bg-slate-800 transition cursor-pointer text-xs"
             id="lang-toggle-btn"
             title="Cambiar idioma / Switch language"
           >
@@ -396,23 +373,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenInstallModal }) => {
                 </button>
               )}
 
-              <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-800 flex gap-2">
+              <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-800">
                 <button
                   onClick={() => {
                     setCurrentView('admin');
                     setIsMobileMenuOpen(false);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-slate-900 dark:bg-slate-800 text-amber-400 font-bold rounded-xl text-xs"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-900 dark:bg-slate-800 text-amber-400 font-bold rounded-xl text-xs"
                 >
                   <ChefHat className="w-4 h-4" />
                   <span>{language === 'es' ? 'Panel KDS Cocina' : 'Kitchen KDS'}</span>
-                </button>
-
-                <button
-                  onClick={toggleTheme}
-                  className="px-3 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5"
-                >
-                  {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
                 </button>
               </div>
             </div>

@@ -56,8 +56,8 @@ export function usePwaInstall() {
     };
   }, []);
 
-  const triggerInstall = async (): Promise<'accepted' | 'dismissed' | 'shared' | 'manual_guide' | 'opened_top_window'> => {
-    // 1. Native Chromium Prompt (Android / Windows / Mac / Linux / ChromeOS)
+  const triggerInstall = async (): Promise<'accepted' | 'dismissed' | 'opened_direct_tab' | 'manual_guide'> => {
+    // 1. Native Chromium Prompt (Android / Windows / Mac / Linux / ChromeOS) if available
     if (deferredPrompt) {
       try {
         await deferredPrompt.prompt();
@@ -73,35 +73,23 @@ export function usePwaInstall() {
       }
     }
 
-    // 2. Web Share API on iOS/Safari / Mobile browsers to open the native Share menu automatically
-    if (typeof navigator !== 'undefined' && navigator.share && (deviceInfo.os === 'ios' || deviceInfo.os === 'ipados' || deviceInfo.isMobile)) {
-      try {
-        await navigator.share({
-          title: 'MENIA | Restaurant & Haute Gastronomy',
-          text: 'Instala la aplicación oficial de MENIA en tu dispositivo con acceso directo y soporte offline.',
-          url: window.location.href
-        });
-        return 'shared';
-      } catch (err: any) {
-        // User cancelled share or abort error
-        if (err.name !== 'AbortError') {
-          console.log('Share sheet non-fatal:', err);
-        }
-        return 'manual_guide';
-      }
-    }
-
-    // 3. If inside iframe without captured prompt, open top window
+    // 2. If inside iframe (AI Studio preview iframe or embed), native prompts are blocked by browser security
     if (isInsideIframe && typeof window !== 'undefined') {
       try {
         window.open(window.location.href, '_blank');
-        return 'opened_top_window';
+        return 'opened_direct_tab';
       } catch {
         return 'manual_guide';
       }
     }
 
     return 'manual_guide';
+  };
+
+  const openInNewTab = () => {
+    if (typeof window !== 'undefined') {
+      window.open(window.location.href, '_blank');
+    }
   };
 
   return {
@@ -120,6 +108,7 @@ export function usePwaInstall() {
     isDesktop: deviceInfo.deviceType === 'desktop',
     isInsideIframe,
     triggerInstall,
+    openInNewTab,
     hasNativePrompt: !!deferredPrompt
   };
 }

@@ -66,8 +66,8 @@ export function detectBrowserAndOS(): DeviceInfo {
       isInApp: false,
       supportsNativePrompt: true,
       canInstallPwa: true,
-      installHeadline: 'Instalar MENIA en tu PC Windows',
-      installSubheadline: 'Acceso directo en tu barra de tareas y escritorio con soporte offline.',
+      installHeadline: 'Instalar MILENIA en tu PC Windows',
+      installSubheadline: 'Acceso directo en tu barra de tareas y escritorio con el logo oficial.',
       installButtonText: 'Instalar en tu PC Windows'
     };
   }
@@ -227,25 +227,25 @@ export function detectBrowserAndOS(): DeviceInfo {
   const canInstallPwa = true;
 
   // --- 4. TAILORED AUTOMATIC INSTALLATION HEADLINES ---
-  let installHeadline = 'Instalar MENIA';
+  let installHeadline = 'Instalar MILENIA';
   let installSubheadline = 'Acceso rápido con un toque en tu dispositivo.';
   let installButtonText = 'Instalar en tu Dispositivo';
 
   if (isMobile) {
-    installHeadline = 'Instalar MENIA en tu dispositivo móvil';
-    installSubheadline = `Instala la aplicación web de MENIA en tu dispositivo móvil desde ${browserName}.`;
+    installHeadline = 'Instalar MILENIA en tu dispositivo móvil';
+    installSubheadline = `Instala la aplicación oficial de MILENIA en tu dispositivo móvil con el logo oficial.`;
     installButtonText = 'Instalar en tu dispositivo móvil';
   } else if (os === 'windows') {
-    installHeadline = 'Instalar MENIA en tu PC Windows';
-    installSubheadline = 'Acceso directo en tu barra de tareas y escritorio con soporte offline.';
+    installHeadline = 'Instalar MILENIA en tu PC Windows';
+    installSubheadline = 'Acceso directo en tu barra de tareas y escritorio con el logo oficial.';
     installButtonText = 'Instalar en tu PC Windows';
   } else if (os === 'macos') {
-    installHeadline = 'Instalar MENIA en tu Mac';
-    installSubheadline = 'Aplicación de escritorio nativa optimizada para macOS.';
+    installHeadline = 'Instalar MILENIA en tu Mac';
+    installSubheadline = 'Aplicación de escritorio nativa optimizada para macOS con el logo oficial.';
     installButtonText = 'Instalar en tu Mac';
   } else {
-    installHeadline = 'Instalar MENIA en tu ordenador';
-    installSubheadline = 'Aplicación de escritorio independiente con soporte offline.';
+    installHeadline = 'Instalar MILENIA en tu ordenador';
+    installSubheadline = 'Aplicación de escritorio independiente con el logo oficial.';
     installButtonText = 'Instalar en tu ordenador';
   }
 

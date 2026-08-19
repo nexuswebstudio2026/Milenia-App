@@ -10,10 +10,9 @@ import {
   CheckCircle2, 
   X, 
   Sparkles, 
-  Zap, 
   Compass,
   Cpu,
-  ArrowRight
+  ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -25,11 +24,11 @@ interface PwaInstallModalProps {
 export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClose }) => {
   const { language } = useTasty();
   const { 
-    isInstalled, 
     deviceInfo, 
     triggerInstall, 
     hasNativePrompt,
-    isInsideIframe
+    isInsideIframe,
+    openInNewTab
   } = usePwaInstall();
 
   const [installStatus, setInstallStatus] = useState<'idle' | 'installing' | 'guide' | 'success'>('idle');
@@ -44,16 +43,12 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
       setTimeout(() => {
         onClose();
       }, 1800);
-    } else if (res === 'shared') {
-      // In iOS Safari, the native share sheet was opened!
-      setInstallStatus('guide');
     } else {
       setInstallStatus('guide');
     }
   };
 
   const isIosOrSafari = deviceInfo.os === 'ios' || deviceInfo.os === 'ipados' || deviceInfo.browser === 'safari';
-  const showGuide = installStatus === 'guide' || (isIosOrSafari && !hasNativePrompt);
 
   return (
     <AnimatePresence>
@@ -80,17 +75,16 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
 
           <div className="space-y-5 text-center">
             
-            {/* Official Logo Preview */}
+            {/* Official Logo Preview (Same as Header) */}
             <div className="inline-flex flex-col items-center gap-2 mx-auto pt-1">
               <div className="relative">
                 <div className="w-18 h-18 rounded-2xl bg-linear-to-br from-amber-400 via-amber-500 to-amber-600 p-0.5 shadow-xl shadow-amber-500/30">
                   <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center p-1.5 overflow-hidden">
                     <img 
                       src="/apple-touch-icon.png" 
-                      alt="Logo Oficial MENIA" 
+                      alt="Logo Oficial MILENIA" 
                       className="w-full h-full object-contain rounded-[10px]" 
                       onError={(e) => {
-                        // Fallback to SVG if needed
                         (e.target as HTMLImageElement).src = '/icon.svg';
                       }}
                     />
@@ -102,7 +96,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                 </span>
               </div>
               <span className="text-[10px] uppercase font-bold tracking-widest text-amber-400/90">
-                {language === 'es' ? 'Logo Oficial MENIA' : 'Official MENIA Logo'}
+                {language === 'es' ? 'Logo Oficial MILENIA' : 'Official MILENIA Logo'}
               </span>
             </div>
 
@@ -127,7 +121,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                 </div>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  {language === 'es' ? 'Compatible' : 'Ready'}
+                  {language === 'es' ? 'Listo para Instalar' : 'Ready to Install'}
                 </span>
               </div>
 
@@ -190,12 +184,12 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                   {language === 'es' ? '¡Aplicación Instalada con Éxito!' : 'App Installed Successfully!'}
                 </h4>
                 <p className="text-xs text-slate-300">
-                  {language === 'es' ? 'MENIA con su logo oficial ya está en tu pantalla de inicio / escritorio.' : 'MENIA with its official logo is now on your device.'}
+                  {language === 'es' ? 'MILENIA con su logo oficial ya está en tu pantalla de inicio / escritorio.' : 'MILENIA with its official logo is now on your device.'}
                 </p>
               </div>
             ) : (
               /* PRIMARY FUNCTIONAL INSTALL BUTTON */
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <button
                   onClick={handleInstallClick}
                   id="direct-pwa-install-modal-btn"
@@ -205,77 +199,75 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                   <span>{deviceInfo.installButtonText}</span>
                 </button>
 
-                <p className="text-[11px] text-slate-400">
-                  {language === 'es'
-                    ? 'Al pulsar el botón se abrirá el menú de instalación directa con el icono oficial.'
-                    : 'Clicking the button triggers the direct install menu with the official logo.'}
-                </p>
+                {isInsideIframe && (
+                  <button
+                    onClick={openInNewTab}
+                    id="open-direct-pwa-tab-btn"
+                    className="w-full py-2.5 px-4 rounded-xl border border-slate-700 hover:border-amber-500/50 bg-slate-800/60 hover:bg-slate-800 text-slate-200 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{language === 'es' ? 'Abrir en pestaña completa (Recomendado para 1 Clic)' : 'Open in direct tab for 1-Click install'}</span>
+                  </button>
+                )}
               </div>
             )}
 
-            {/* Exact Step-by-Step Guide for Safari/iOS or fallback */}
-            {showGuide && installStatus !== 'success' && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-slate-950/90 border border-amber-500/20 rounded-2xl p-4 text-left space-y-2.5 text-xs text-slate-300"
-              >
-                <div className="flex items-center gap-1.5 text-amber-400">
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider block">
-                    {language === 'es' ? `Pasos en ${deviceInfo.browserName}:` : `Steps in ${deviceInfo.browserName}:`}
-                  </span>
-                </div>
+            {/* Exact Step-by-Step Instructions based on OS & Browser */}
+            <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 text-left space-y-2.5 text-xs text-slate-300">
+              <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">
+                {language === 'es' ? `Instrucciones para ${deviceInfo.browserName}:` : `Instructions for ${deviceInfo.browserName}:`}
+              </span>
 
-                {isIosOrSafari ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2.5 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                      <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px] shrink-0">1</span>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span>{language === 'es' ? 'Pulsa en' : 'Tap'}</span>
-                        <span className="inline-flex items-center gap-1 font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
-                          <Share2 className="w-3.5 h-3.5 text-sky-400" />
-                          {language === 'es' ? 'Compartir' : 'Share'}
-                        </span>
-                        <span className="text-slate-400 text-[11px]">{language === 'es' ? '(abierto automáticamente)' : '(opened automatically)'}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2.5 bg-amber-500/15 p-2.5 rounded-xl border border-amber-500/40">
-                      <span className="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-[11px] shrink-0">2</span>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-white font-medium">{language === 'es' ? 'Selecciona' : 'Select'}</span>
-                        <span className="inline-flex items-center gap-1 font-bold text-amber-400 bg-slate-950 px-2 py-0.5 rounded border border-amber-500/40">
-                          <PlusSquare className="w-3.5 h-3.5" />
-                          {language === 'es' ? 'Añadir a pantalla de inicio' : 'Add to Home Screen'}
-                        </span>
-                      </div>
+              {isIosOrSafari ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2.5 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                    <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px] shrink-0">1</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span>{language === 'es' ? 'En Safari, toca el botón' : 'In Safari, tap'}</span>
+                      <span className="inline-flex items-center gap-1 font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                        <Share2 className="w-3.5 h-3.5 text-sky-400" />
+                        {language === 'es' ? 'Compartir' : 'Share'}
+                      </span>
+                      <span className="text-slate-400 text-[11px]">{language === 'es' ? '(barra inferior)' : '(bottom bar)'}</span>
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2.5 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                      <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px] shrink-0">1</span>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span>{language === 'es' ? 'En el menú' : 'In menu'}</span>
-                        <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
-                          (⋮) / (···)
-                        </span>
-                        <span>{language === 'es' ? 'o barra de navegación' : 'or navigation bar'}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2.5 bg-amber-500/15 p-2.5 rounded-xl border border-amber-500/40">
-                      <span className="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-[11px] shrink-0">2</span>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-white font-medium">{language === 'es' ? 'Haz clic en' : 'Click on'}</span>
-                        <span className="font-bold text-amber-400 bg-slate-950 px-2 py-0.5 rounded border border-amber-500/40">
-                          {language === 'es' ? '"Instalar MENIA" / "Añadir a inicio"' : '"Install MENIA"'}
-                        </span>
-                      </div>
+                  <div className="flex items-center gap-2.5 bg-amber-500/15 p-2.5 rounded-xl border border-amber-500/40">
+                    <span className="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-[11px] shrink-0">2</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-white font-medium">{language === 'es' ? 'Baja en el menú y selecciona' : 'Scroll and select'}</span>
+                      <span className="inline-flex items-center gap-1 font-bold text-amber-400 bg-slate-950 px-2 py-0.5 rounded border border-amber-500/40">
+                        <PlusSquare className="w-3.5 h-3.5" />
+                        {language === 'es' ? 'Añadir a pantalla de inicio' : 'Add to Home Screen'}
+                      </span>
                     </div>
                   </div>
-                )}
-              </motion.div>
-            )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2.5 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                    <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px] shrink-0">1</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span>{language === 'es' ? 'En la barra superior o menú' : 'In top bar or menu'}</span>
+                      <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                        (⋮)
+                      </span>
+                      <span>{language === 'es' ? 'pulsa' : 'click'}</span>
+                      <span className="font-bold text-amber-400">
+                        {language === 'es' ? '"Instalar MILENIA"' : '"Install MILENIA"'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2.5 bg-amber-500/15 p-2.5 rounded-xl border border-amber-500/40">
+                    <span className="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-[11px] shrink-0">2</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-white font-medium">
+                        {language === 'es' ? 'Confirma para tener el logo oficial en tu escritorio / pantalla.' : 'Confirm to get the official logo on your device.'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
           </div>
         </motion.div>

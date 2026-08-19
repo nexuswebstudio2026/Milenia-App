@@ -1,7 +1,7 @@
 {
-  "name": "MENIA - Restaurant & Gastronomy",
-  "short_name": "MENIA",
-  "description": "Plataforma de alta cocina, pedidos en línea, reservas de mesa y cartas gourmet de MENIA.",
+  "name": "MILENIA - Restaurant & Haute Gastronomy",
+  "short_name": "MILENIA",
+  "description": "Plataforma de alta cocina, pedidos en línea, reservas de mesa y cartas gourmet de MILENIA.",
   "start_url": "/",
   "id": "/",
   "display": "standalone",
@@ -43,7 +43,7 @@
   ],
   "shortcuts": [
     {
-      "name": "Ver Carta MENIA",
+      "name": "Ver Carta MILENIA",
       "short_name": "Carta",
       "description": "Explora los platos de autor y cavas",
       "url": "/?view=menu",

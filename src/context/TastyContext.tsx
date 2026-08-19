@@ -63,7 +63,7 @@ interface TastyContextType {
   orderType: OrderType;
   setOrderType: (type: OrderType) => void;
 
-  // Theme (Day & Night)
+  // Theme (Day & Night - Automated by Time: 6am-5:59pm Day, 6pm-5:59am Night)
   theme: ThemeMode;
   setTheme: (theme: ThemeMode) => void;
   toggleTheme: () => void;
@@ -131,6 +131,17 @@ interface TastyContextType {
   setIsCheckoutOpen: (open: boolean) => void;
 }
 
+// Automatic theme calculation:
+// 6:00 AM (06:00) to 5:59 PM (17:59) -> 'light' (Modo Día)
+// 6:00 PM (18:00) to 5:59 AM (05:59) -> 'dark' (Modo Noche)
+function getAutomaticTheme(): ThemeMode {
+  const currentHour = new Date().getHours();
+  if (currentHour >= 6 && currentHour < 18) {
+    return 'light';
+  }
+  return 'dark';
+}
+
 const TastyContext = createContext<TastyContextType | undefined>(undefined);
 
 export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -139,35 +150,45 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [language, setLanguage] = useState<Language>('es');
   const [orderType, setOrderType] = useState<OrderType>('delivery');
 
-  // Theme (Day & Night)
-  const [theme, setThemeState] = useState<ThemeMode>(() => {
-    const saved = localStorage.getItem('laura_theme');
-    if (saved === 'dark' || saved === 'light') return saved;
-    // Default to sophisticated dark or system preference
-    return 'dark';
-  });
+  // Automatic Theme State (6:00 AM to 5:59 PM Day, 6:00 PM to 5:59 AM Night)
+  const [theme, setThemeState] = useState<ThemeMode>(() => getAutomaticTheme());
 
-  const setTheme = (newTheme: ThemeMode) => {
-    setThemeState(newTheme);
-    localStorage.setItem('laura_theme', newTheme);
-    if (newTheme === 'dark') {
+  const applyThemeToDOM = (mode: ThemeMode) => {
+    if (mode === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
+  };
+
+  const setTheme = (newTheme: ThemeMode) => {
+    setThemeState(newTheme);
+    applyThemeToDOM(newTheme);
   };
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
+  // Periodic check to transition automatically as the hour changes
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
+    const updateThemeBySchedule = () => {
+      const scheduledTheme = getAutomaticTheme();
+      setThemeState((prev) => {
+        if (prev !== scheduledTheme) {
+          applyThemeToDOM(scheduledTheme);
+          return scheduledTheme;
+        }
+        return prev;
+      });
+      applyThemeToDOM(scheduledTheme);
+    };
+
+    updateThemeBySchedule();
+    const interval = setInterval(updateThemeBySchedule, 30000); // check every 30s
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Firebase status
   const [firebaseStatus, setFirebaseStatus] = useState<FirebaseSyncStatus>('syncing');
@@ -179,39 +200,39 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Dynamic Data with fallback to initial mock data
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
-    const saved = localStorage.getItem('laura_menu_items');
+    const saved = localStorage.getItem('milenia_menu_items') || localStorage.getItem('laura_menu_items');
     return saved ? JSON.parse(saved) : INITIAL_MENU_ITEMS;
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('laura_orders');
+    const saved = localStorage.getItem('milenia_orders') || localStorage.getItem('laura_orders');
     return saved ? JSON.parse(saved) : INITIAL_ORDERS;
   });
 
   const [activeOrder, setActiveOrder] = useState<Order | null>(() => {
-    const saved = localStorage.getItem('laura_orders');
+    const saved = localStorage.getItem('milenia_orders') || localStorage.getItem('laura_orders');
     const list = saved ? JSON.parse(saved) : INITIAL_ORDERS;
     return list.length > 0 ? list[0] : null;
   });
 
   const [reservations, setReservations] = useState<TableReservation[]>(() => {
-    const saved = localStorage.getItem('laura_reservations');
+    const saved = localStorage.getItem('milenia_reservations') || localStorage.getItem('laura_reservations');
     return saved ? JSON.parse(saved) : INITIAL_RESERVATIONS;
   });
 
   const [reviews, setReviews] = useState<RestaurantReview[]>(() => {
-    const saved = localStorage.getItem('laura_reviews');
+    const saved = localStorage.getItem('milenia_reviews') || localStorage.getItem('laura_reviews');
     return saved ? JSON.parse(saved) : INITIAL_REVIEWS;
   });
 
   const [config, setConfig] = useState<RestaurantConfig>(() => {
-    const saved = localStorage.getItem('laura_config');
+    const saved = localStorage.getItem('milenia_config') || localStorage.getItem('laura_config');
     return saved ? JSON.parse(saved) : DEFAULT_CONFIG;
   });
 
   // Cart State
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('laura_cart');
+    const saved = localStorage.getItem('milenia_cart') || localStorage.getItem('laura_cart');
     return saved ? JSON.parse(saved) : [];
   });
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -248,27 +269,27 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Synchronize with localStorage
   useEffect(() => {
-    localStorage.setItem('laura_menu_items', JSON.stringify(menuItems));
+    localStorage.setItem('milenia_menu_items', JSON.stringify(menuItems));
   }, [menuItems]);
 
   useEffect(() => {
-    localStorage.setItem('laura_orders', JSON.stringify(orders));
+    localStorage.setItem('milenia_orders', JSON.stringify(orders));
   }, [orders]);
 
   useEffect(() => {
-    localStorage.setItem('laura_reservations', JSON.stringify(reservations));
+    localStorage.setItem('milenia_reservations', JSON.stringify(reservations));
   }, [reservations]);
 
   useEffect(() => {
-    localStorage.setItem('laura_reviews', JSON.stringify(reviews));
+    localStorage.setItem('milenia_reviews', JSON.stringify(reviews));
   }, [reviews]);
 
   useEffect(() => {
-    localStorage.setItem('laura_config', JSON.stringify(config));
+    localStorage.setItem('milenia_config', JSON.stringify(config));
   }, [config]);
 
   useEffect(() => {
-    localStorage.setItem('laura_cart', JSON.stringify(cart));
+    localStorage.setItem('milenia_cart', JSON.stringify(cart));
   }, [cart]);
 
   // -------------------------------------------------------------
@@ -289,7 +310,6 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const menuCol = collection(db, 'menu_items');
         unsubscribeMenu = onSnapshot(menuCol, async (snapshot) => {
           if (snapshot.empty) {
-            // Seed initial menu items to Firestore
             for (const item of INITIAL_MENU_ITEMS) {
               await setDoc(doc(db, 'menu_items', item.id), item).catch(err => 
                 handleFirestoreError(err, OperationType.WRITE, 'menu_items')
@@ -462,11 +482,11 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const applyPromoCode = (code: string): boolean => {
     const clean = code.trim().toUpperCase();
-    if (clean === 'MENIA10' || clean === 'MILENIA10' || clean === 'ANAMILENA' || clean === 'LAURA10' || clean === 'TASTY10') {
+    if (clean === 'MILENIA10' || clean === 'MENIA10' || clean === 'ANAMILENA' || clean === 'LAURA10' || clean === 'TASTY10') {
       const disc = Number((subtotal * 0.10).toFixed(2));
       setDiscount(disc);
       setPromoCode(clean);
-      addToast('success', language === 'es' ? 'Cupón Aplicado' : 'Promo Applied', '10% de descuento en tu comanda MENIA');
+      addToast('success', language === 'es' ? 'Cupón Aplicado' : 'Promo Applied', '10% de descuento en tu comanda MILENIA');
       return true;
     } else if (clean === 'ENVIOGRATIS' || clean === 'FREEDELIVERY') {
       setDiscount(deliveryFee);
@@ -524,7 +544,7 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         {
           status: 'received',
           timestamp: nowTime,
-          note: 'Pedido recibido y registrado en el sistema MENIA'
+          note: 'Pedido recibido y registrado en el sistema MILENIA'
         }
       ],
       driver: orderType === 'delivery' ? {
@@ -535,14 +555,12 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } : undefined
     };
 
-    // Optimistic state update
     setOrders((prev) => [newOrder, ...prev]);
     setActiveOrder(newOrder);
     clearCart();
     setIsCheckoutOpen(false);
     triggerConfetti();
 
-    // Firebase Write
     setDoc(doc(db, 'orders', orderId), newOrder).catch((err) => {
       handleFirestoreError(err, OperationType.CREATE, `orders/${orderId}`);
     });
@@ -576,7 +594,6 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
     });
 
-    // Firebase Update
     updateDoc(doc(db, 'orders', orderId), {
       status,
       lastUpdated: new Date().toISOString()
@@ -609,7 +626,6 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setReservations((prev) => [newRes, ...prev]);
     triggerConfetti();
 
-    // Firebase Write
     setDoc(doc(db, 'reservations', id), newRes).catch((err) => {
       handleFirestoreError(err, OperationType.CREATE, `reservations/${id}`);
     });

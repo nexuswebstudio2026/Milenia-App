@@ -72,7 +72,7 @@ export const MeniaLogo: React.FC<MeniaLogoProps> = ({
             <circle cx="50" cy="20" r="3.5" fill="url(#meniaGold)" />
             <circle cx="50" cy="20" r="1.5" fill="#ffffff" />
 
-            {/* Geometric Haute Monogram "M" for MENIA */}
+            {/* Geometric Haute Monogram "M" for MILENIA */}
             <path
               d="M 26 74 L 26 40 L 37 40 L 50 60 L 63 40 L 74 40 L 74 74 L 64 74 L 64 54 L 54 69 L 46 69 L 36 54 L 36 74 Z"
               fill="url(#meniaGold)"
@@ -95,7 +95,7 @@ export const MeniaLogo: React.FC<MeniaLogoProps> = ({
         <div className="flex flex-col text-left leading-none">
           <div className="flex items-center gap-1.5">
             <span className={`font-serif font-black tracking-[0.12em] ${titleSize} text-slate-900 dark:text-white`}>
-              MENIA
+              MILENIA
             </span>
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
           </div>

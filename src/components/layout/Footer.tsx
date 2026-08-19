@@ -82,8 +82,8 @@ export const Footer: React.FC = () => {
 
             <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
               {language === 'es'
-                ? "MENIA - Plataforma y concepto gastronómico de alta cocina. Platos de autor, maridajes exclusivos, carnes maduradas y cava selecta para disfrutar en sala o a domicilio."
-                : "MENIA - Haute cuisine culinary platform and restaurant concept. Signature gastronomy, exclusive wine pairings, and premium cellar selections."}
+                ? "MILENIA - Plataforma y concepto gastronómico de alta cocina. Platos de autor, maridajes exclusivos, carnes maduradas y cava selecta para disfrutar en sala o a domicilio."
+                : "MILENIA - Haute cuisine culinary platform and restaurant concept. Signature gastronomy, exclusive wine pairings, and premium cellar selections."}
             </p>
 
             <div className="pt-2 flex items-center gap-2 text-xs text-slate-400">
@@ -101,7 +101,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2 text-xs">
               <li>
                 <button onClick={() => setCurrentView('menu')} className="hover:text-amber-400 transition cursor-pointer">
-                  {language === 'es' ? 'Carta MENIA' : 'MENIA Menu & Order'}
+                  {language === 'es' ? 'Carta MILENIA' : 'MILENIA Menu & Order'}
                 </button>
               </li>
               <li>
@@ -179,7 +179,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom copyright */}
         <div className="pt-8 mt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <p>© {new Date().getFullYear()} MENIA Restaurant Platform. Todos los derechos reservados.</p>
+          <p>© {new Date().getFullYear()} MILENIA Restaurant Platform. Todos los derechos reservados.</p>
           <div className="flex items-center gap-4 text-slate-400">
             <span>Privacidad</span>
             <span>Términos</span>

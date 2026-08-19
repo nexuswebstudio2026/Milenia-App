@@ -1,7 +1,6 @@
 {
   "name": "TastyIgniter Restaurant Platform",
-  "description": "MENIA - Plataforma gastronómica para restaurantes de alta cocina, pedidos en línea, reservas de mesa, modo día/noche y sincronización en tiempo real con Firebase Firestore.",
+  "description": "MILENIA - Plataforma gastronómica para restaurantes de alta cocina, pedidos en línea, reservas de mesa, modo día/noche y sincronización en tiempo real con Firebase Firestore.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
-
