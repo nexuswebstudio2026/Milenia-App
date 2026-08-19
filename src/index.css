@@ -1,9 +1,24 @@
 @import "tailwindcss";
 
 @layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    scroll-behavior: smooth;
+  }
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    overscroll-behavior-y: none;
+    -webkit-font-smoothing: antialiased;
   }
+}
+
+.safe-area-inset-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.safe-area-inset-top {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
 }
 
 .no-scrollbar::-webkit-scrollbar {

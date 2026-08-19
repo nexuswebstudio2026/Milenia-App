@@ -1,0 +1,52 @@
+{
+  "name": "MILENIA Gastronomy by Ana Milena",
+  "short_name": "MILENIA",
+  "description": "Alta cocina, atelier de autor, pedidos en línea y reservas exclusivas por Ana Milena.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait-primary",
+  "categories": ["food", "lifestyle", "shopping"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ver Carta Gastronómica",
+      "short_name": "Carta",
+      "description": "Explora los platos de autor y cavas",
+      "url": "/?view=menu"
+    },
+    {
+      "name": "Reservar Mesa",
+      "short_name": "Reservas",
+      "description": "Reserva tu mesa en el atelier o terraza",
+      "url": "/?view=reservations"
+    },
+    {
+      "name": "Mis Pedidos en Vivo",
+      "short_name": "Pedidos",
+      "description": "Seguimiento en tiempo real de tu comanda",
+      "url": "/?view=tracking"
+    }
+  ]
+}

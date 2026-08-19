@@ -19,11 +19,17 @@ import {
   Moon,
   Cloud,
   CheckCircle2,
-  Wine
+  Wine,
+  Download,
+  Smartphone
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onOpenInstallModal?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onOpenInstallModal }) => {
   const { 
     currentView, 
     setCurrentView, 
@@ -268,6 +274,18 @@ export const Header: React.FC = () => {
 
           {/* Cart Button & Mobile Menu Toggle */}
           <div className="flex items-center gap-2">
+            {onOpenInstallModal && (
+              <button
+                onClick={onOpenInstallModal}
+                id="header-install-app-btn"
+                className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition cursor-pointer"
+                title={language === 'es' ? 'Instalar aplicación en tu dispositivo' : 'Install app on your device'}
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{language === 'es' ? 'Instalar App' : 'Install App'}</span>
+              </button>
+            )}
+
             <button
               onClick={() => setIsCartOpen(true)}
               id="header-cart-button"
@@ -358,6 +376,24 @@ export const Header: React.FC = () => {
                   )}
                 </button>
               ))}
+
+              {onOpenInstallModal && (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onOpenInstallModal();
+                  }}
+                  className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Download className="w-4 h-4 text-amber-500" />
+                    <span>{language === 'es' ? 'Instalar Aplicación en tu Dispositivo' : 'Install App on Device'}</span>
+                  </div>
+                  <span className="text-[10px] bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full font-black">
+                    PWA
+                  </span>
+                </button>
+              )}
 
               <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-800 flex gap-2">
                 <button
