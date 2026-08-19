@@ -13,7 +13,10 @@ import {
   Zap, 
   Compass,
   ExternalLink,
-  Info
+  Laptop,
+  Cpu,
+  Layers,
+  ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -28,10 +31,11 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
     isInstalled, 
     deviceInfo, 
     triggerInstall, 
-    hasNativePrompt
+    hasNativePrompt,
+    isInsideIframe
   } = usePwaInstall();
 
-  const [installStatus, setInstallStatus] = useState<'idle' | 'installing' | 'guide'>('idle');
+  const [installStatus, setInstallStatus] = useState<'idle' | 'installing' | 'guide' | 'success'>('idle');
 
   if (!isOpen) return null;
 
@@ -39,9 +43,11 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
     setInstallStatus('installing');
     const res = await triggerInstall();
     if (res === 'accepted') {
-      onClose();
+      setInstallStatus('success');
+      setTimeout(() => {
+        onClose();
+      }, 1800);
     } else {
-      // If manual guide is needed (e.g. Safari on iOS), show steps
       setInstallStatus('guide');
     }
   };
@@ -51,16 +57,16 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.94, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 15 }}
-          className="relative w-full max-w-md bg-slate-900 border border-amber-500/30 text-white rounded-3xl p-6 sm:p-7 shadow-2xl shadow-amber-500/10 overflow-hidden my-auto"
+          className="relative w-full max-w-md bg-slate-900 border border-amber-500/40 text-white rounded-3xl p-6 sm:p-7 shadow-2xl shadow-amber-500/15 overflow-hidden my-auto"
         >
-          {/* Ambient Glow */}
-          <div className="absolute -top-20 -right-20 w-40 h-40 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-amber-600/10 rounded-full blur-3xl pointer-events-none"></div>
+          {/* Ambient Gold Glow */}
+          <div className="absolute -top-20 -right-20 w-44 h-44 bg-amber-500/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute -bottom-20 -left-20 w-44 h-44 bg-amber-600/15 rounded-full blur-3xl pointer-events-none"></div>
 
           {/* Close Button */}
           <button
@@ -73,21 +79,27 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
           </button>
 
           <div className="space-y-5 text-center">
-            {/* App Icon */}
-            <div className="inline-flex relative mx-auto">
-              <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-amber-400 to-amber-600 p-0.5 shadow-lg shadow-amber-500/25">
-                <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                  <img src="/icon.svg" alt="MENIA Icon" className="w-11 h-11 object-contain" />
+            
+            {/* Logo Badge Preview */}
+            <div className="inline-flex flex-col items-center gap-2 mx-auto pt-1">
+              <div className="relative">
+                <div className="w-18 h-18 rounded-2xl bg-linear-to-br from-amber-400 via-amber-500 to-amber-600 p-0.5 shadow-xl shadow-amber-500/30">
+                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center p-2">
+                    <img src="/icon.svg" alt="Logo Oficial MENIA" className="w-full h-full object-contain" />
+                  </div>
                 </div>
+                <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-amber-500 border-2 border-slate-950"></span>
+                </span>
               </div>
-              <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500 border-2 border-slate-950"></span>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-amber-400/90">
+                {language === 'es' ? 'Logo Oficial MENIA' : 'Official MENIA Logo'}
               </span>
             </div>
 
-            {/* Title and Subtitle */}
-            <div className="space-y-1.5">
+            {/* Main Title */}
+            <div className="space-y-1">
               <h2 className="text-xl sm:text-2xl font-serif font-black text-white tracking-wide">
                 {deviceInfo.installHeadline}
               </h2>
@@ -96,83 +108,133 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
               </p>
             </div>
 
-            {/* Live Detected Info Card */}
-            <div className="bg-slate-950/80 border border-amber-500/30 rounded-2xl p-3 flex items-center justify-between gap-3 text-left">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
-                  {deviceInfo.isMobile ? (
-                    <Smartphone className="w-5 h-5 text-amber-400" />
-                  ) : (
-                    <Monitor className="w-5 h-5 text-amber-400" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider block">
-                    {language === 'es' ? 'Detectado Automáticamente' : 'Auto Detected'}
+            {/* "DETECTADO AUTOMÁTICAMENTE" CARD */}
+            <div className="bg-slate-950/90 border border-amber-500/30 rounded-2xl p-4 text-left space-y-2.5 shadow-inner">
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <div className="flex items-center gap-1.5 text-amber-400">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider">
+                    {language === 'es' ? 'Detectado Automáticamente' : 'Detected Automatically'}
                   </span>
-                  <p className="text-xs font-bold text-white truncate">
-                    {deviceInfo.isMobile ? 'Dispositivo Móvil' : deviceInfo.deviceModel} • <span className="text-slate-300 font-normal">{deviceInfo.browserName}</span>
-                  </p>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  {language === 'es' ? 'Compatible' : 'Ready'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {/* Dónde estás conectado / Dispositivo */}
+                <div className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl flex items-center gap-2">
+                  {deviceInfo.isMobile ? (
+                    <Smartphone className="w-4 h-4 text-amber-400 shrink-0" />
+                  ) : (
+                    <Monitor className="w-4 h-4 text-amber-400 shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">
+                      {language === 'es' ? 'Conectado en' : 'Connected on'}
+                    </span>
+                    <span className="font-bold text-white text-xs truncate block">
+                      {deviceInfo.isMobile ? 'Dispositivo Móvil' : deviceInfo.deviceModel}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Sistema Operativo */}
+                <div className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl flex items-center gap-2">
+                  <Cpu className="w-4 h-4 text-sky-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">
+                      {language === 'es' ? 'Sistema' : 'System'}
+                    </span>
+                    <span className="font-bold text-white text-xs truncate block">
+                      {deviceInfo.osName}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Navegador */}
+                <div className="col-span-2 bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl flex items-center gap-2">
+                  <Compass className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <div className="min-w-0 flex-1 flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] uppercase font-bold text-slate-400 block">
+                        {language === 'es' ? 'Navegador Web' : 'Browser'}
+                      </span>
+                      <span className="font-bold text-white text-xs truncate block">
+                        {deviceInfo.browserName}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-amber-400 font-semibold">
+                      {language === 'es' ? 'PWA con Icono' : 'PWA with Icon'}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                {language === 'es' ? 'Listo' : 'Ready'}
-              </span>
             </div>
 
-            {/* Primary Direct Action Button */}
-            <button
-              onClick={handleInstallClick}
-              id="direct-pwa-install-modal-btn"
-              className="w-full py-3.5 px-5 rounded-2xl font-serif font-bold text-sm bg-linear-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 active:scale-98 text-slate-950 shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span>{deviceInfo.installButtonText}</span>
-            </button>
+            {/* Success message if installed */}
+            {installStatus === 'success' ? (
+              <div className="bg-emerald-500/20 border border-emerald-500/40 rounded-2xl p-4 text-center space-y-1.5 animate-in fade-in">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
+                <h4 className="font-serif font-bold text-emerald-300 text-sm">
+                  {language === 'es' ? '¡Aplicación Instalada con Éxito!' : 'App Installed Successfully!'}
+                </h4>
+                <p className="text-xs text-slate-300">
+                  {language === 'es' ? 'MENIA con su logo oficial ya está en tu pantalla de inicio / escritorio.' : 'MENIA with its official logo is now on your device.'}
+                </p>
+              </div>
+            ) : (
+              /* PRIMARY FUNCTIONAL INSTALL BUTTON */
+              <div className="space-y-2">
+                <button
+                  onClick={handleInstallClick}
+                  id="direct-pwa-install-modal-btn"
+                  className="w-full py-4 px-5 rounded-2xl font-serif font-bold text-sm sm:text-base bg-linear-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 active:scale-98 text-slate-950 shadow-xl shadow-amber-500/30 flex items-center justify-center gap-2.5 transition cursor-pointer"
+                >
+                  <Download className="w-5 h-5" />
+                  <span>{deviceInfo.installButtonText}</span>
+                </button>
 
-            {/* Exact Step-by-Step Guide for Safari/iOS or Manual when native prompt not applicable */}
-            {showGuide && (
+                <p className="text-[11px] text-slate-400">
+                  {language === 'es'
+                    ? 'Se instalará la aplicación con el logo oficial de MENIA en tu dispositivo.'
+                    : 'The app will be installed with the official MENIA logo on your device.'}
+                </p>
+              </div>
+            )}
+
+            {/* Exact Step-by-Step Guide for Safari/iOS or Manual fallback */}
+            {showGuide && installStatus !== 'success' && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 text-left space-y-2.5 text-xs text-slate-300"
               >
                 <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">
-                  {language === 'es' ? `Pasos para ${deviceInfo.browserName}:` : `Steps for ${deviceInfo.browserName}:`}
+                  {language === 'es' ? `Pasos en ${deviceInfo.browserName}:` : `Steps in ${deviceInfo.browserName}:`}
                 </span>
 
-                {deviceInfo.isInApp ? (
+                {isIosOrSafari ? (
                   <div className="space-y-2">
-                    <p className="text-slate-300">
-                      {language === 'es'
-                        ? '1. Toca los tres puntos (···) y selecciona "Abrir en el navegador".'
-                        : '1. Tap (···) and select "Open in browser".'}
-                    </p>
-                    <p className="text-slate-300">
-                      {language === 'es'
-                        ? '2. Pulsa en Instalar o Añadir a pantalla de inicio.'
-                        : '2. Tap Install or Add to Home Screen.'}
-                    </p>
-                  </div>
-                ) : isIosOrSafari ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 bg-slate-900 p-2 rounded-xl border border-slate-800">
-                      <span className="w-5 h-5 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[10px]">1</span>
+                    <div className="flex items-center gap-2.5 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px] shrink-0">1</span>
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span>{language === 'es' ? 'Toca el botón' : 'Tap'}</span>
-                        <span className="inline-flex items-center gap-1 font-bold text-white bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
-                          <Share2 className="w-3 h-3 text-sky-400" />
+                        <span>{language === 'es' ? 'Pulsa el botón' : 'Tap'}</span>
+                        <span className="inline-flex items-center gap-1 font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                          <Share2 className="w-3.5 h-3.5 text-sky-400" />
                           {language === 'es' ? 'Compartir' : 'Share'}
                         </span>
+                        <span className="text-slate-400 text-[11px]">{language === 'es' ? 'en la barra de Safari' : 'in Safari toolbar'}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 bg-slate-900 p-2 rounded-xl border border-slate-800">
-                      <span className="w-5 h-5 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[10px]">2</span>
+                    <div className="flex items-center gap-2.5 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px] shrink-0">2</span>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span>{language === 'es' ? 'Selecciona' : 'Select'}</span>
-                        <span className="inline-flex items-center gap-1 font-bold text-emerald-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
-                          <PlusSquare className="w-3 h-3" />
+                        <span className="inline-flex items-center gap-1 font-bold text-emerald-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                          <PlusSquare className="w-3.5 h-3.5" />
                           {language === 'es' ? 'Añadir a pantalla de inicio' : 'Add to Home Screen'}
                         </span>
                       </div>
@@ -180,20 +242,32 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-slate-300">
-                      {language === 'es'
-                        ? '1. Pulsa en el menú de tres puntos (⋮) de tu navegador.'
-                        : '1. Tap the three dots (⋮) menu.'}
-                    </p>
-                    <p className="text-slate-300">
-                      {language === 'es'
-                        ? '2. Selecciona "Instalar aplicación" o "Añadir a pantalla de inicio".'
-                        : '2. Select "Install App" or "Add to Home Screen".'}
-                    </p>
+                    <div className="flex items-center gap-2.5 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px] shrink-0">1</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span>{language === 'es' ? 'Haz clic en el menú' : 'Click the menu'}</span>
+                        <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                          (⋮) / (···)
+                        </span>
+                        <span>{language === 'es' ? 'o en el icono de instalación' : 'or install icon'}</span>
+                        <Download className="w-3.5 h-3.5 text-amber-400 inline" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px] shrink-0">2</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span>{language === 'es' ? 'Pulsa en' : 'Click on'}</span>
+                        <span className="font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                          {language === 'es' ? '"Instalar MENIA"' : '"Install MENIA"'}
+                        </span>
+                        <span>{language === 'es' ? 'para añadir el icono al escritorio / barra de tareas.' : 'to create shortcut with logo.'}</span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </motion.div>
             )}
+
           </div>
         </motion.div>
       </div>

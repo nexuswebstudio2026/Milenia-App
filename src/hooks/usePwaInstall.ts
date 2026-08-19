@@ -11,8 +11,16 @@ export function usePwaInstall() {
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>(() => detectBrowserAndOS());
+  const [isInsideIframe, setIsInsideIframe] = useState(false);
 
   useEffect(() => {
+    // Check if running in iframe
+    try {
+      setIsInsideIframe(window.self !== window.top);
+    } catch {
+      setIsInsideIframe(true);
+    }
+
     // Check if already in standalone / installed mode
     const isStandaloneMode = 
       window.matchMedia('(display-mode: standalone)').matches ||
@@ -24,7 +32,6 @@ export function usePwaInstall() {
     const info = detectBrowserAndOS();
     setDeviceInfo(info);
 
-    // On iOS/Android/Desktop, it's installable via native prompt or browser guided menu
     if (!isStandaloneMode) {
       setIsInstallable(true);
     }
@@ -51,7 +58,7 @@ export function usePwaInstall() {
     };
   }, []);
 
-  const triggerInstall = async (): Promise<'accepted' | 'dismissed' | 'manual_guide' | 'unsupported'> => {
+  const triggerInstall = async (): Promise<'accepted' | 'dismissed' | 'manual_guide' | 'opened_top_window'> => {
     if (deferredPrompt) {
       try {
         await deferredPrompt.prompt();
@@ -64,6 +71,16 @@ export function usePwaInstall() {
         return choiceResult.outcome;
       } catch (err) {
         console.warn('Install prompt error:', err);
+        return 'manual_guide';
+      }
+    }
+
+    // If inside iframe and no native prompt is captured yet, can open in standalone tab to trigger native install
+    if (isInsideIframe && typeof window !== 'undefined') {
+      try {
+        window.open(window.location.href, '_blank');
+        return 'opened_top_window';
+      } catch {
         return 'manual_guide';
       }
     }
@@ -85,9 +102,8 @@ export function usePwaInstall() {
     isTablet: deviceInfo.deviceType === 'tablet',
     isLaptop: deviceInfo.deviceType === 'laptop',
     isDesktop: deviceInfo.deviceType === 'desktop',
+    isInsideIframe,
     triggerInstall,
     hasNativePrompt: !!deferredPrompt
   };
 }
-
-
