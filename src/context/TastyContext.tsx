@@ -22,7 +22,10 @@ import {
   TenantRestaurant,
   TenantEmployee,
   RestaurantTable,
-  TableStatus
+  TableStatus,
+  InventoryItem,
+  DianResolutionInfo,
+  EmployeeShiftLog
 } from '../types';
 import { 
   INITIAL_CATEGORIES, 
@@ -38,11 +41,13 @@ import {
   INITIAL_TENANTS, 
   INITIAL_EMPLOYEES, 
   INITIAL_TABLES, 
+  INITIAL_INVENTORY,
   CAMILO_CATEGORIES, 
   CAMILO_MENU_ITEMS, 
   CAMILO_ORDERS,
   getTenantCategories,
-  getTenantMenuItems
+  getTenantMenuItems,
+  getTenantInventory
 } from '../data/multiTenantData';
 import { useTenantRoute, ParsedTenantRoute, AppRouteType } from '../hooks/useTenantRoute';
 import { 
@@ -105,6 +110,24 @@ interface TastyContextType {
   // Tables & Salón (Tenant-isolated)
   tenantTables: RestaurantTable[];
   updateTableStatus: (tableId: string, status: TableStatus, currentOrderId?: string) => void;
+
+  // Inventory Management & Automatic Deduction
+  inventory: InventoryItem[];
+  tenantInventory: InventoryItem[];
+  updateInventoryItem: (id: string, updates: Partial<InventoryItem>) => void;
+  restockInventoryItem: (id: string, addedQty: number) => void;
+  deductInventoryForOrder: (order: Order) => void;
+
+  // DIAN & Colombia Tax Settings
+  updateDianSettings: (tenantId: string, dianInfo: DianResolutionInfo, nit?: string, legalName?: string) => void;
+
+  // Employee Shift Clock-In/Clock-Out & Sales Targets
+  clockInEmployee: (employeeId: string) => void;
+  clockOutEmployee: (employeeId: string) => void;
+  setEmployeeSalesGoal: (employeeId: string, goalCop: number) => void;
+
+  // Middleware & Security Verification
+  verifyEmployeeAccess: (restaurantId: string, employeeId: string) => { valid: boolean; employee: TenantEmployee | null; tenant: TenantRestaurant | null; error?: string };
 
   // Dynamic Routing
   currentRoute: ParsedTenantRoute;
@@ -235,6 +258,7 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [tenants, setTenants] = useState<TenantRestaurant[]>(INITIAL_TENANTS);
   const [employees, setEmployees] = useState<TenantEmployee[]>(INITIAL_EMPLOYEES);
   const [tables, setTables] = useState<RestaurantTable[]>(INITIAL_TABLES);
+  const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
 
   // App Mode & Views (Milenia SaaS vs Specific Restaurant Tenant)
   const [mode, setMode] = useState<AppMode>(() => {
@@ -256,6 +280,11 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const tenantEmployees = useMemo(() => {
     return employees.filter(e => e.restaurantId === currentTenant.id);
   }, [employees, currentTenant.id]);
+
+  const tenantInventory = useMemo(() => {
+    const list = inventory.filter(i => i.restaurantId === currentTenant.id);
+    return list.length > 0 ? list : getTenantInventory(currentTenant.id);
+  }, [inventory, currentTenant.id]);
 
   const currentEmployeeId = currentRoute.employeeId || (tenantEmployees[0]?.id || 'emp-101');
   const [selectedEmployeeOverride, setSelectedEmployeeOverride] = useState<TenantEmployee | null>(null);
@@ -284,6 +313,177 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updateTableStatus = (tableId: string, status: TableStatus, currentOrderId?: string) => {
     setTables(prev => prev.map(tbl => tbl.id === tableId ? { ...tbl, status, currentOrderId } : tbl));
+  };
+
+  // Inventory Management Functions
+  const updateInventoryItem = (id: string, updates: Partial<InventoryItem>) => {
+    setInventory(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
+    showToast('Inventario Actualizado', 'Existencias y parámetros actualizados con éxito.', 'info');
+  };
+
+  const restockInventoryItem = (id: string, addedQty: number) => {
+    setInventory(prev => prev.map(item => {
+      if (item.id === id) {
+        const newStock = Number((item.currentStock + addedQty).toFixed(2));
+        return {
+          ...item,
+          currentStock: newStock,
+          lastRestockedAt: new Date().toISOString().split('T')[0]
+        };
+      }
+      return item;
+    }));
+    showToast('Reabastecimiento Exitoso', `Se sumaron +${addedQty} unidades al inventario.`, 'success');
+  };
+
+  const deductInventoryForOrder = (order: Order) => {
+    setInventory(prev => {
+      let updated = [...prev];
+      let deductionsMade = 0;
+      let lowStockAlerts: string[] = [];
+
+      order.items.forEach(cartIt => {
+        const dishId = cartIt.menuItem.id;
+        const qty = cartIt.quantity;
+
+        updated = updated.map(invItem => {
+          // Check if linked to dish directly or matches category recipe
+          if (invItem.restaurantId === (order.restaurantId || currentTenant.id)) {
+            const isMatch = invItem.linkedMenuItemId === dishId || 
+                            (invItem.name.toLowerCase().includes(cartIt.menuItem.name.toLowerCase().split(' ')[0]) && invItem.linkedMenuItemId === undefined);
+
+            if (isMatch) {
+              const portionDeduction = (invItem.deductionPerPortion || 1) * qty;
+              const newStock = Math.max(0, Number((invItem.currentStock - portionDeduction).toFixed(2)));
+              deductionsMade++;
+
+              if (newStock <= invItem.minStockAlert) {
+                lowStockAlerts.push(`${invItem.name} (${newStock} ${invItem.unit} restantes)`);
+              }
+
+              return {
+                ...invItem,
+                currentStock: newStock
+              };
+            }
+          }
+          return invItem;
+        });
+      });
+
+      if (deductionsMade > 0) {
+        showToast('Inventario Descontado', `Se rebajaron existencias en tiempo real para el pedido #${order.orderNumber}.`, 'info');
+      }
+
+      if (lowStockAlerts.length > 0) {
+        showToast('⚠️ Alerta Stock Crítico', `Insumos por debajo del mínimo: ${lowStockAlerts.join(', ')}`, 'warning');
+      }
+
+      return updated;
+    });
+  };
+
+  // DIAN & Colombia Tax Settings
+  const updateDianSettings = (tenantId: string, dianInfo: DianResolutionInfo, nit?: string, legalName?: string) => {
+    setTenants(prev => prev.map(t => {
+      if (t.id === tenantId) {
+        return {
+          ...t,
+          branding: {
+            ...t.branding,
+            nit: nit || t.branding.nit,
+            legalBusinessName: legalName || t.branding.legalBusinessName || t.name,
+            dianResolution: `Resolución DIAN No. ${dianInfo.resolutionNumber} (${dianInfo.prefix})`,
+            dianDetails: dianInfo
+          }
+        };
+      }
+      return t;
+    }));
+    showToast('Resolución DIAN Guardada', `Prefijo ${dianInfo.prefix} y rango fiscal habilitados.`, 'success');
+  };
+
+  // Employee Shift Clock-In / Clock-Out
+  const clockInEmployee = (employeeId: string) => {
+    const nowIso = new Date().toISOString();
+    setEmployees(prev => prev.map(emp => {
+      if (emp.id === employeeId) {
+        return {
+          ...emp,
+          shiftStatus: 'active',
+          currentClockInTime: nowIso
+        };
+      }
+      return emp;
+    }));
+    showToast('Entrada de Turno Registrada', `Horario de inicio: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, 'success');
+  };
+
+  const clockOutEmployee = (employeeId: string) => {
+    const nowIso = new Date().toISOString();
+    setEmployees(prev => prev.map(emp => {
+      if (emp.id === employeeId) {
+        const start = emp.currentClockInTime ? new Date(emp.currentClockInTime).getTime() : Date.now() - 4 * 3600000;
+        const diffHours = Number(((Date.now() - start) / 3600000).toFixed(2));
+        
+        const newLog: EmployeeShiftLog = {
+          id: `shift-${Date.now()}`,
+          employeeId: emp.id,
+          clockIn: emp.currentClockInTime || new Date(Date.now() - 4 * 3600000).toISOString(),
+          clockOut: nowIso,
+          totalHours: Math.max(0.5, diffHours),
+          ordersServed: emp.totalOrdersTaken || 12,
+          tipsEarnedCop: emp.accumulatedTipsCop || 65000,
+          salesGeneratedCop: emp.currentMonthlySalesCop || 480000
+        };
+
+        return {
+          ...emp,
+          shiftStatus: 'off',
+          currentClockInTime: undefined,
+          shiftHistory: [newLog, ...(emp.shiftHistory || [])]
+        };
+      }
+      return emp;
+    }));
+    showToast('Salida de Turno Registrada', `Turno cerrado. ¡Excelente jornada laboral!`, 'info');
+  };
+
+  const setEmployeeSalesGoal = (employeeId: string, goalCop: number) => {
+    setEmployees(prev => prev.map(emp => {
+      if (emp.id === employeeId) {
+        return {
+          ...emp,
+          monthlySalesGoalCop: goalCop
+        };
+      }
+      return emp;
+    }));
+    showToast('Meta de Ventas Actualizada', 'Nueva cuota de ventas asignada al empleado.', 'success');
+  };
+
+  // Route & Middleware Verification: /[restaurantID]/dashboard/[employeeID]
+  const verifyEmployeeAccess = (restaurantId: string, employeeId: string) => {
+    const tenant = tenants.find(t => t.id === restaurantId || t.slug === restaurantId) || null;
+    if (!tenant) {
+      return { valid: false, employee: null, tenant: null, error: `El restaurante con identificador "${restaurantId}" no existe en el sistema SaaS.` };
+    }
+
+    const employee = employees.find(e => e.id === employeeId) || null;
+    if (!employee) {
+      return { valid: false, employee: null, tenant, error: `El empleado con ID "${employeeId}" no está registrado en la base de datos.` };
+    }
+
+    if (employee.restaurantId !== tenant.id) {
+      return {
+        valid: false,
+        employee,
+        tenant,
+        error: `Acceso Denegado (Middleware): El empleado "${employee.name}" (${employee.id}) pertenece a "${tenants.find(t => t.id === employee.restaurantId)?.name || 'otro aliado'}", no a "${tenant.name}".`
+      };
+    }
+
+    return { valid: true, employee, tenant };
   };
 
   const switchTenant = (tenantId: string) => {
@@ -900,6 +1100,8 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateOrderStatus = (orderId: string, status: OrderStatus, note?: string) => {
     const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+    let targetOrder: Order | null = null;
+
     setOrders((prev) => {
       return prev.map((ord) => {
         if (ord.id === orderId) {
@@ -908,6 +1110,7 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             { status, timestamp: nowTime, note: note || `Estado actualizado a ${status}` }
           ];
           const updated = { ...ord, status, statusHistory: updatedHistory };
+          targetOrder = updated;
           if (activeOrder?.id === orderId) {
             setActiveOrder(updated);
           }
@@ -916,6 +1119,11 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return ord;
       });
     });
+
+    // Auto-deduct inventory if delivered or ready
+    if ((status === 'delivered' || status === 'ready') && targetOrder) {
+      deductInventoryForOrder(targetOrder);
+    }
 
     updateDoc(doc(db, 'orders', orderId), {
       status,
@@ -1074,6 +1282,16 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         switchEmployee,
         tenantTables,
         updateTableStatus,
+        inventory,
+        tenantInventory,
+        updateInventoryItem,
+        restockInventoryItem,
+        deductInventoryForOrder,
+        updateDianSettings,
+        clockInEmployee,
+        clockOutEmployee,
+        setEmployeeSalesGoal,
+        verifyEmployeeAccess,
         currentRoute,
         navigateTo,
 

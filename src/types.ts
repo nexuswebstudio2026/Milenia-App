@@ -133,8 +133,10 @@ export interface Order {
   discount: number;
   discountCode?: string;
   total: number;
-  paymentMethod: 'card' | 'cash' | 'paypal' | 'applepay' | 'nequi' | 'daviplata';
+  paymentMethod: 'card' | 'cash' | 'paypal' | 'applepay' | 'nequi' | 'daviplata' | 'pse';
   paymentStatus: 'paid' | 'pending' | 'cash_on_delivery';
+  electronicInvoiceNumber?: string;
+  dianCufe?: string; // Código Único de Factura Electrónica
   estimatedDeliveryTime: string;
   scheduledFor?: string;
   driver?: {

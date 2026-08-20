@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTasty } from '../../context/TastyContext';
 import { 
   UtensilsCrossed, 
@@ -20,7 +20,16 @@ import {
   Check,
   Search,
   Printer,
-  FileText
+  FileText,
+  Timer,
+  Play,
+  Square,
+  Award,
+  Target,
+  Coins,
+  ShieldCheck,
+  Building2,
+  PhoneCall
 } from 'lucide-react';
 import { RestaurantTable, MenuItem, Order, CartItem } from '../../types';
 
@@ -37,6 +46,8 @@ export const EmployeeDashboard: React.FC = () => {
     orders, 
     addOrder,
     updateOrderStatus,
+    clockInEmployee,
+    clockOutEmployee,
     showToast 
   } = useTasty();
 
@@ -48,8 +59,10 @@ export const EmployeeDashboard: React.FC = () => {
   const [tableNotes, setTableNotes] = useState('');
 
   // Cashier State
+  const [selectedCashierOrderId, setSelectedCashierOrderId] = useState<string | null>(null);
   const [cashGiven, setCashGiven] = useState<number>(0);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'card' | 'nequi' | 'daviplata'>('nequi');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'card' | 'nequi' | 'daviplata' | 'pse'>('nequi');
+  const [selectedPseBank, setSelectedPseBank] = useState<string>('Bancolombia');
 
   const role = currentEmployee?.role || 'mesero';
 
@@ -106,283 +119,339 @@ export const EmployeeDashboard: React.FC = () => {
     });
   };
 
-  const cartSubtotal = tableCart.reduce((sum, item) => sum + item.totalPrice, 0);
-  const cartTax = cartSubtotal * 0.08; // 8% Impoconsumo Colombia
-  const cartTip = cartSubtotal * 0.10; // 10% Propina sugerida
-  const cartTotal = cartSubtotal + cartTax + cartTip;
+  const tableSubtotal = tableCart.reduce((sum, i) => sum + i.totalPrice, 0);
+  const tableTip = Math.round(tableSubtotal * 0.10); // 10% propina sugerida Colombia
+  const tableTotal = tableSubtotal + tableTip;
 
-  // Send Order to Kitchen (Mesero Action)
   const handleSendToKitchen = () => {
-    if (!selectedTable) {
-      showToast('Selecciona una mesa', 'Debes asignar la comanda a una mesa del salón.', 'warning');
-      return;
-    }
     if (tableCart.length === 0) {
-      showToast('Comanda vacía', 'Agrega al menos un plato a la orden.', 'warning');
+      showToast('Comanda Vacía', 'Agrega al menos un plato a la orden.', 'error');
       return;
     }
 
-    const orderNumber = `${currentTenant.slug.substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const orderNum = Math.floor(1000 + Math.random() * 9000).toString();
+    const orderId = `pos-ord-${Date.now()}`;
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     const newOrder: Order = {
-      id: `ord-${Date.now()}`,
+      id: orderId,
       restaurantId: currentTenant.id,
-      employeeId: currentEmployee?.id,
-      tableNumber: selectedTable.number,
-      orderNumber,
+      tableNumber: selectedTable?.name || 'Mesa Barra',
+      orderNumber: orderNum,
       createdAt: new Date().toISOString(),
       orderType: 'dinein',
       status: 'received',
-      subtotal: cartSubtotal,
+      items: [...tableCart],
+      customer: {
+        name: `Comensal ${selectedTable?.name || 'Mesa'}`,
+        email: 'atencion@milenia.com.co',
+        phone: '+57 300 000 0000',
+        tableNumber: selectedTable?.name || 'Mesa Barra'
+      },
+      subtotal: tableSubtotal,
       deliveryFee: 0,
-      serviceFee: cartTax,
-      tip: cartTip,
+      serviceFee: 0,
+      tip: tableTip,
       discount: 0,
-      total: cartTotal,
+      total: tableTotal,
       paymentMethod: 'cash',
       paymentStatus: 'pending',
       estimatedDeliveryTime: '15-20 min',
-      customer: {
-        name: `Comensales ${selectedTable.number}`,
-        email: `mesa@${currentTenant.slug}.co`,
-        phone: '+57 300 000 0000',
-        tableNumber: selectedTable.number
-      },
-      items: tableCart,
-      notes: tableNotes,
+      notes: tableNotes || undefined,
       statusHistory: [
-        { status: 'received', timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), note: `Comanda tomada por ${currentEmployee?.name}` }
+        {
+          status: 'received',
+          timestamp: nowTime,
+          note: `Comanda tomada por ${currentEmployee?.name || 'Mesero'}`
+        }
       ]
     };
 
     addOrder(newOrder);
-    updateTableStatus(selectedTable.id, 'occupied', newOrder.id);
+    if (selectedTable) {
+      updateTableStatus(selectedTable.id, 'occupied', orderId);
+    }
+
     setTableCart([]);
     setTableNotes('');
-    showToast('Comanda Enviada a Cocina', `Ticket ${orderNumber} transmitido al KDS de Cocina en tiempo real.`, 'success');
+    showToast('¡Comanda Enviada!', `Comanda #${orderNum} para ${selectedTable?.name} en cola de cocina.`, 'success');
   };
 
-  // Kitchen Display Orders (Received or Preparing)
-  const kitchenOrders = orders.filter(o => 
-    (o.restaurantId === currentTenant.id || !o.restaurantId) && 
-    (o.status === 'received' || o.status === 'preparing')
+  // KDS Orders filtered for current restaurant
+  const kdsOrders = orders.filter(o => 
+    (!o.restaurantId || o.restaurantId === currentTenant.id) &&
+    o.status !== 'delivered' && 
+    o.status !== 'cancelled'
   );
 
-  // Cashier Active Orders
+  // Cashier Orders
   const cashierOrders = orders.filter(o => 
-    (o.restaurantId === currentTenant.id || !o.restaurantId) &&
-    o.paymentStatus === 'pending'
+    (!o.restaurantId || o.restaurantId === currentTenant.id) &&
+    o.status !== 'cancelled' &&
+    o.status !== 'delivered'
   );
 
-  const selectedCashierOrder = cashierOrders[0] || null;
+  const selectedCashierOrder = cashierOrders.find(o => o.id === selectedCashierOrderId) || cashierOrders[0] || null;
+
+  // Helper to compute minutes elapsed from order time
+  const getMinutesElapsed = (createdAtStr: string) => {
+    const createdTime = new Date(createdAtStr).getTime();
+    if (isNaN(createdTime)) return 10;
+    const diffMs = Date.now() - createdTime;
+    return Math.max(1, Math.floor(diffMs / 60000));
+  };
+
+  // Shift & Target Calculations
+  const isShiftActive = currentEmployee?.shiftStatus === 'active';
+  const monthlyGoalCop = currentEmployee?.monthlySalesGoalCop || 5000000;
+  const currentSalesCop = currentEmployee?.currentMonthlySalesCop || 3450000;
+  const goalPercentage = Math.min(100, Math.round((currentSalesCop / monthlyGoalCop) * 100));
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 pb-16">
       
-      {/* Employee Context Header */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        
-        <div className="flex items-center gap-4">
-          <img
-            src={currentEmployee?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}
-            alt={currentEmployee?.name}
-            className="w-14 h-14 rounded-2xl object-cover border-2 border-amber-500 shadow-md shrink-0"
-          />
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full">
-                ID: {currentEmployee?.id}
-              </span>
-              <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
-                role === 'cocina'
-                  ? 'bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30'
-                  : role === 'cajero'
-                  ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30'
-                  : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-              }`}>
-                {role.toUpperCase()}
-              </span>
+      {/* ========================================================================= */}
+      {/* 1. TOP BAR: EMPLOYEE PROFILE, SHIFT CLOCK & SALES GOALS PROGRESS          */}
+      {/* ========================================================================= */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden space-y-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          
+          {/* Left: Employee Info & Role */}
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xl shrink-0">
+              {currentEmployee?.name.charAt(0) || 'E'}
             </div>
-            
-            <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-0.5">
-              {currentEmployee?.name}
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Terminal POS: <strong className="text-slate-700 dark:text-slate-300">{currentTenant.name}</strong> • {currentTenant.city.split(',')[0]}
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-white">
+                  {currentEmployee?.name || 'Empleado'}
+                </h1>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                  isShiftActive 
+                    ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300' 
+                    : 'bg-slate-800 text-slate-400 border border-slate-700'
+                }`}>
+                  {isShiftActive ? '● En Turno Activo' : '○ Fuera de Turno'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Rol: <span className="font-bold text-amber-400 capitalize">{currentEmployee?.role || 'mesero'}</span> • 
+                Sede: <span className="font-semibold text-slate-200">{currentTenant.name}</span> • 
+                Ruta: <span className="font-mono text-slate-400 text-[11px]">/{currentTenant.id}/dashboard/{currentEmployee?.id}</span>
+              </p>
+            </div>
           </div>
+
+          {/* Right: Shift Clock In/Out Buttons & Switcher */}
+          <div className="flex items-center flex-wrap gap-2.5">
+            {isShiftActive ? (
+              <button
+                onClick={() => currentEmployee && clockOutEmployee(currentEmployee.id)}
+                className="px-4 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-rose-600/20 transition cursor-pointer"
+              >
+                <Square className="w-3.5 h-3.5 fill-white" />
+                <span>Cerrar Turno (Clock Out)</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => currentEmployee && clockInEmployee(currentEmployee.id)}
+                className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-white" />
+                <span>Iniciar Turno (Clock In)</span>
+              </button>
+            )}
+
+            {/* Quick Switch Employee Dropdown */}
+            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-950 border border-slate-800">
+              {tenantEmployees.map(emp => (
+                <button
+                  key={emp.id}
+                  onClick={() => switchEmployee(emp.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    currentEmployee?.id === emp.id
+                      ? 'bg-amber-500 text-slate-950 font-black'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {emp.name.split(' ')[0]} ({emp.role})
+                </button>
+              ))}
+            </div>
+          </div>
+
         </div>
 
-        {/* Quick Role / Employee Switcher */}
-        <div className="flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 px-2">Cambiar Empleado:</span>
-          {tenantEmployees.map(emp => (
-            <button
-              key={emp.id}
-              onClick={() => switchEmployee(emp.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                currentEmployee?.id === emp.id
-                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
-            >
-              <span>{emp.name.split(' ')[0]}</span>
-              <span className="text-[9px] opacity-75 uppercase">({emp.role})</span>
-            </button>
-          ))}
-        </div>
+        {/* Sales Goals & Commission Performance Tracker */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
+          
+          {/* Target 1: Monthly Sales Goal */}
+          <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5 text-slate-400 font-medium">
+                <Target className="w-3.5 h-3.5 text-amber-400" />
+                <span>Meta Mensual de Ventas:</span>
+              </div>
+              <span className="font-bold text-amber-400">{goalPercentage}%</span>
+            </div>
+            <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+              <div 
+                className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-500" 
+                style={{ width: `${goalPercentage}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+              <span>Actual: {formatCOP(currentSalesCop)}</span>
+              <span>Meta: {formatCOP(monthlyGoalCop)}</span>
+            </div>
+          </div>
 
+          {/* Target 2: Accumulated Tips */}
+          <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
+            <div>
+              <div className="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
+                <Coins className="w-3.5 h-3.5 text-blue-400" />
+                <span>Propinas Ganadas Hoy:</span>
+              </div>
+              <div className="text-lg font-black text-blue-400 mt-1">
+                {formatCOP(currentEmployee?.accumulatedTipsCop || 95000)}
+              </div>
+            </div>
+            <div className="text-[10px] text-slate-500 text-right">
+              <div>Servicio 10%</div>
+              <div className="text-emerald-400 font-bold">Liquidación diaria</div>
+            </div>
+          </div>
+
+          {/* Target 3: Orders Served */}
+          <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
+            <div>
+              <div className="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
+                <Award className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Comandas Atendidas:</span>
+              </div>
+              <div className="text-lg font-black text-emerald-400 mt-1">
+                {currentEmployee?.totalOrdersTaken || 18} mesas
+              </div>
+            </div>
+            <div className="text-[10px] text-slate-500 text-right">
+              <div>Calificación: ⭐ 4.98</div>
+              <div className="text-amber-400 font-bold">Nivel Oro</div>
+            </div>
+          </div>
+
+        </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 1. VISTA MESERO: POS Toma de Pedidos & Salón de Mesas                      */}
+      {/* 2. MAIN ROLE-BASED INTERFACE (MESERO / COCINERO / CAJERO)                  */}
       {/* ========================================================================= */}
+
+      {/* ------------------------------------------------------------- */}
+      {/* A. ROL MESERO: TOMA DE PEDIDOS & COMANDAS POS                  */}
+      {/* ------------------------------------------------------------- */}
       {role === 'mesero' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* Left Column: Tables Map & Food Catalog (8 Cols) */}
-          <div className="lg:col-span-8 space-y-6">
+          {/* Left 7 Columns: Table Selector & Menu Dish Catalog */}
+          <div className="lg:col-span-7 space-y-4">
             
-            {/* Tables Grid */}
-            <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            {/* Table Selector Pills */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-amber-500" />
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                    Mapa de Mesas - {currentTenant.name}
-                  </h3>
+                  <UtensilsCrossed className="w-4 h-4 text-amber-400" />
+                  <h3 className="font-bold text-sm text-white">Mesas & Salón</h3>
                 </div>
-                <div className="flex items-center gap-3 text-[11px]">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                    <span className="text-slate-500">Libre</span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                    <span className="text-slate-500">Ocupada</span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-                    <span className="text-slate-500">Cuenta</span>
-                  </span>
-                </div>
+                <span className="text-xs text-slate-400 font-semibold">
+                  Mesa Seleccionada: <strong className="text-amber-400">{selectedTable?.name || 'Mesa 1'}</strong>
+                </span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                {tenantTables.map((tbl) => {
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {tenantTables.map(tbl => {
                   const isSelected = selectedTable?.id === tbl.id;
-                  const isOccupied = tbl.status === 'occupied';
-                  const isBilling = tbl.status === 'billing';
-
                   return (
                     <button
                       key={tbl.id}
                       onClick={() => setSelectedTable(tbl)}
-                      className={`p-3.5 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer relative ${
+                      className={`p-2.5 rounded-2xl border text-center transition cursor-pointer ${
                         isSelected 
-                          ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 shadow-md ring-2 ring-amber-500/50' 
-                          : isOccupied
-                          ? 'border-amber-200 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20'
-                          : isBilling
-                          ? 'border-purple-200 dark:border-purple-900/40 bg-purple-50/40 dark:bg-purple-950/20'
-                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800'
+                          ? 'border-amber-500 bg-amber-500/10 text-amber-300 font-bold shadow-md shadow-amber-500/10' 
+                          : tbl.status === 'occupied'
+                          ? 'border-rose-500/40 bg-rose-950/20 text-rose-300'
+                          : 'border-slate-800 bg-slate-950/60 text-slate-400 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">
-                          {tbl.number}
-                        </span>
-                        <span className={`w-2.5 h-2.5 rounded-full ${
-                          tbl.status === 'available' ? 'bg-emerald-500' :
-                          tbl.status === 'occupied' ? 'bg-amber-500' :
-                          tbl.status === 'billing' ? 'bg-purple-500' : 'bg-blue-500'
-                        }`} />
-                      </div>
-
-                      <div className="mt-2 text-[10px] text-slate-500 dark:text-slate-400">
-                        <div>{tbl.zone}</div>
-                        <div className="font-semibold">{tbl.capacity} puestos</div>
-                      </div>
+                      <div className="text-xs font-bold">{tbl.name || `Mesa ${tbl.number}`}</div>
+                      <div className="text-[10px] opacity-75">{tbl.capacity} pax</div>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Catalog & Quick Touch POS */}
-            <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            {/* Menu Items Catalog */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
               
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                    Carta de Platos & Bebidas
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Toca un plato para añadirlo a la comanda de la <strong className="text-amber-500">{selectedTable?.number || 'Mesa'}</strong>
-                  </p>
+              {/* Category Pills & Search */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1">
+                  {categories.map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setActiveCategory(cat.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
+                        activeCategory === cat.id
+                          ? 'bg-amber-500 text-slate-950'
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                      }`}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
                 </div>
 
-                <div className="relative max-w-xs w-full">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                <div className="relative w-full sm:w-48">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     placeholder="Buscar plato..."
                     value={tableSearch}
                     onChange={(e) => setTableSearch(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    className="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
-              {/* Category Filters */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setActiveCategory(cat.id)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
-                      activeCategory === cat.id
-                        ? 'bg-amber-500 text-slate-950 shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
-
-              {/* Menu Items Quick Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 max-h-[460px] overflow-y-auto pr-1">
-                {filteredMenuItems.map((item) => (
+              {/* Items Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[440px] overflow-y-auto pr-1">
+                {filteredMenuItems.map(dish => (
                   <div
-                    key={item.id}
-                    onClick={() => addToTableCart(item)}
-                    className="group bg-slate-50 dark:bg-slate-800/60 hover:bg-amber-50 dark:hover:bg-amber-950/30 border border-slate-200 dark:border-slate-700/80 hover:border-amber-500 rounded-2xl p-3.5 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-2 shadow-2xs hover:shadow-md"
+                    key={dish.id}
+                    onClick={() => addToTableCart(dish)}
+                    className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80 hover:border-amber-500/50 transition cursor-pointer flex items-center justify-between gap-3 group"
                   >
-                    <div className="flex items-start gap-3">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-14 h-14 rounded-xl object-cover shrink-0 border border-slate-200 dark:border-slate-700"
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img 
+                        src={dish.image} 
+                        alt={dish.name}
+                        referrerPolicy="no-referrer"
+                        className="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-800"
                       />
                       <div className="min-w-0">
-                        <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate group-hover:text-amber-600 dark:group-hover:text-amber-400">
-                          {item.name}
+                        <h4 className="font-bold text-xs text-white truncate group-hover:text-amber-400 transition">
+                          {dish.name}
                         </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5 leading-snug">
-                          {item.description}
-                        </p>
+                        <div className="text-[11px] font-black text-amber-400 mt-0.5">
+                          {formatCOP(dish.price)}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <span className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">
-                        {formatCOP(item.price)}
-                      </span>
-                      <span className="flex items-center gap-1 text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-lg">
-                        <Plus className="w-3 h-3" /> Añadir
-                      </span>
-                    </div>
+                    <button className="w-8 h-8 rounded-xl bg-slate-800 group-hover:bg-amber-500 group-hover:text-slate-950 text-slate-300 flex items-center justify-center transition shrink-0">
+                      <Plus className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -391,64 +460,42 @@ export const EmployeeDashboard: React.FC = () => {
 
           </div>
 
-          {/* Right Column: Active Table Ticket (4 Cols) */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm sticky top-6 space-y-5">
-              
-              {/* Ticket Header */}
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          {/* Right 5 Columns: Current Table Order (Comanda) */}
+          <div className="lg:col-span-5 space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4 sticky top-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
-                  <Receipt className="w-5 h-5 text-amber-500" />
-                  <div>
-                    <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-                      Comanda en Proceso
-                    </h3>
-                    <p className="text-xs text-amber-600 dark:text-amber-400 font-bold">
-                      {selectedTable?.number || 'Sin mesa asignada'} • {selectedTable?.zone}
-                    </p>
-                  </div>
+                  <Receipt className="w-4 h-4 text-amber-400" />
+                  <h3 className="font-bold text-sm text-white">
+                    Comanda: {selectedTable?.name || (selectedTable ? `Mesa ${selectedTable.number}` : 'Mesa 1')}
+                  </h3>
                 </div>
-
-                {tableCart.length > 0 && (
-                  <button
-                    onClick={() => setTableCart([])}
-                    className="text-xs text-red-500 hover:text-red-600 font-semibold cursor-pointer"
-                  >
-                    Vaciar
-                  </button>
-                )}
+                <span className="text-[11px] font-mono text-slate-400 font-semibold">
+                  {tableCart.length} ítems
+                </span>
               </div>
 
-              {/* Items List in Ticket */}
+              {/* Items in Cart */}
               {tableCart.length > 0 ? (
-                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                  {tableCart.map((item) => (
-                    <div 
-                      key={item.cartId}
-                      className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3 text-xs"
-                    >
-                      <div className="min-w-0">
-                        <div className="font-bold text-slate-900 dark:text-white truncate">
-                          {item.menuItem.name}
-                        </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                          {formatCOP(item.totalPrice)}
-                        </div>
+                <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+                  {tableCart.map(it => (
+                    <div key={it.cartId} className="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-xs text-white truncate">{it.menuItem.name}</div>
+                        <div className="text-[11px] text-amber-400 font-semibold">{formatCOP(it.totalPrice)}</div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <button
-                          onClick={() => updateTableCartQty(item.cartId, -1)}
-                          className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold hover:bg-slate-300 transition cursor-pointer"
+                          onClick={() => updateTableCartQty(it.cartId, -1)}
+                          className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition cursor-pointer"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
-                        <span className="font-black text-xs w-4 text-center text-slate-900 dark:text-white">
-                          {item.quantity}
-                        </span>
+                        <span className="w-6 text-center text-xs font-bold text-white">{it.quantity}</span>
                         <button
-                          onClick={() => updateTableCartQty(item.cartId, 1)}
-                          className="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-bold hover:bg-amber-600 transition cursor-pointer"
+                          onClick={() => updateTableCartQty(it.cartId, 1)}
+                          className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition cursor-pointer"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -457,317 +504,322 @@ export const EmployeeDashboard: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-10 px-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 space-y-2">
-                  <UtensilsCrossed className="w-8 h-8 text-slate-400 mx-auto" />
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    No hay platos en la comanda. Selecciona platos del catálogo para añadirlos.
-                  </p>
+                <div className="py-12 text-center text-slate-500 text-xs">
+                  Toca los platos del catálogo para añadirlos a la comanda.
                 </div>
               )}
 
-              {/* Special Instructions Note */}
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Notas para la Cocina (Opcional):
-                </label>
+              {/* Order Notes */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-400">Instrucciones de Cocina (Término, Alergias):</label>
                 <input
                   type="text"
-                  placeholder="Ej: Carne término 3/4, salsa aparte..."
+                  placeholder="Ej: Término medio, sin cebolla..."
                   value={tableNotes}
                   onChange={(e) => setTableNotes(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
-              {/* Totals Breakdown */}
-              <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">{formatCOP(cartSubtotal)}</span>
+              {/* Subtotals */}
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-1.5 text-xs">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>Subtotal Comanda:</span>
+                  <span className="font-bold text-white">{formatCOP(tableSubtotal)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Impoconsumo (8%):</span>
-                  <span>{formatCOP(cartTax)}</span>
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>Propina Sugerida (10%):</span>
+                  <span className="font-bold text-blue-400">{formatCOP(tableTip)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Propina sugerida (10%):</span>
-                  <span>{formatCOP(cartTip)}</span>
-                </div>
-                <div className="flex justify-between font-black text-sm text-slate-900 dark:text-white pt-2 border-t border-slate-200 dark:border-slate-700">
-                  <span>Total Comanda:</span>
-                  <span className="text-amber-500">{formatCOP(cartTotal)}</span>
+                <div className="flex items-center justify-between text-white font-black text-sm pt-1 border-t border-slate-800">
+                  <span>Total a Pagar:</span>
+                  <span className="text-amber-400">{formatCOP(tableTotal)}</span>
                 </div>
               </div>
 
-              {/* Send Button */}
+              {/* Submit to Kitchen Button */}
               <button
                 onClick={handleSendToKitchen}
                 disabled={tableCart.length === 0}
-                className="w-full py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 disabled:opacity-50 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition cursor-pointer"
+                className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-xs rounded-2xl shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 <Send className="w-4 h-4" />
                 <span>Enviar Comanda a Cocina (KDS)</span>
               </button>
-
             </div>
           </div>
 
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* 2. VISTA COCINA: KDS (Kitchen Display System en Tiempo Real)               */}
-      {/* ========================================================================= */}
-      {role === 'cocina' && (
+      {/* ------------------------------------------------------------- */}
+      {/* B. ROL COCINERO: KDS OPERATIVO CON TEMPORIZADORES DE URGENCIA  */}
+      {/* ------------------------------------------------------------- */}
+      {(role === 'cocina' || role === 'administrador') && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between bg-slate-900 text-white p-4 sm:p-5 rounded-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-sm flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ChefHat className="w-5 h-5 text-orange-400" />
-              <div>
-                <h3 className="font-bold text-sm sm:text-base">KDS Cocina & Parrilla en Tiempo Real</h3>
-                <p className="text-xs text-slate-400">Comandas en marcha para {currentTenant.name}</p>
-              </div>
+              <ChefHat className="w-5 h-5 text-amber-400" />
+              <h3 className="font-bold text-base text-white">Comandas de Cocina Activas</h3>
             </div>
-            <div className="text-xs bg-orange-500/20 text-orange-300 font-mono px-3 py-1 rounded-full border border-orange-500/30">
-              {kitchenOrders.length} Tickets Activos
-            </div>
+            <span className="text-xs text-slate-400 font-semibold">{kdsOrders.length} en preparación</span>
           </div>
 
-          {kitchenOrders.length > 0 ? (
+          {kdsOrders.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {kitchenOrders.map((order) => {
-                const isReady = order.status === 'ready';
+              {kdsOrders.map(ord => {
+                const elapsed = getMinutesElapsed(ord.createdAt);
+                const isRed = elapsed > 25;
+                const isAmber = elapsed >= 15 && elapsed <= 25;
 
                 return (
                   <div
-                    key={order.id}
-                    className={`rounded-3xl border p-5 flex flex-col justify-between space-y-4 shadow-md transition-all ${
-                      order.status === 'received'
-                        ? 'bg-amber-50/60 dark:bg-slate-900 border-amber-500 ring-2 ring-amber-500/30'
-                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                    key={ord.id}
+                    className={`bg-slate-900 rounded-3xl p-5 border shadow-xl flex flex-col justify-between space-y-4 ${
+                      isRed 
+                        ? 'border-rose-500/60 bg-gradient-to-b from-slate-900 to-rose-950/30' 
+                        : isAmber 
+                        ? 'border-amber-500/50 bg-gradient-to-b from-slate-900 to-amber-950/20' 
+                        : 'border-emerald-500/40 bg-slate-900'
                     }`}
                   >
-                    <div className="space-y-3">
-                      {/* Ticket Head */}
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono font-black bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-2.5 py-1 rounded-xl">
-                            {order.orderNumber}
-                          </span>
-                          <span className="font-black text-sm text-slate-900 dark:text-white">
-                            {order.tableNumber || 'Mesa'}
-                          </span>
+                    <div>
+                      <div className="flex items-start justify-between border-b border-slate-800 pb-3">
+                        <div>
+                          <span className="font-black text-base text-white">{ord.tableNumber || 'Mesa'}</span>
+                          <div className="text-xs font-mono text-slate-400">#{ord.orderNumber}</div>
                         </div>
 
-                        <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400 font-mono font-bold">
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>Hace 4 min</span>
+                        <div className={`px-2.5 py-1 rounded-xl font-mono text-xs font-black flex items-center gap-1.5 ${
+                          isRed ? 'bg-rose-500 text-white animate-pulse' : isAmber ? 'bg-amber-500 text-slate-950' : 'bg-emerald-500 text-white'
+                        }`}>
+                          <Timer className="w-3.5 h-3.5" />
+                          <span>{elapsed} min</span>
                         </div>
                       </div>
 
-                      {/* Items List */}
-                      <div className="space-y-2">
-                        {order.items.map((it, idx) => (
-                          <div key={idx} className="flex items-start justify-between text-xs py-1 border-b border-slate-100 dark:border-slate-800/60">
-                            <div className="flex items-start gap-2">
-                              <span className="w-5 h-5 rounded-lg bg-orange-500 text-slate-950 font-black text-[11px] flex items-center justify-center shrink-0">
-                                {it.quantity}x
-                              </span>
-                              <div>
-                                <span className="font-bold text-slate-900 dark:text-white">{it.menuItem.name}</span>
-                                {it.selectedOptions.length > 0 && (
-                                  <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                                    {it.selectedOptions.map(o => o.choiceName).join(', ')}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                      <div className="py-3 space-y-2">
+                        {ord.items.map((it, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-xs">
+                            <span className="w-5 h-5 rounded bg-slate-800 text-amber-400 font-bold flex items-center justify-center">
+                              {it.quantity}x
+                            </span>
+                            <span className="font-bold text-slate-200">{it.menuItem.name}</span>
                           </div>
                         ))}
                       </div>
-
-                      {order.notes && (
-                        <div className="bg-amber-100 dark:bg-amber-950/50 p-2.5 rounded-xl text-xs text-amber-900 dark:text-amber-300 font-medium">
-                          Nota: {order.notes}
-                        </div>
-                      )}
                     </div>
 
-                    {/* Action Button */}
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                      {order.status === 'received' ? (
+                    <div className="pt-2 border-t border-slate-800">
+                      {ord.status === 'received' ? (
                         <button
-                          onClick={() => {
-                            updateOrderStatus(order.id, 'preparing');
-                            showToast('En preparación', `Comanda ${order.orderNumber} marcada en cocción.`, 'info');
-                          }}
-                          className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl transition cursor-pointer"
+                          onClick={() => updateOrderStatus(ord.id, 'preparing')}
+                          className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition cursor-pointer"
                         >
-                          Comenzar Preparación
+                          Comenzar Cocción
                         </button>
                       ) : (
                         <button
-                          onClick={() => {
-                            updateOrderStatus(order.id, 'ready');
-                            showToast('Plato Listo', `Comanda ${order.orderNumber} lista para entrega en mesa.`, 'success');
-                          }}
-                          className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm"
+                          onClick={() => updateOrderStatus(ord.id, 'ready')}
+                          className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
                         >
                           <Check className="w-4 h-4" />
-                          <span>Marcar Listo / Pase de Cocina</span>
+                          <span>Listo en Pase</span>
                         </button>
                       )}
                     </div>
-
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3">
-              <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Cocina al día</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                No hay comandas pendientes en cola. Los nuevos pedidos de los meseros aparecerán aquí automáticamente.
-              </p>
+            <div className="p-12 text-center bg-slate-900 border border-slate-800 rounded-3xl space-y-2">
+              <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
+              <h3 className="text-base font-bold text-white">Cocina al Día</h3>
+              <p className="text-xs text-slate-400">Sin comandas pendientes en cola.</p>
             </div>
           )}
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* 3. VISTA CAJERO: Facturación & Medios de Pago Colombia                     */}
-      {/* ========================================================================= */}
+      {/* ------------------------------------------------------------- */}
+      {/* C. ROL CAJERO: COBRO CON MEDIOS LOCALES (NEQUI, DAVIPLATA, PSE)*/}
+      {/* ------------------------------------------------------------- */}
       {role === 'cajero' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* Left: Pending Bills (6 cols) */}
+          {/* Left: Pending Tables to Settle */}
           <div className="lg:col-span-6 space-y-4">
-            <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-blue-500" />
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                    Cuentas Pendientes por Cobrar
-                  </h3>
+                  <CreditCard className="w-4 h-4 text-amber-400" />
+                  <h3 className="font-bold text-base text-white">Cuentas por Cobrar</h3>
                 </div>
-                <span className="text-xs text-slate-500 font-semibold">{cashierOrders.length} Mesas</span>
+                <span className="text-xs text-slate-400 font-semibold">{cashierOrders.length} mesas abiertas</span>
               </div>
 
-              <div className="space-y-3">
-                {cashierOrders.map((ord) => (
-                  <div
-                    key={ord.id}
-                    className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 bg-slate-50 dark:bg-slate-800/60 transition flex items-center justify-between gap-3 cursor-pointer"
-                  >
-                    <div>
-                      <div className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                        <span>{ord.tableNumber || 'Mesa'}</span>
-                        <span className="font-mono text-[11px] text-slate-400">({ord.orderNumber})</span>
+              <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
+                {cashierOrders.map(ord => {
+                  const isSelected = selectedCashierOrder?.id === ord.id;
+                  return (
+                    <div
+                      key={ord.id}
+                      onClick={() => setSelectedCashierOrderId(ord.id)}
+                      className={`p-4 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-3 ${
+                        isSelected 
+                          ? 'border-amber-500 bg-amber-500/10 shadow-md shadow-amber-500/10' 
+                          : 'border-slate-800 bg-slate-950/60 hover:border-slate-700'
+                      }`}
+                    >
+                      <div>
+                        <div className="font-bold text-xs text-white flex items-center gap-2">
+                          <span>{ord.tableNumber || 'Mesa'}</span>
+                          <span className="font-mono text-[11px] text-slate-400">#{ord.orderNumber}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">
+                          {ord.items.length} platos • {ord.customer.name}
+                        </div>
                       </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        {ord.items.length} platos • {ord.customer.name}
-                      </div>
-                    </div>
 
-                    <div className="text-right">
-                      <div className="font-black text-sm text-slate-900 dark:text-white">
-                        {formatCOP(ord.total)}
+                      <div className="text-right">
+                        <div className="font-black text-sm text-white">{formatCOP(ord.total)}</div>
+                        <span className="text-[10px] font-bold text-amber-400">Pendiente de Pago</span>
                       </div>
-                      <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                        Pendiente de Pago
-                      </span>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
 
-          {/* Right: Payment Gateway Terminal Colombia (6 cols) */}
+          {/* Right: Colombian Payment Methods Simulator */}
           <div className="lg:col-span-6 space-y-4">
-            <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
               
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                    Cobro & Factura DIAN
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    NIT: {currentTenant.branding.nit} • {currentTenant.branding.dianResolution}
-                  </p>
+                  <h3 className="font-bold text-base text-white">Terminal de Cobro & DIAN</h3>
+                  <p className="text-xs text-slate-400">NIT: {currentTenant.branding.nit} • {currentTenant.branding.dianResolution}</p>
                 </div>
                 <Printer className="w-5 h-5 text-slate-400" />
               </div>
 
-              {/* Payment Methods */}
+              {selectedCashierOrder && (
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span>Mesa Seleccionada:</span>
+                    <span className="font-bold text-white">{selectedCashierOrder.tableNumber}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span>Impoconsumo (8%):</span>
+                    <span className="font-bold text-amber-400">{formatCOP(Math.round(selectedCashierOrder.subtotal * 0.08))}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm font-black text-white pt-1 border-t border-slate-800">
+                    <span>Total a Facturar:</span>
+                    <span className="text-emerald-400 text-base">{formatCOP(selectedCashierOrder.total)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Method Selector */}
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Seleccionar Medio de Pago:
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <label className="text-xs font-bold text-slate-300">Selecciona Medio de Pago Colombia:</label>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   <button
                     onClick={() => setSelectedPaymentMethod('nequi')}
-                    className={`p-3 rounded-2xl border text-center transition cursor-pointer ${
-                      selectedPaymentMethod === 'nequi'
-                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-bold'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                    className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
+                      selectedPaymentMethod === 'nequi' 
+                        ? 'border-purple-500 bg-purple-500/10 text-purple-300 font-bold' 
+                        : 'border-slate-800 bg-slate-950 text-slate-400'
                     }`}
                   >
-                    <div className="font-black text-xs">NEQUI QR</div>
-                    <div className="text-[10px] opacity-75">Transferencia</div>
+                    <div className="font-black text-xs">NEQUI</div>
+                    <div className="text-[9px] opacity-75">QR / Cel</div>
                   </button>
 
                   <button
                     onClick={() => setSelectedPaymentMethod('daviplata')}
-                    className={`p-3 rounded-2xl border text-center transition cursor-pointer ${
-                      selectedPaymentMethod === 'daviplata'
-                        ? 'border-red-500 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 font-bold'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                    className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
+                      selectedPaymentMethod === 'daviplata' 
+                        ? 'border-red-500 bg-red-500/10 text-red-300 font-bold' 
+                        : 'border-slate-800 bg-slate-950 text-slate-400'
                     }`}
                   >
                     <div className="font-black text-xs">DAVIPLATA</div>
-                    <div className="text-[10px] opacity-75">Billetera</div>
+                    <div className="text-[9px] opacity-75">Billetera</div>
+                  </button>
+
+                  <button
+                    onClick={() => setSelectedPaymentMethod('pse')}
+                    className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
+                      selectedPaymentMethod === 'pse' 
+                        ? 'border-blue-500 bg-blue-500/10 text-blue-300 font-bold' 
+                        : 'border-slate-800 bg-slate-950 text-slate-400'
+                    }`}
+                  >
+                    <div className="font-black text-xs">PSE</div>
+                    <div className="text-[9px] opacity-75">Bancos CO</div>
                   </button>
 
                   <button
                     onClick={() => setSelectedPaymentMethod('card')}
-                    className={`p-3 rounded-2xl border text-center transition cursor-pointer ${
-                      selectedPaymentMethod === 'card'
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                    className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
+                      selectedPaymentMethod === 'card' 
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-300 font-bold' 
+                        : 'border-slate-800 bg-slate-950 text-slate-400'
                     }`}
                   >
                     <div className="font-black text-xs">DATÁFONO</div>
-                    <div className="text-[10px] opacity-75">Redeban / Visa</div>
+                    <div className="text-[9px] opacity-75">Redeban</div>
                   </button>
 
                   <button
                     onClick={() => setSelectedPaymentMethod('cash')}
-                    className={`p-3 rounded-2xl border text-center transition cursor-pointer ${
-                      selectedPaymentMethod === 'cash'
-                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                    className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
+                      selectedPaymentMethod === 'cash' 
+                        ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 font-bold' 
+                        : 'border-slate-800 bg-slate-950 text-slate-400'
                     }`}
                   >
                     <div className="font-black text-xs">EFECTIVO</div>
-                    <div className="text-[10px] opacity-75">Con cambio</div>
+                    <div className="text-[9px] opacity-75">Con cambio</div>
                   </button>
                 </div>
               </div>
 
-              {/* Settlement Button */}
+              {/* Specific Payment Method Detail */}
+              {selectedPaymentMethod === 'pse' && (
+                <div className="space-y-1.5 p-3 rounded-2xl bg-blue-950/20 border border-blue-500/30">
+                  <label className="text-[11px] font-bold text-blue-300">Banco PSE Colombia:</label>
+                  <select
+                    value={selectedPseBank}
+                    onChange={(e) => setSelectedPseBank(e.target.value)}
+                    className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-blue-500"
+                  >
+                    <option value="Bancolombia">Bancolombia</option>
+                    <option value="Davivienda">Davivienda</option>
+                    <option value="Nu Colombia">Nu Colombia</option>
+                    <option value="Banco de Bogotá">Banco de Bogotá</option>
+                    <option value="BBVA Colombia">BBVA Colombia</option>
+                    <option value="Scotiabank Colpatria">Scotiabank Colpatria</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Settlement Action Button */}
               <button
                 onClick={() => {
                   if (selectedCashierOrder) {
                     updateOrderStatus(selectedCashierOrder.id, 'delivered');
                   }
-                  showToast('Pago Registrado con Éxito', 'Factura electrónica generada y transmitida.', 'success');
+                  showToast('Pago Registrado con Éxito', 'Factura electrónica generada y transmitida a la DIAN.', 'success');
                 }}
-                className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition cursor-pointer"
+                disabled={!selectedCashierOrder}
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Registrar Pago & Emitir Factura DIAN</span>
+                <span>Registrar Pago & Emitir Factura Electrónica DIAN</span>
               </button>
 
             </div>

@@ -12,12 +12,17 @@ import {
   ShieldCheck, 
   ArrowRight, 
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  FileCheck,
+  Building2,
+  QrCode,
+  Smartphone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const CheckoutModal: React.FC = () => {
   const { 
+    currentTenant,
     isCheckoutOpen, 
     setIsCheckoutOpen, 
     cart, 
@@ -38,27 +43,41 @@ export const CheckoutModal: React.FC = () => {
   // Customer form fields
   const [name, setName] = useState('Alejandro Morales');
   const [email, setEmail] = useState('alejandro.m@example.com');
-  const [phone, setPhone] = useState('+34 622 998 114');
-  const [street, setStreet] = useState('Calle de Serrano 45, 4º Dcha');
-  const [city, setCity] = useState(selectedLocation.city);
-  const [zip, setZip] = useState('28001');
-  const [addressNotes, setAddressNotes] = useState('Portería principal, timbre Morales');
+  const [phone, setPhone] = useState('+57 312 458 9920');
+  const [street, setStreet] = useState('Carrera 7 # 72 - 41, Apto 502');
+  const [city, setCity] = useState(selectedLocation.city || 'Bogotá D.C.');
+  const [zip, setZip] = useState('110221');
+  const [addressNotes, setAddressNotes] = useState('Portería con citófono');
   const [tableNumber, setTableNumber] = useState('Mesa 4');
+
+  // Electronic Invoicing DIAN Fields
+  const [reqElectronicInvoice, setReqElectronicInvoice] = useState(false);
+  const [taxId, setTaxId] = useState('900.123.456-7');
+  const [legalName, setLegalName] = useState('Soluciones Gastronómicas S.A.S.');
+  const [invoiceEmail, setInvoiceEmail] = useState('facturas@ejemplo.com');
 
   // Schedule & notes
   const [scheduleType, setScheduleType] = useState<'asap' | 'scheduled'>('asap');
-  const [scheduledTime, setScheduledTime] = useState('21:30');
+  const [scheduledTime, setScheduledTime] = useState('20:30');
   const [orderNotes, setOrderNotes] = useState('');
 
   // Payment
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'paypal' | 'applepay'>('card');
-  const [cardNumber, setCardNumber] = useState('•••• •••• •••• 4920');
-  const [cardExpiry, setCardExpiry] = useState('12/28');
-  const [cardCvc, setCardCvc] = useState('884');
+  const [paymentMethod, setPaymentMethod] = useState<'nequi' | 'daviplata' | 'pse' | 'card' | 'cash'>('nequi');
+  const [pseBank, setPseBank] = useState('Bancolombia');
+  const [nequiPhone, setNequiPhone] = useState('312 458 9920');
+  const [cashGiven, setCashGiven] = useState('100000');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isCheckoutOpen) return null;
+
+  const formatCOP = (amount: number) => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
 
   const handleNextStep = () => {
     setErrorMsg(null);
@@ -99,393 +118,412 @@ export const CheckoutModal: React.FC = () => {
   };
 
   return (
-    <div 
-      id="checkout-modal-backdrop"
-      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in"
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
       <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.96 }}
-        id="checkout-modal-card"
-        className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-2xl w-full overflow-hidden flex flex-col max-h-[92vh]"
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full shadow-2xl overflow-hidden my-6 text-white"
       >
         {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950">
+        <div className="p-5 sm:p-6 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-              {language === 'es' ? `Paso ${step} de 3` : `Step ${step} of 3`}
-            </span>
-            <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white leading-tight">
-              {step === 1 && (language === 'es' ? 'Datos de Contacto y Entrega' : 'Contact & Delivery Address')}
-              {step === 2 && (language === 'es' ? 'Horario e Instrucciones Especiales' : 'Delivery Slot & Special Notes')}
-              {step === 3 && (language === 'es' ? 'Método de Pago Seguro' : 'Secure Payment Method')}
-            </h2>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-amber-500/20 border border-amber-500/40 text-amber-300">
+                {currentTenant.name}
+              </span>
+              <span className="text-xs text-slate-400 font-mono">
+                NIT: {currentTenant.branding.nit}
+              </span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-black text-white">
+              {language === 'es' ? 'Finalizar Pedido' : 'Complete Order'}
+            </h3>
           </div>
-
           <button
             onClick={() => setIsCheckoutOpen(false)}
-            id="close-checkout-modal-btn"
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer"
-            aria-label="Cerrar modal"
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Step Progress Pills */}
-        <div className="grid grid-cols-3 gap-2 px-6 pt-3 bg-slate-50/50 dark:bg-slate-950/50">
-          <div className={`h-1.5 rounded-full transition-all ${step >= 1 ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-800'}`}></div>
-          <div className={`h-1.5 rounded-full transition-all ${step >= 2 ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-800'}`}></div>
-          <div className={`h-1.5 rounded-full transition-all ${step >= 3 ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-800'}`}></div>
+        {/* Steps Breadcrumb */}
+        <div className="grid grid-cols-3 text-center border-b border-slate-800 bg-slate-950/60 text-xs font-bold">
+          <div className={`py-3 ${step === 1 ? 'text-amber-400 border-b-2 border-amber-500' : 'text-slate-500'}`}>
+            1. Datos & Mesa
+          </div>
+          <div className={`py-3 ${step === 2 ? 'text-amber-400 border-b-2 border-amber-500' : 'text-slate-500'}`}>
+            2. Horario & Notas
+          </div>
+          <div className={`py-3 ${step === 3 ? 'text-amber-400 border-b-2 border-amber-500' : 'text-slate-500'}`}>
+            3. Pago Colombia
+          </div>
         </div>
 
-        {/* Content Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 text-sm">
+        {/* Modal Body */}
+        <div className="p-6 space-y-5 max-h-[65vh] overflow-y-auto text-xs">
+          
           {errorMsg && (
-            <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 px-3.5 py-2.5 rounded-2xl text-xs flex items-center gap-2">
+            <div className="p-3 rounded-2xl bg-rose-950/80 border border-rose-500/40 text-rose-300 flex items-center gap-2 text-xs font-semibold">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
-          {/* STEP 1: CONTACT & ADDRESS */}
+          {/* STEP 1: CUSTOMER INFO */}
           {step === 1 && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-amber-500" />
-                    {language === 'es' ? 'Nombre Completo' : 'Full Name'} *
-                  </label>
+                  <label className="text-slate-300 font-bold">Nombre Completo *</label>
                   <input
                     type="text"
-                    required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-800 focus:border-amber-500 outline-none"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-amber-500"
+                    required
                   />
                 </div>
-
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-amber-500" />
-                    {language === 'es' ? 'Teléfono Móvil' : 'Mobile Phone'} *
-                  </label>
+                  <label className="text-slate-300 font-bold">Teléfono Móvil (Colombia) *</label>
                   <input
                     type="tel"
-                    required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-800 focus:border-amber-500 outline-none"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-amber-500 font-mono"
+                    required
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-amber-500" />
-                  {language === 'es' ? 'Correo Electrónico (para el recibo)' : 'Email (for receipt)'} *
-                </label>
+                <label className="text-slate-300 font-bold">Correo Electrónico *</label>
                 <input
                   type="email"
-                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-800 focus:border-amber-500 outline-none"
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-amber-500"
+                  required
                 />
               </div>
 
-              {/* Delivery Address if orderType is delivery */}
-              {orderType === 'delivery' && (
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                  <h4 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <MapPin className="w-4 h-4 text-amber-500" />
-                    {language === 'es' ? 'Dirección de Entrega' : 'Delivery Address'}
-                  </h4>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                      {language === 'es' ? 'Calle, Número, Piso y Puerta' : 'Street Address, Floor, Door'} *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={street}
-                      onChange={(e) => setStreet(e.target.value)}
-                      placeholder="Ej: Calle Serrano 45, 4º Dcha"
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-800 focus:border-amber-500 outline-none"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-600 dark:text-slate-400">{language === 'es' ? 'Ciudad' : 'City'}</label>
-                      <input
-                        type="text"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-600 dark:text-slate-400">{language === 'es' ? 'Código Postal' : 'ZIP Code'}</label>
-                      <input
-                        type="text"
-                        value={zip}
-                        onChange={(e) => setZip(e.target.value)}
-                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                      {language === 'es' ? 'Instrucciones para el repartidor (opcional)' : 'Driver delivery notes'}
-                    </label>
-                    <input
-                      type="text"
-                      value={addressNotes}
-                      onChange={(e) => setAddressNotes(e.target.value)}
-                      placeholder="Ej: Portería principal, llamar si no contesta"
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Table number if dine-in */}
               {orderType === 'dinein' && (
                 <div className="space-y-1 pt-2">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    {language === 'es' ? 'Número o Nombre de tu Mesa' : 'Table Number'}
-                  </label>
+                  <label className="text-slate-300 font-bold">Mesa / Ubicación:</label>
                   <input
                     type="text"
                     value={tableNumber}
                     onChange={(e) => setTableNumber(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-amber-500"
                   />
                 </div>
               )}
+
+              {orderType === 'delivery' && (
+                <div className="space-y-3 pt-2">
+                  <div className="space-y-1">
+                    <label className="text-slate-300 font-bold">Dirección de Entrega *</label>
+                    <input
+                      type="text"
+                      value={street}
+                      onChange={(e) => setStreet(e.target.value)}
+                      placeholder="Carrera 7 # 72 - 41, Apto 502"
+                      className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-amber-500"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-slate-300 font-bold">Indicaciones para el Domiciliario:</label>
+                    <input
+                      type="text"
+                      value={addressNotes}
+                      onChange={(e) => setAddressNotes(e.target.value)}
+                      placeholder="Portería, citófono..."
+                      className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* DIAN Electronic Invoicing Checkbox */}
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={reqElectronicInvoice}
+                    onChange={(e) => setReqElectronicInvoice(e.target.checked)}
+                    className="w-4 h-4 rounded text-amber-500 bg-slate-900 border-slate-700"
+                  />
+                  <span className="font-bold text-slate-200">Requiero Factura Electrónica con NIT (DIAN)</span>
+                </label>
+
+                {reqElectronicInvoice && (
+                  <div className="space-y-2.5 pt-2 border-t border-slate-800">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-slate-400 text-[11px] font-bold">NIT / Cédula:</label>
+                        <input
+                          type="text"
+                          value={taxId}
+                          onChange={(e) => setTaxId(e.target.value)}
+                          className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono"
+                          placeholder="900.123.456-7"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-slate-400 text-[11px] font-bold">Razón Social:</label>
+                        <input
+                          type="text"
+                          value={legalName}
+                          onChange={(e) => setLegalName(e.target.value)}
+                          className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-white"
+                          placeholder="Empresa S.A.S."
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-slate-400 text-[11px] font-bold">Correo de Recepción de Facturas:</label>
+                      <input
+                        type="email"
+                        value={invoiceEmail}
+                        onChange={(e) => setInvoiceEmail(e.target.value)}
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-white"
+                        placeholder="facturas@miempresa.com"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
             </div>
           )}
 
-          {/* STEP 2: SCHEDULE & SPECIAL NOTES */}
+          {/* STEP 2: SCHEDULE & NOTES */}
           {step === 2 && (
-            <div className="space-y-5">
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider block">
-                  {language === 'es' ? '¿Cuándo deseas tu pedido?' : 'When would you like your order?'}
-                </label>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="font-bold text-slate-300">Horario de Despacho:</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setScheduleType('asap')}
-                    className={`p-3.5 rounded-2xl border text-left transition cursor-pointer flex items-start gap-3 ${
+                    className={`p-3.5 rounded-2xl border text-left transition cursor-pointer flex items-center gap-3 ${
                       scheduleType === 'asap'
-                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 text-slate-900 dark:text-white shadow-xs'
-                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        ? 'border-amber-500 bg-amber-500/10 text-white'
+                        : 'border-slate-800 bg-slate-950 text-slate-400'
                     }`}
                   >
-                    <Clock className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <Clock className="w-5 h-5 text-amber-400 shrink-0" />
                     <div>
-                      <div className="font-bold text-xs sm:text-sm">{language === 'es' ? 'Lo antes posible (ASAP)' : 'As Soon As Possible (ASAP)'}</div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{selectedLocation.deliveryTimeEstimate}</div>
+                      <div className="font-bold text-xs">Lo antes posible (ASAP)</div>
+                      <div className="text-[10px] text-slate-400">15 - 25 minutos</div>
                     </div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setScheduleType('scheduled')}
-                    className={`p-3.5 rounded-2xl border text-left transition cursor-pointer flex items-start gap-3 ${
+                    className={`p-3.5 rounded-2xl border text-left transition cursor-pointer flex items-center gap-3 ${
                       scheduleType === 'scheduled'
-                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 text-slate-900 dark:text-white shadow-xs'
-                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        ? 'border-amber-500 bg-amber-500/10 text-white'
+                        : 'border-slate-800 bg-slate-950 text-slate-400'
                     }`}
                   >
-                    <Clock className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <Clock className="w-5 h-5 text-amber-400 shrink-0" />
                     <div>
-                      <div className="font-bold text-xs sm:text-sm">{language === 'es' ? 'Programar Horario' : 'Schedule Slot'}</div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{language === 'es' ? 'Elegir hora hoy' : 'Select today slot'}</div>
+                      <div className="font-bold text-xs">Programar Hora</div>
+                      <div className="text-[10px] text-slate-400">Seleccionar turno</div>
                     </div>
                   </button>
                 </div>
-
-                {scheduleType === 'scheduled' && (
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">{language === 'es' ? 'Seleccionar franja horaria:' : 'Select time slot:'}</label>
-                    <select
-                      value={scheduledTime}
-                      onChange={(e) => setScheduledTime(e.target.value)}
-                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-white"
-                    >
-                      <option value="20:00">20:00 - 20:30</option>
-                      <option value="20:30">20:30 - 21:00</option>
-                      <option value="21:00">21:00 - 21:30</option>
-                      <option value="21:30">21:30 - 22:00</option>
-                      <option value="22:00">22:00 - 22:30</option>
-                      <option value="22:30">22:30 - 23:00</option>
-                    </select>
-                  </div>
-                )}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider block">
-                  {language === 'es' ? 'Notas generales del pedido' : 'General Order Notes'}
-                </label>
+              <div className="space-y-1">
+                <label className="font-bold text-slate-300">Notas de Cocina (Término, Alergias):</label>
                 <textarea
                   value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
-                  placeholder={language === 'es' ? 'Añadir comentarios para el restaurante...' : 'Add comments for the kitchen or delivery...'}
-                  className="w-full text-xs p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:border-amber-500 outline-none h-20 text-slate-900 dark:text-slate-100"
+                  placeholder="Ej: Carne término 3/4, sin salpicaduras de picante..."
+                  rows={2}
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-amber-500"
                 />
               </div>
 
-              {/* Quick Order Breakdown Recap */}
-              <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
-                <div className="font-bold text-slate-900 dark:text-white text-xs mb-1 uppercase tracking-wider">{language === 'es' ? 'Resumen' : 'Summary'}</div>
+              {/* Order Recap */}
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5 text-xs text-slate-400">
                 <div className="flex justify-between">
-                  <span>{cart.length} {language === 'es' ? 'artículos' : 'items'}</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">€{subtotal.toFixed(2)}</span>
+                  <span>Subtotal ({cart.length} ítems):</span>
+                  <span className="font-bold text-white">{formatCOP(subtotal)}</span>
                 </div>
-                {orderType === 'delivery' && (
-                  <div className="flex justify-between">
-                    <span>{language === 'es' ? 'Envío' : 'Delivery'}</span>
-                    <span>{deliveryFee === 0 ? 'Gratis' : `€${deliveryFee.toFixed(2)}`}</span>
-                  </div>
-                )}
-                <div className="flex justify-between font-bold text-slate-900 dark:text-white pt-1 border-t border-slate-200 dark:border-slate-800">
-                  <span>Total</span>
-                  <span className="text-amber-600 dark:text-amber-400 font-black text-sm">€{total.toFixed(2)}</span>
+                <div className="flex justify-between">
+                  <span>Impoconsumo DIAN (8% Incluido):</span>
+                  <span className="font-bold text-amber-400">{formatCOP(Math.round(subtotal * 0.08))}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Servicio Voluntario (Propina 10%):</span>
+                  <span className="font-bold text-blue-400">{formatCOP(tip)}</span>
+                </div>
+                <div className="flex justify-between text-white font-black text-sm pt-2 border-t border-slate-800">
+                  <span>Total a Pagar:</span>
+                  <span className="text-emerald-400">{formatCOP(total)}</span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* STEP 3: PAYMENT METHOD */}
+          {/* STEP 3: PAYMENT METHOD COLOMBIA */}
           {step === 3 && (
-            <form onSubmit={handleFinalSubmit} className="space-y-4">
-              <label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider block">
-                {language === 'es' ? 'Seleccionar Forma de Pago' : 'Select Payment Method'}
-              </label>
+            <div className="space-y-4">
+              <label className="font-bold text-slate-300 block">Medios de Pago Autorizados Colombia:</label>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('nequi')}
+                  className={`p-3 rounded-2xl border text-center transition cursor-pointer ${
+                    paymentMethod === 'nequi' 
+                      ? 'border-purple-500 bg-purple-500/10 text-purple-300 font-bold' 
+                      : 'border-slate-800 bg-slate-950 text-slate-400'
+                  }`}
+                >
+                  <Smartphone className="w-5 h-5 text-purple-400 mx-auto mb-1" />
+                  <div className="font-black text-xs">NEQUI</div>
+                  <div className="text-[10px] opacity-75">Push / QR</div>
+                </button>
 
-              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('daviplata')}
+                  className={`p-3 rounded-2xl border text-center transition cursor-pointer ${
+                    paymentMethod === 'daviplata' 
+                      ? 'border-red-500 bg-red-500/10 text-red-300 font-bold' 
+                      : 'border-slate-800 bg-slate-950 text-slate-400'
+                  }`}
+                >
+                  <Smartphone className="w-5 h-5 text-red-400 mx-auto mb-1" />
+                  <div className="font-black text-xs">DAVIPLATA</div>
+                  <div className="text-[10px] opacity-75">Billetera</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('pse')}
+                  className={`p-3 rounded-2xl border text-center transition cursor-pointer ${
+                    paymentMethod === 'pse' 
+                      ? 'border-blue-500 bg-blue-500/10 text-blue-300 font-bold' 
+                      : 'border-slate-800 bg-slate-950 text-slate-400'
+                  }`}
+                >
+                  <Building2 className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+                  <div className="font-black text-xs">PSE</div>
+                  <div className="text-[10px] opacity-75">Bancos CO</div>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('card')}
-                  className={`p-3 rounded-2xl border text-left transition cursor-pointer flex items-center gap-2.5 ${
-                    paymentMethod === 'card' ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 font-bold text-slate-900 dark:text-white shadow-xs' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  className={`p-3 rounded-2xl border text-center transition cursor-pointer ${
+                    paymentMethod === 'card' 
+                      ? 'border-amber-500 bg-amber-500/10 text-amber-300 font-bold' 
+                      : 'border-slate-800 bg-slate-950 text-slate-400'
                   }`}
                 >
-                  <CreditCard className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  <span className="text-xs">{language === 'es' ? 'Tarjeta Bancaria' : 'Credit Card'}</span>
+                  <CreditCard className="w-5 h-5 text-amber-400 mx-auto mb-1" />
+                  <div className="font-black text-xs">DATÁFONO</div>
+                  <div className="text-[10px] opacity-75">Visa / MC</div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('cash')}
-                  className={`p-3 rounded-2xl border text-left transition cursor-pointer flex items-center gap-2.5 ${
-                    paymentMethod === 'cash' ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 font-bold text-slate-900 dark:text-white shadow-xs' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  className={`p-3 rounded-2xl border text-center transition cursor-pointer col-span-2 sm:col-span-1 ${
+                    paymentMethod === 'cash' 
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 font-bold' 
+                      : 'border-slate-800 bg-slate-950 text-slate-400'
                   }`}
                 >
-                  <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-xs">{language === 'es' ? 'Efectivo al Recibir' : 'Cash on Delivery'}</span>
+                  <Banknote className="w-5 h-5 text-emerald-400 mx-auto mb-1" />
+                  <div className="font-black text-xs">EFECTIVO</div>
+                  <div className="text-[10px] opacity-75">Al recibir</div>
                 </button>
               </div>
 
-              {paymentMethod === 'card' && (
-                <div className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{language === 'es' ? 'Número de Tarjeta' : 'Card Number'}</label>
-                    <input
-                      type="text"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white"
-                    />
+              {/* Payment Details Container */}
+              {paymentMethod === 'nequi' && (
+                <div className="p-4 rounded-2xl bg-purple-950/20 border border-purple-500/30 space-y-2">
+                  <div className="flex items-center gap-2 text-purple-300 font-bold">
+                    <QrCode className="w-4 h-4" />
+                    <span>Transferencia Nequi</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{language === 'es' ? 'Caducidad' : 'MM/YY'}</label>
-                      <input
-                        type="text"
-                        value={cardExpiry}
-                        onChange={(e) => setCardExpiry(e.target.value)}
-                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">CVC</label>
-                      <input
-                        type="password"
-                        value={cardCvc}
-                        onChange={(e) => setCardCvc(e.target.value)}
-                        maxLength={4}
-                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white"
-                      />
-                    </div>
-                  </div>
+                  <p className="text-slate-400 text-[11px]">
+                    Envía a la cuenta Nequi del restaurante: <strong className="text-white font-mono">310 998 7654</strong> o autoriza la notificación push en tu celular.
+                  </p>
                 </div>
               )}
 
-              {paymentMethod === 'cash' && (
-                <div className="bg-amber-50 dark:bg-amber-950/40 p-3.5 rounded-2xl border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-300">
-                  {language === 'es'
-                    ? '💵 Pagarás en efectivo al momento de la entrega o recogida. Por favor ten el importe aproximado listo.'
-                    : '💵 You will pay cash upon delivery or pickup. Please have approximate change ready.'}
+              {paymentMethod === 'pse' && (
+                <div className="p-4 rounded-2xl bg-blue-950/20 border border-blue-500/30 space-y-2">
+                  <label className="font-bold text-blue-300 block">Selecciona tu Banco PSE:</label>
+                  <select
+                    value={pseBank}
+                    onChange={(e) => setPseBank(e.target.value)}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-blue-500"
+                  >
+                    <option value="Bancolombia">Bancolombia</option>
+                    <option value="Davivienda">Davivienda</option>
+                    <option value="Nu Colombia (Cuenta Nu)">Nu Colombia</option>
+                    <option value="Banco de Bogotá">Banco de Bogotá</option>
+                    <option value="BBVA Colombia">BBVA Colombia</option>
+                    <option value="Scotiabank Colpatria">Scotiabank Colpatria</option>
+                  </select>
                 </div>
               )}
 
-              <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 pt-1">
-                <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                <span>{language === 'es' ? 'Transacción segura certificada SSL 256-bit y Firebase Cloud' : '256-bit SSL certified secure checkout & Firebase Cloud'}</span>
+              <div className="flex items-center gap-2 text-slate-400 pt-1">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>Transacción cifrada y reportada a resolución DIAN #{currentTenant.branding.dianResolution}</span>
               </div>
-            </form>
+            </div>
           )}
+
         </div>
 
-        {/* Footer Navigation Buttons */}
-        <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+        {/* Footer Navigation */}
+        <div className="p-5 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-3">
           {step > 1 ? (
             <button
-              type="button"
               onClick={() => setStep((s) => (s - 1) as any)}
-              className="px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+              className="px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-900 text-slate-300 font-bold hover:bg-slate-800 transition cursor-pointer"
             >
-              {language === 'es' ? '← Atrás' : '← Back'}
+              ← Atrás
             </button>
-          ) : (
-            <div></div>
-          )}
+          ) : <div />}
 
           {step < 3 ? (
             <button
-              type="button"
               onClick={handleNextStep}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-6 py-2.5 rounded-2xl text-xs sm:text-sm font-black shadow-md hover:shadow-lg shadow-amber-500/20 flex items-center gap-1.5 transition cursor-pointer"
+              className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl shadow-lg shadow-amber-500/20 flex items-center gap-1.5 transition cursor-pointer"
             >
-              <span>{language === 'es' ? 'Continuar' : 'Continue'}</span>
+              <span>Continuar</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           ) : (
             <button
-              type="button"
               onClick={handleFinalSubmit}
               disabled={isSubmitting}
-              id="confirm-place-order-final-btn"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl text-xs sm:text-sm font-black shadow-md hover:shadow-lg flex items-center gap-2 transition active:scale-[0.98] cursor-pointer disabled:opacity-50"
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition cursor-pointer disabled:opacity-50"
             >
               {isSubmitting ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <CheckCircle2 className="w-4 h-4" />
               )}
-              <span>{language === 'es' ? `Confirmar Comanda €${total.toFixed(2)}` : `Confirm Order €${total.toFixed(2)}`}</span>
+              <span>Confirmar Comanda {formatCOP(total)}</span>
             </button>
           )}
         </div>
+
       </motion.div>
     </div>
   );

@@ -840,3 +840,191 @@ export function getTenantMenuItems(tenantId: string): MenuItem[] {
   ];
 }
 
+import { InventoryItem } from '../types';
+
+export const INITIAL_INVENTORY: InventoryItem[] = [
+  // Camilo (Tenant 1)
+  {
+    id: 'inv-101',
+    restaurantId: '1',
+    name: 'Bife de Chorizo Angus Prime (Corte 400g)',
+    sku: 'CARN-ANG-01',
+    category: 'carnes',
+    currentStock: 48,
+    minStockAlert: 15,
+    unit: 'porcion',
+    costPerUnitCop: 22000,
+    lastRestockedAt: '2026-08-18',
+    linkedMenuItemId: 'cam-01',
+    deductionPerPortion: 1
+  },
+  {
+    id: 'inv-102',
+    restaurantId: '1',
+    name: 'Punta de Anca Madurada al Vacío (350g)',
+    sku: 'CARN-PNT-02',
+    category: 'carnes',
+    currentStock: 34,
+    minStockAlert: 12,
+    unit: 'porcion',
+    costPerUnitCop: 19500,
+    lastRestockedAt: '2026-08-19',
+    linkedMenuItemId: 'cam-02',
+    deductionPerPortion: 1
+  },
+  {
+    id: 'inv-103',
+    restaurantId: '1',
+    name: 'Costillas BBQ en Reducción de Panela',
+    sku: 'CARN-RIB-03',
+    category: 'carnes',
+    currentStock: 25,
+    minStockAlert: 10,
+    unit: 'porcion',
+    costPerUnitCop: 18000,
+    lastRestockedAt: '2026-08-17',
+    linkedMenuItemId: 'cam-03',
+    deductionPerPortion: 1
+  },
+  {
+    id: 'inv-104',
+    restaurantId: '1',
+    name: 'Vino Tinto Malbec Reserva Argentino (750ml)',
+    sku: 'VIN-MALB-01',
+    category: 'vinos',
+    currentStock: 18,
+    minStockAlert: 6,
+    unit: 'botella',
+    costPerUnitCop: 45000,
+    lastRestockedAt: '2026-08-15'
+  },
+  {
+    id: 'inv-105',
+    restaurantId: '1',
+    name: 'Queso Provolone Ahumado Parrillero',
+    sku: 'LAC-PROV-01',
+    category: 'lacteos',
+    currentStock: 8,
+    minStockAlert: 10, // Critically low alert
+    unit: 'kg',
+    costPerUnitCop: 38000,
+    lastRestockedAt: '2026-08-10',
+    linkedMenuItemId: 'cam-04',
+    deductionPerPortion: 0.2
+  },
+
+  // Milenia Bogotá (Tenant 2)
+  {
+    id: 'inv-201',
+    restaurantId: '2',
+    name: 'Lomo Fino Angus en Costra de Trufa Negra',
+    sku: 'MIL-LOM-01',
+    category: 'carnes',
+    currentStock: 42,
+    minStockAlert: 15,
+    unit: 'porcion',
+    costPerUnitCop: 35000,
+    lastRestockedAt: '2026-08-19',
+    linkedMenuItemId: '2-01',
+    deductionPerPortion: 1
+  },
+  {
+    id: 'inv-202',
+    restaurantId: '2',
+    name: 'Cava Champagne Grand Cru (750ml)',
+    sku: 'MIL-CHAMP-01',
+    category: 'vinos',
+    currentStock: 22,
+    minStockAlert: 8,
+    unit: 'botella',
+    costPerUnitCop: 120000,
+    lastRestockedAt: '2026-08-16'
+  },
+  {
+    id: 'inv-203',
+    restaurantId: '2',
+    name: 'Aceite de Oliva Extra Virgen con Trufa Blanca',
+    sku: 'MIL-OIL-TRUF',
+    category: 'abarrotes',
+    currentStock: 12,
+    minStockAlert: 4,
+    unit: 'litro',
+    costPerUnitCop: 85000,
+    lastRestockedAt: '2026-08-14'
+  },
+
+  // Mar & Fuego Caribe Cartagena (Tenant 5)
+  {
+    id: 'inv-501',
+    restaurantId: '5',
+    name: 'Camarón Tigre Fresco del Pacífico (Pelado y Desvenado)',
+    sku: 'CAR-CAM-01',
+    category: 'carnes',
+    currentStock: 35,
+    minStockAlert: 10,
+    unit: 'kg',
+    costPerUnitCop: 42000,
+    lastRestockedAt: '2026-08-19',
+    linkedMenuItemId: 'car-01',
+    deductionPerPortion: 0.25
+  },
+  {
+    id: 'inv-502',
+    restaurantId: '5',
+    name: 'Pargo Rojo Fresco Platero (500g c/u)',
+    sku: 'CAR-PARG-02',
+    category: 'carnes',
+    currentStock: 28,
+    minStockAlert: 12,
+    unit: 'unidad',
+    costPerUnitCop: 21000,
+    lastRestockedAt: '2026-08-19',
+    linkedMenuItemId: 'car-02',
+    deductionPerPortion: 1
+  },
+  {
+    id: 'inv-503',
+    restaurantId: '5',
+    name: 'Ron Dictador 12 Años Reserva Cartagena',
+    sku: 'CAR-RON-12',
+    category: 'licores',
+    currentStock: 16,
+    minStockAlert: 5,
+    unit: 'botella',
+    costPerUnitCop: 78000,
+    lastRestockedAt: '2026-08-12'
+  }
+];
+
+export function getTenantInventory(tenantId: string): InventoryItem[] {
+  const filtered = INITIAL_INVENTORY.filter(i => i.restaurantId === tenantId);
+  if (filtered.length > 0) return filtered;
+  return [
+    {
+      id: `inv-${tenantId}-01`,
+      restaurantId: tenantId,
+      name: 'Insumo Base Principal de Cocina',
+      sku: 'GEN-INS-01',
+      category: 'abarrotes',
+      currentStock: 50,
+      minStockAlert: 15,
+      unit: 'kg',
+      costPerUnitCop: 15000,
+      lastRestockedAt: '2026-08-18'
+    },
+    {
+      id: `inv-${tenantId}-02`,
+      restaurantId: tenantId,
+      name: 'Bebidas & Licores de la Casa',
+      sku: 'GEN-LIC-02',
+      category: 'licores',
+      currentStock: 24,
+      minStockAlert: 8,
+      unit: 'botella',
+      costPerUnitCop: 35000,
+      lastRestockedAt: '2026-08-18'
+    }
+  ];
+}
+
+
