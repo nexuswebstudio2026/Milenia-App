@@ -1,6 +1,6 @@
 {
   "name": "TastyIgniter Restaurant Platform",
-  "description": "MILENIA SaaS - Plataforma Multi-Tenant para restaurantes en Colombia con aislamiento de datos, enrutamiento dinámico /[restaurantId]/dashboard/[employeeId], KDS de cocina, POS para meseros y facturación DIAN.",
+  "description": "MILENIA SaaS - Plataforma Multi-Tenant para restaurantes en Colombia con navegación estructurada (Inicio, Aliados, Login, Contactos), directorio de restaurantes con URLs dinámicas por ID, cartas personalizadas, reservas, domicilios y acceso de empleados aislado.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -40,7 +40,9 @@ import {
   INITIAL_TABLES, 
   CAMILO_CATEGORIES, 
   CAMILO_MENU_ITEMS, 
-  CAMILO_ORDERS 
+  CAMILO_ORDERS,
+  getTenantCategories,
+  getTenantMenuItems
 } from '../data/multiTenantData';
 import { useTenantRoute, ParsedTenantRoute, AppRouteType } from '../hooks/useTenantRoute';
 import { 
@@ -62,6 +64,9 @@ import {
 
 export type AppView = 'menu' | 'reservations' | 'locations' | 'reviews' | 'tracking' | 'admin' | 'superadmin' | 'dashboard';
 export type Language = 'es' | 'en';
+export type MileniaNavView = 'inicio' | 'aliados' | 'login' | 'contactos';
+export type RestaurantNavView = 'restaurant-inicio' | 'restaurant-servicios' | 'restaurant-platos' | 'restaurant-reservas' | 'restaurant-domicilios' | 'restaurant-empleados' | 'restaurant-admin';
+export type AppMode = 'milenia' | 'restaurant';
 
 export interface ToastMessage {
   id: string;
@@ -71,6 +76,17 @@ export interface ToastMessage {
 }
 
 interface TastyContextType {
+  // SaaS vs Restaurant Mode & Views
+  mode: AppMode;
+  setMode: (mode: AppMode) => void;
+  mileniaView: MileniaNavView;
+  setMileniaView: (view: MileniaNavView) => void;
+  tenantView: RestaurantNavView;
+  setTenantView: (view: RestaurantNavView) => void;
+  selectTenantById: (tenantId: string) => void;
+  selectDishForCustomization: (dish: MenuItem) => void;
+  isDarkMode: boolean;
+
   // Multi-Tenant SaaS State
   tenants: TenantRestaurant[];
   currentTenantId: string;
@@ -79,8 +95,10 @@ interface TastyContextType {
   addTenant: (tenant: TenantRestaurant) => void;
   
   // Staff & Employees (Tenant-isolated)
+  employees: TenantEmployee[];
   currentEmployeeId: string;
   currentEmployee: TenantEmployee | null;
+  setCurrentEmployee: (emp: TenantEmployee | null) => void;
   tenantEmployees: TenantEmployee[];
   switchEmployee: (empId: string) => void;
 
@@ -218,6 +236,18 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [employees, setEmployees] = useState<TenantEmployee[]>(INITIAL_EMPLOYEES);
   const [tables, setTables] = useState<RestaurantTable[]>(INITIAL_TABLES);
 
+  // App Mode & Views (Milenia SaaS vs Specific Restaurant Tenant)
+  const [mode, setMode] = useState<AppMode>(() => {
+    // If URL has specific restaurant/dashboard route, default to restaurant mode
+    if (window.location.hash.length > 2 && !window.location.hash.includes('superadmin')) {
+      return 'restaurant';
+    }
+    return 'milenia';
+  });
+
+  const [mileniaView, setMileniaView] = useState<MileniaNavView>('inicio');
+  const [tenantView, setTenantView] = useState<RestaurantNavView>('restaurant-inicio');
+
   const currentTenantId = currentRoute.restaurantId || '1';
   const currentTenant = useMemo(() => {
     return tenants.find(t => t.id === currentTenantId || t.slug === currentTenantId) || tenants[0];
@@ -228,9 +258,25 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [employees, currentTenant.id]);
 
   const currentEmployeeId = currentRoute.employeeId || (tenantEmployees[0]?.id || 'emp-101');
+  const [selectedEmployeeOverride, setSelectedEmployeeOverride] = useState<TenantEmployee | null>(null);
+
   const currentEmployee = useMemo(() => {
+    if (selectedEmployeeOverride && selectedEmployeeOverride.restaurantId === currentTenant.id) {
+      return selectedEmployeeOverride;
+    }
     return tenantEmployees.find(e => e.id === currentEmployeeId) || tenantEmployees[0] || null;
-  }, [tenantEmployees, currentEmployeeId]);
+  }, [tenantEmployees, currentEmployeeId, selectedEmployeeOverride, currentTenant.id]);
+
+  const setCurrentEmployee = (emp: TenantEmployee | null) => {
+    setSelectedEmployeeOverride(emp);
+    if (emp) {
+      navigateTo({
+        restaurantId: emp.restaurantId,
+        employeeId: emp.id,
+        routeType: 'employee_dashboard'
+      });
+    }
+  };
 
   const tenantTables = useMemo(() => {
     return tables.filter(t => t.restaurantId === currentTenant.id);
@@ -244,9 +290,23 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const validTenant = tenants.find(t => t.id === tenantId || t.slug === tenantId);
     if (!validTenant) return;
     const firstEmp = employees.find(e => e.restaurantId === validTenant.id);
+    setMode('restaurant');
     navigateTo({
       restaurantId: validTenant.id,
       employeeId: firstEmp ? firstEmp.id : 'emp-101'
+    });
+  };
+
+  const selectTenantById = (tenantId: string) => {
+    const validTenant = tenants.find(t => t.id === tenantId || t.slug === tenantId);
+    if (!validTenant) return;
+    setMode('restaurant');
+    setTenantView('restaurant-inicio');
+    const firstEmp = employees.find(e => e.restaurantId === validTenant.id);
+    navigateTo({
+      restaurantId: validTenant.id,
+      employeeId: firstEmp ? firstEmp.id : 'emp-101',
+      routeType: 'customer_menu'
     });
   };
 
@@ -262,23 +322,16 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Dynamic Categories per Tenant
   const categories = useMemo(() => {
-    if (currentTenant.id === '1') {
-      return CAMILO_CATEGORIES;
-    }
-    return INITIAL_CATEGORIES;
+    return getTenantCategories(currentTenant.id);
   }, [currentTenant.id]);
 
   // Dynamic Menu Items per Tenant
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
-    return CAMILO_MENU_ITEMS;
+    return getTenantMenuItems(currentTenant.id);
   });
 
   useEffect(() => {
-    if (currentTenant.id === '1') {
-      setMenuItems(CAMILO_MENU_ITEMS);
-    } else {
-      setMenuItems(INITIAL_MENU_ITEMS.map(it => ({ ...it, restaurantId: currentTenant.id })));
-    }
+    setMenuItems(getTenantMenuItems(currentTenant.id));
   }, [currentTenant.id]);
 
   // Dynamic View synchronized with Route
@@ -476,16 +529,13 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // 1. Menu Items Listener & Initial Seed if empty
         const menuCol = collection(db, 'menu_items');
         unsubscribeMenu = onSnapshot(menuCol, async (snapshot) => {
-          if (snapshot.empty) {
-            for (const item of INITIAL_MENU_ITEMS) {
-              await setDoc(doc(db, 'menu_items', item.id), item).catch(err => 
-                handleFirestoreError(err, OperationType.WRITE, 'menu_items')
-              );
-            }
-          } else {
+          if (!snapshot.empty) {
             const items: MenuItem[] = [];
             snapshot.forEach((docSnap) => {
-              items.push({ id: docSnap.id, ...docSnap.data() } as MenuItem);
+              const data = docSnap.data();
+              if (data && (!data.restaurantId || data.restaurantId === currentTenant.id)) {
+                items.push({ id: docSnap.id, ...data } as MenuItem);
+              }
             });
             if (items.length > 0) {
               setMenuItems(items);
@@ -514,14 +564,8 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         // 3. Reservations Listener
         const resCol = collection(db, 'reservations');
-        unsubscribeReservations = onSnapshot(resCol, async (snapshot) => {
-          if (snapshot.empty) {
-            for (const res of INITIAL_RESERVATIONS) {
-              await setDoc(doc(db, 'reservations', res.id), res).catch(err => 
-                handleFirestoreError(err, OperationType.WRITE, 'reservations')
-              );
-            }
-          } else {
+        unsubscribeReservations = onSnapshot(resCol, (snapshot) => {
+          if (!snapshot.empty) {
             const resList: TableReservation[] = [];
             snapshot.forEach((docSnap) => {
               resList.push({ id: docSnap.id, ...docSnap.data() } as TableReservation);
@@ -535,14 +579,8 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         // 4. Reviews Listener
         const reviewsCol = collection(db, 'reviews');
-        unsubscribeReviews = onSnapshot(reviewsCol, async (snapshot) => {
-          if (snapshot.empty) {
-            for (const rev of INITIAL_REVIEWS) {
-              await setDoc(doc(db, 'reviews', rev.id), rev).catch(err => 
-                handleFirestoreError(err, OperationType.WRITE, 'reviews')
-              );
-            }
-          } else {
+        unsubscribeReviews = onSnapshot(reviewsCol, (snapshot) => {
+          if (!snapshot.empty) {
             const revList: RestaurantReview[] = [];
             snapshot.forEach((docSnap) => {
               revList.push({ id: docSnap.id, ...docSnap.data() } as RestaurantReview);
@@ -553,8 +591,12 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           handleFirestoreError(err, OperationType.LIST, 'reviews');
         });
 
+        if (!isOnline) {
+          setFirebaseStatus('offline');
+        }
+
       } catch (error) {
-        console.warn('Firebase initial sync warning:', error);
+        console.warn('Firebase initial sync operating in offline mode:', error);
         setFirebaseStatus('offline');
       }
     };
@@ -567,7 +609,7 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (unsubscribeReservations) unsubscribeReservations();
       if (unsubscribeReviews) unsubscribeReviews();
     };
-  }, []);
+  }, [currentTenant.id]);
 
   // -------------------------------------------------------------
   // CART CALCULATIONS & ACTIONS
@@ -1007,14 +1049,27 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <TastyContext.Provider
       value={{
+        // SaaS vs Restaurant Mode & Views
+        mode,
+        setMode,
+        mileniaView,
+        setMileniaView,
+        tenantView,
+        setTenantView,
+        selectTenantById,
+        selectDishForCustomization: (dish: MenuItem) => setCustomizingItem(dish),
+        isDarkMode: theme === 'dark',
+
         // Multi-Tenant SaaS
         tenants,
+        employees,
         currentTenantId,
         currentTenant,
         switchTenant,
         addTenant,
         currentEmployeeId,
         currentEmployee,
+        setCurrentEmployee,
         tenantEmployees,
         switchEmployee,
         tenantTables,

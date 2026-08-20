@@ -1,12 +1,22 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer, collection, getDocs, setDoc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  doc, 
+  collection, 
+  getDocs, 
+  setDoc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc 
+} from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 
 /* CRITICAL: The app uses the designated firestore database instance */
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
 export const auth = getAuth(app);
 
 export enum OperationType {
@@ -31,6 +41,11 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errCode = (error as { code?: string })?.code;
+  if (errCode === 'unavailable') {
+    // Expected during offline or reconnecting phases
+    return null;
+  }
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
@@ -46,19 +61,11 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   return errInfo;
 }
 
-// Test connection on boot
+// Resilient connection check
 export async function testConnection(): Promise<boolean> {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-    return true;
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn("Firebase client is currently offline. Operating in resilient sync mode.");
-      return false;
-    }
-    // Expected on initial empty database test doc
-    return true;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return false;
   }
+  return true;
 }
 
-testConnection();

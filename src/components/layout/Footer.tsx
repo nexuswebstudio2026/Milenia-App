@@ -177,13 +177,31 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom copyright */}
-        <div className="pt-8 mt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <p>© {new Date().getFullYear()} MILENIA Restaurant Platform. Todos los derechos reservados.</p>
-          <div className="flex items-center gap-4 text-slate-400">
-            <span>Privacidad</span>
-            <span>Términos</span>
-            <span>Alérgenos</span>
+        {/* Bottom copyright & Credits */}
+        <div className="pt-8 mt-8 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400 text-center md:text-left">
+          <div className="space-y-1">
+            <p className="font-medium text-slate-300">
+              © 2026, Milenia Restaurant Platform, todos los derechos reservados.
+            </p>
+            <p className="text-[12px] text-slate-400">
+              Elaborado, diseñado y administrado por{' '}
+              <a 
+                href="https://nexuswebstudio.vercel.app/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-amber-400 hover:text-amber-300 hover:underline font-semibold transition-colors inline-flex items-center gap-1"
+              >
+                Nexus Web Studio
+                <span className="text-[10px]">↗</span>
+              </a>
+            </p>
+          </div>
+          <div className="flex items-center gap-4 text-slate-400 text-xs">
+            <span className="hover:text-slate-300 transition cursor-pointer">Privacidad</span>
+            <span className="text-slate-700">•</span>
+            <span className="hover:text-slate-300 transition cursor-pointer">Términos</span>
+            <span className="text-slate-700">•</span>
+            <span className="hover:text-slate-300 transition cursor-pointer">Alérgenos</span>
           </div>
         </div>
       </div>

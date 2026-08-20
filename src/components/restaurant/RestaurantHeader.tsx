@@ -1,0 +1,294 @@
+import React, { useState } from 'react';
+import { useTasty } from '../../context/TastyContext';
+import { 
+  Building2, 
+  UtensilsCrossed, 
+  CalendarCheck, 
+  Truck, 
+  Users, 
+  ShoppingBag, 
+  Globe, 
+  ArrowLeft, 
+  Shield, 
+  Sparkles,
+  Layers,
+  Menu as MenuIcon,
+  X,
+  Store,
+  Phone
+} from 'lucide-react';
+import { formatCop } from '../../utils/currency';
+
+interface RestaurantHeaderProps {
+  onOpenCart?: () => void;
+}
+
+export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }) => {
+  const { 
+    currentTenant, 
+    tenantView, 
+    setTenantView, 
+    setMode,
+    setMileniaView,
+    cart, 
+    language, 
+    setLanguage,
+    setIsRewardsOpen
+  } = useTasty();
+
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  return (
+    <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-xs transition-colors">
+      
+      {/* Top Global Tenant Ribbon */}
+      <div 
+        style={{ backgroundColor: currentTenant.branding.primaryColor }}
+        className="text-white text-[11px] font-bold py-1.5 px-4 transition-colors"
+      >
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <button
+            onClick={() => {
+              setMode('milenia');
+              setMileniaView('aliados');
+            }}
+            className="flex items-center gap-1.5 hover:underline font-black cursor-pointer group"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+            <span>← Volver a Milenia (Restaurantes Aliados)</span>
+          </button>
+
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:inline bg-black/20 px-2 py-0.5 rounded font-mono text-[10px]">
+              URL: milenia.app/{currentTenant.id}
+            </span>
+            <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-black uppercase">
+              Aliado #{currentTenant.id}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Restaurant Navigation */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-20 gap-2">
+          
+          {/* Restaurant Identity Logo & Name */}
+          <button
+            onClick={() => setTenantView('restaurant-inicio')}
+            className="flex items-center gap-3 group text-left cursor-pointer focus:outline-none shrink-0"
+          >
+            <div 
+              style={{ borderColor: currentTenant.branding.primaryColor }}
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden border-2 shadow-md shrink-0 bg-slate-100"
+            >
+              <img 
+                src={currentTenant.branding.logoUrl} 
+                alt={currentTenant.name} 
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover" 
+              />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-black text-sm sm:text-base text-slate-900 dark:text-white tracking-tight line-clamp-1">
+                  {currentTenant.name}
+                </span>
+                <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded">
+                  #{currentTenant.id}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
+                NIT: {currentTenant.branding.nit} • {currentTenant.city.split(',')[0]}
+              </p>
+            </div>
+          </button>
+
+          {/* Desktop Navigation Tabs */}
+          <nav className="hidden lg:flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
+            
+            <button
+              onClick={() => setTenantView('restaurant-inicio')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                tenantView === 'restaurant-inicio'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Inicio
+            </button>
+
+            <button
+              onClick={() => setTenantView('restaurant-servicios')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                tenantView === 'restaurant-servicios'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5 text-amber-500" />
+              <span>Servicios</span>
+            </button>
+
+            <button
+              onClick={() => setTenantView('restaurant-platos')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                tenantView === 'restaurant-platos'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <UtensilsCrossed className="w-3.5 h-3.5 text-orange-500" />
+              <span>Platos & Carta</span>
+            </button>
+
+            <button
+              onClick={() => setTenantView('restaurant-reservas')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                tenantView === 'restaurant-reservas'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <CalendarCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Reservas</span>
+            </button>
+
+            <button
+              onClick={() => setTenantView('restaurant-domicilios')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                tenantView === 'restaurant-domicilios'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Truck className="w-3.5 h-3.5 text-blue-500" />
+              <span>Domicilios</span>
+            </button>
+
+            <button
+              onClick={() => setTenantView('restaurant-empleados')}
+              className={`px-3 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                tenantView === 'restaurant-empleados'
+                  ? 'bg-amber-500 text-slate-950 shadow-xs'
+                  : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Ingreso Empleados</span>
+            </button>
+
+          </nav>
+
+          {/* Right Action Controls */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            
+            {/* Cart Drawer Trigger */}
+            <button
+              onClick={onOpenCart}
+              aria-label="Abrir Carrito"
+              className="relative px-3 py-2 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs flex items-center gap-2 shadow-sm transition cursor-pointer"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              <span className="hidden sm:inline">Pedido</span>
+              {totalCartCount > 0 && (
+                <span className="w-5 h-5 rounded-full bg-slate-950 text-white text-[10px] font-black flex items-center justify-center">
+                  {totalCartCount}
+                </span>
+              )}
+            </button>
+
+            {/* Mobile Hamburger */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center cursor-pointer"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
+            </button>
+
+          </div>
+
+        </div>
+      </div>
+
+      {/* Mobile Drawer Menu */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-4 space-y-2 animate-fade-in">
+          
+          <button
+            onClick={() => { setTenantView('restaurant-inicio'); setMobileMenuOpen(false); }}
+            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-between ${
+              tenantView === 'restaurant-inicio' ? 'bg-amber-500 text-slate-950' : 'text-slate-700 dark:text-slate-300'
+            }`}
+          >
+            <span>Inicio del Restaurante</span>
+          </button>
+
+          <button
+            onClick={() => { setTenantView('restaurant-servicios'); setMobileMenuOpen(false); }}
+            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-between ${
+              tenantView === 'restaurant-servicios' ? 'bg-amber-500 text-slate-950' : 'text-slate-700 dark:text-slate-300'
+            }`}
+          >
+            <span>Servicios</span>
+            <Layers className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => { setTenantView('restaurant-platos'); setMobileMenuOpen(false); }}
+            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-between ${
+              tenantView === 'restaurant-platos' ? 'bg-amber-500 text-slate-950' : 'text-slate-700 dark:text-slate-300'
+            }`}
+          >
+            <span>Platos & Carta</span>
+            <UtensilsCrossed className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => { setTenantView('restaurant-reservas'); setMobileMenuOpen(false); }}
+            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-between ${
+              tenantView === 'restaurant-reservas' ? 'bg-amber-500 text-slate-950' : 'text-slate-700 dark:text-slate-300'
+            }`}
+          >
+            <span>Reservas de Mesa</span>
+            <CalendarCheck className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => { setTenantView('restaurant-domicilios'); setMobileMenuOpen(false); }}
+            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-between ${
+              tenantView === 'restaurant-domicilios' ? 'bg-amber-500 text-slate-950' : 'text-slate-700 dark:text-slate-300'
+            }`}
+          >
+            <span>Domicilios & Rastreo</span>
+            <Truck className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => { setTenantView('restaurant-empleados'); setMobileMenuOpen(false); }}
+            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-black flex items-center justify-between bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20`}
+          >
+            <span>Ingreso Empleados (POS / KDS)</span>
+            <Users className="w-4 h-4" />
+          </button>
+
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+            <button
+              onClick={() => {
+                setMode('milenia');
+                setMileniaView('aliados');
+                setMobileMenuOpen(false);
+              }}
+              className="w-full text-center py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl"
+            >
+              ← Volver a Milenia SaaS
+            </button>
+          </div>
+
+        </div>
+      )}
+
+    </header>
+  );
+};
