@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTasty } from '../../context/TastyContext';
 import { TableReservation } from '../../types';
+import { syncReservationToGoogleCalendar } from '../../services/googleCalendarService';
 import { 
   CalendarDays, 
   Users, 
@@ -18,7 +19,9 @@ import {
   Moon,
   Wine,
   Trees,
-  Award
+  Award,
+  Calendar,
+  ExternalLink
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -29,7 +32,8 @@ export const ReservationView: React.FC = () => {
     createReservation, 
     updateReservationStatus,
     language,
-    config
+    config,
+    showToast
   } = useTasty();
 
   const [guestsCount, setGuestsCount] = useState(2);
@@ -46,6 +50,8 @@ export const ReservationView: React.FC = () => {
   const [specialRequests, setSpecialRequests] = useState('Mesa cerca del ventanal con vistas al patio si es posible.');
 
   const [confirmedBooking, setConfirmedBooking] = useState<TableReservation | null>(null);
+  const [googleSyncLink, setGoogleSyncLink] = useState<string | null>(null);
+  const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
 
   const timeSlotsLunch = ['13:00', '13:30', '14:00', '14:30', '15:00'];
   const timeSlotsDinner = ['20:00', '20:30', '21:00', '21:30', '22:00', '22:30'];
@@ -101,7 +107,7 @@ export const ReservationView: React.FC = () => {
     { es: 'Encuentro Ejecutivo / Negocios', en: 'Executive Meeting' },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newRes = createReservation({
       guestName,
@@ -115,6 +121,20 @@ export const ReservationView: React.FC = () => {
       specialRequests
     });
     setConfirmedBooking(newRes);
+
+    // Auto-sync with Google Calendar
+    setIsSyncingCalendar(true);
+    try {
+      const calRes = await syncReservationToGoogleCalendar(newRes, selectedLocation.name);
+      if (calRes.success) {
+        setGoogleSyncLink(calRes.link || null);
+        showToast('Google Calendar Sincronizado', `Reserva agendada en tu Google Calendar para el ${date} a las ${timeSlot}h`, 'success');
+      }
+    } catch (err) {
+      console.warn('Google Calendar sync error', err);
+    } finally {
+      setIsSyncingCalendar(false);
+    }
   };
 
   return (
@@ -192,6 +212,37 @@ export const ReservationView: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap justify-center gap-3">
+            {googleSyncLink ? (
+              <a
+                href={googleSyncLink}
+                target="_blank"
+                rel="noreferrer"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-2xl transition flex items-center gap-2 shadow-md shadow-blue-500/20"
+              >
+                <Calendar className="w-4 h-4" />
+                <span>{language === 'es' ? 'Ver en Google Calendar' : 'Open in Google Calendar'}</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (confirmedBooking) {
+                    setIsSyncingCalendar(true);
+                    const res = await syncReservationToGoogleCalendar(confirmedBooking, selectedLocation.name);
+                    setIsSyncingCalendar(false);
+                    if (res.link) setGoogleSyncLink(res.link);
+                    showToast('Google Calendar', 'Reserva sincronizada en Google Calendar', 'success');
+                  }
+                }}
+                disabled={isSyncingCalendar}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-2xl transition flex items-center gap-2 shadow-md"
+              >
+                <Calendar className="w-4 h-4" />
+                <span>{isSyncingCalendar ? 'Sincronizando...' : (language === 'es' ? 'Sincronizar con Google Calendar' : 'Sync with Google Calendar')}</span>
+              </button>
+            )}
+
             <button
               onClick={() => setConfirmedBooking(null)}
               className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs sm:text-sm px-6 py-3 rounded-2xl transition cursor-pointer shadow-md"

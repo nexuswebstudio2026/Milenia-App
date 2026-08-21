@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTasty } from '../../context/TastyContext';
+import { GoogleWorkspaceModal } from '../google/GoogleWorkspaceModal';
 import { 
   Building2, 
   UtensilsCrossed, 
@@ -15,7 +16,8 @@ import {
   Menu as MenuIcon,
   X,
   Store,
-  Phone
+  Phone,
+  Cloud
 } from 'lucide-react';
 import { formatCop } from '../../utils/currency';
 
@@ -37,6 +39,7 @@ export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }
   } = useTasty();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
@@ -184,6 +187,17 @@ export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }
           {/* Right Action Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
             
+            {/* Google Workspace Cloud Hub Quick Button */}
+            <button
+              onClick={() => setIsWorkspaceOpen(true)}
+              title="Google Workspace & Nube (Calendar, Drive, Maps)"
+              className="px-2.5 py-2 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold text-xs flex items-center gap-1.5 border border-blue-500/30 transition cursor-pointer"
+            >
+              <Cloud className="w-4 h-4 text-amber-500" />
+              <span className="hidden sm:inline">Google Cloud</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            </button>
+
             {/* Cart Drawer Trigger */}
             <button
               onClick={onOpenCart}
@@ -288,6 +302,12 @@ export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }
 
         </div>
       )}
+
+      {/* Google Workspace Modal */}
+      <GoogleWorkspaceModal
+        isOpen={isWorkspaceOpen}
+        onClose={() => setIsWorkspaceOpen(false)}
+      />
 
     </header>
   );

@@ -50,6 +50,8 @@ import {
   getTenantInventory
 } from '../data/multiTenantData';
 import { useTenantRoute, ParsedTenantRoute, AppRouteType } from '../hooks/useTenantRoute';
+import { archiveDianInvoiceToGoogleDrive } from '../services/googleDriveService';
+import { syncReservationToGoogleCalendar } from '../services/googleCalendarService';
 import { 
   db, 
   handleFirestoreError, 
@@ -1088,6 +1090,11 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       handleFirestoreError(err, OperationType.CREATE, `orders/${orderId}`);
     });
 
+    // Auto-archive electronic invoice / ticket to Google Drive
+    archiveDianInvoiceToGoogleDrive(newOrder, currentTenant).catch((e) => {
+      console.warn('Google Drive auto-archive:', e);
+    });
+
     addToast(
       'success', 
       language === 'es' ? '¡Pedido Confirmado!' : 'Order Placed!', 
@@ -1161,6 +1168,11 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setDoc(doc(db, 'reservations', id), newRes).catch((err) => {
       handleFirestoreError(err, OperationType.CREATE, `reservations/${id}`);
+    });
+
+    // Auto-sync with Google Calendar
+    syncReservationToGoogleCalendar(newRes, selectedLocation.name).catch((e) => {
+      console.warn('Google Calendar auto-sync:', e);
     });
 
     addToast('success', language === 'es' ? 'Mesa Reservada' : 'Table Booked', `${code} para ${data.guestName}`);

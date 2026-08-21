@@ -1027,4 +1027,39 @@ export function getTenantInventory(tenantId: string): InventoryItem[] {
   ];
 }
 
+export function getTenantMenu(tenantId: string): MenuItem[] {
+  return getTenantMenuItems(tenantId);
+}
+
+export function getTenantOrders(tenantId: string): Order[] {
+  if (tenantId === '1') return CAMILO_ORDERS;
+  return CAMILO_ORDERS.map(o => ({
+    ...o,
+    id: `${o.id}-${tenantId}`,
+    restaurantId: tenantId
+  }));
+}
+
+export function getTenantReservations(tenantId: string): TableReservation[] {
+  return [
+    {
+      id: `res-${tenantId}-01`,
+      restaurantId: tenantId,
+      guestName: 'Dr. Alejandro Restrepo',
+      guestEmail: 'alejandro.restrepo@epm.com.co',
+      guestPhone: '+57 312 890 1234',
+      date: '2026-08-20',
+      time: '20:00',
+      guestsCount: 4,
+      seatingArea: 'terrace',
+      status: 'confirmed',
+      tableAssigned: 'Mesa 5',
+      reservationCode: 'RES-8821',
+      createdAt: '2026-08-19'
+    }
+  ];
+}
+
+
+
 

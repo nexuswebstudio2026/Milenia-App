@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useTasty } from '../../context/TastyContext';
 import { MenuItem, Order, OrderStatus, TableReservation, InventoryItem, DianResolutionInfo } from '../../types';
+import { GoogleWorkspaceModal } from '../google/GoogleWorkspaceModal';
+import { getLocalDriveDocuments, archiveDailyZReportToGoogleDrive } from '../../services/googleDriveService';
+import { fetchUpcomingCalendarEvents } from '../../services/googleCalendarService';
 import { 
   ChefHat, 
   Utensils, 
@@ -37,7 +40,14 @@ import {
   RotateCcw,
   ShieldCheck,
   AlertTriangle,
-  ArrowUpRight
+  ArrowUpRight,
+  Cloud,
+  Calendar,
+  HardDrive,
+  MapPin,
+  Upload,
+  Download,
+  ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -64,7 +74,8 @@ export const AdminDashboard: React.FC = () => {
     showToast
   } = useTasty();
 
-  const [adminTab, setAdminTab] = useState<'ventas' | 'inventario' | 'kds' | 'menu' | 'dian_config'>('ventas');
+  const [adminTab, setAdminTab] = useState<'ventas' | 'inventario' | 'kds' | 'menu' | 'dian_config' | 'google_workspace'>('ventas');
+  const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
   const [filterOrderType, setFilterOrderType] = useState<string>('all');
   const [menuSearch, setMenuSearch] = useState('');
   const [invSearch, setInvSearch] = useState('');
@@ -350,6 +361,19 @@ export const AdminDashboard: React.FC = () => {
             >
               <FileCheck className="w-4 h-4" />
               <span>DIAN & Legal</span>
+            </button>
+
+            <button
+              id="tab-google-btn"
+              onClick={() => setAdminTab('google_workspace')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                adminTab === 'google_workspace'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Cloud className="w-4 h-4 text-amber-400" />
+              <span>Google Cloud & Hub</span>
             </button>
           </div>
         </div>
@@ -1040,6 +1064,189 @@ export const AdminDashboard: React.FC = () => {
           </form>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* 6. TAB: GOOGLE CLOUD & WORKSPACE HUB (Drive, Calendar, Maps)              */}
+      {/* ========================================================================= */}
+      {adminTab === 'google_workspace' && (
+        <div className="space-y-6">
+          
+          {/* Header Action Banner */}
+          <div className="bg-gradient-to-r from-blue-950/80 via-slate-900 to-amber-950/40 border border-blue-500/30 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-blue-500/20 border border-blue-400/40 flex items-center justify-center text-blue-400 font-bold text-2xl shadow-inner">
+                <Cloud className="w-8 h-8" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-serif font-bold text-white">Google Workspace & Cloud Ecosystem</h3>
+                  <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                    Activo • Colombia
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-1 max-w-xl">
+                  Sincronización bidireccional de Reservas en Google Calendar, Respaldo de Facturación DIAN en Google Drive y Cartografía en Google Maps.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsWorkspaceModalOpen(true)}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              <span>Abrir Centro de Control Google</span>
+            </button>
+          </div>
+
+          {/* 3 Pillar Cards: Calendar, Drive, Maps */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            
+            {/* Pillar 1: Google Calendar */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg space-y-4 hover:border-blue-500/40 transition">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
+                    <Calendar className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-white">Google Calendar</h4>
+                    <span className="text-[10px] text-slate-400">Reservas & Turnos</span>
+                  </div>
+                </div>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              </div>
+
+              <p className="text-xs text-slate-400">
+                Cada reserva realizada en Milenia se sincroniza automáticamente con el calendario corporativo del restaurante.
+              </p>
+
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs space-y-1.5">
+                <div className="flex justify-between text-slate-400">
+                  <span>Reservas Registradas:</span>
+                  <span className="font-bold text-white">{reservations.length}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Recordatorios Clientes:</span>
+                  <span className="font-bold text-emerald-400">Notificación Push / Email</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsWorkspaceModalOpen(true)}
+                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-blue-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5"
+              >
+                <span>Ver Calendario en Vivo</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Pillar 2: Google Drive */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg space-y-4 hover:border-emerald-500/40 transition">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                    <HardDrive className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-white">Google Drive</h4>
+                    <span className="text-[10px] text-slate-400">DIAN & Cierres Z</span>
+                  </div>
+                </div>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              </div>
+
+              <p className="text-xs text-slate-400">
+                Respaldo en la nube de todas las facturas electrónicas con CUFE y cierres de caja Z para contabilidad fiscal.
+              </p>
+
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs space-y-1.5">
+                <div className="flex justify-between text-slate-400">
+                  <span>Carpeta Drive:</span>
+                  <span className="font-mono text-emerald-400 font-bold">Milenia_Facturas_DIAN</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Archivos Auditados:</span>
+                  <span className="font-bold text-white">{getLocalDriveDocuments().length} documentos</span>
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  try {
+                    const stats = {
+                      totalSalesCop: todaySalesCop,
+                      impoconsumoCop,
+                      tipsCop: accumulatedTipsCop,
+                      ordersCount: validOrders.length,
+                      topDishName: topDishData?.menuItem.name || 'Plato Gourmet',
+                      date: new Date().toISOString().split('T')[0]
+                    };
+                    const res = await archiveDailyZReportToGoogleDrive(currentTenant, stats);
+                    if (res.success) {
+                      showToast('Google Drive Sincronizado', `Cierre de caja Z respaldado en Drive (${res.document.name})`, 'success');
+                    }
+                  } catch (e) {
+                    showToast('Error', 'No se pudo subir a Google Drive', 'error');
+                  }
+                }}
+                className="w-full py-2 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/30 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Exportar Cierre Z a Drive Hoy</span>
+              </button>
+            </div>
+
+            {/* Pillar 3: Google Maps */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg space-y-4 hover:border-amber-500/40 transition">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-white">Google Maps Platform</h4>
+                    <span className="text-[10px] text-slate-400">Sedes & Rutas</span>
+                  </div>
+                </div>
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+              </div>
+
+              <p className="text-xs text-slate-400">
+                Ubicación georreferenciada con cálculo de tiempos de entrega express y ruteo para repartidores en Colombia.
+              </p>
+
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs space-y-1.5">
+                <div className="flex justify-between text-slate-400">
+                  <span>Sede Principal:</span>
+                  <span className="font-bold text-white">{currentTenant.city.split(',')[0]}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Radio Domicilios:</span>
+                  <span className="font-bold text-amber-400">8.0 km Express</span>
+                </div>
+              </div>
+
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentTenant.name + ' ' + currentTenant.city + ' Colombia')}`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5"
+              >
+                <span>Abrir en Google Maps</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Google Workspace Modal */}
+      <GoogleWorkspaceModal
+        isOpen={isWorkspaceModalOpen}
+        onClose={() => setIsWorkspaceModalOpen(false)}
+      />
 
       {/* Item Modal (Create / Edit) */}
       {isItemModalOpen && (

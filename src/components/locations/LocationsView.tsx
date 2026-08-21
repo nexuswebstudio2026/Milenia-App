@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTasty } from '../../context/TastyContext';
 import { RestaurantLocation } from '../../types';
+import { RestaurantGoogleMap } from '../maps/RestaurantGoogleMap';
 import { 
   MapPin, 
   Phone, 
@@ -12,11 +13,14 @@ import {
   Check, 
   Navigation, 
   ShieldCheck,
-  UtensilsCrossed 
+  UtensilsCrossed,
+  Map as MapIcon,
+  Compass
 } from 'lucide-react';
 
 export const LocationsView: React.FC = () => {
   const { locations, selectedLocation, setSelectedLocation, setCurrentView, language } = useTasty();
+  const [viewMode, setViewMode] = useState<'both' | 'map_only' | 'cards_only'>('both');
 
   return (
     <div id="locations-view" className="max-w-6xl mx-auto space-y-8">
@@ -25,20 +29,68 @@ export const LocationsView: React.FC = () => {
       <div className="text-center space-y-2 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
           <MapPin className="w-3.5 h-3.5 text-amber-500" />
-          <span>{language === 'es' ? 'Nuestros Restaurantes' : 'Our Restaurant Locations'}</span>
+          <span>{language === 'es' ? 'Google Maps & Sedes Colombia' : 'Google Maps & Locations'}</span>
         </div>
         <h1 className="text-2xl sm:text-4xl font-serif font-bold text-slate-900 dark:text-white tracking-tight">
           {language === 'es' ? 'Sucursales & Espacios MILENIA' : 'MILENIA Restaurant Locations'}
         </h1>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
           {language === 'es'
-            ? 'Alta gastronomía y cavas exclusivas en ubicaciones distinguidas con salones climatizados y terrazas privadas.'
-            : 'Haute cuisine and curated cellars in prime locations with ambient dining salons and private terraces.'}
+            ? 'Georreferenciación en Google Maps en tiempo real, radios de cobertura express para domicilios y cavas privadas en Colombia.'
+            : 'Real-time Google Maps georeferencing, express delivery coverage radius, and dining salons in Colombia.'}
         </p>
       </div>
 
+      {/* Interactive Google Map Section */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <MapIcon className="w-4 h-4 text-amber-500" />
+            <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              {language === 'es' ? 'Mapa Interactivo de Sedes y Domicilios' : 'Interactive Map & Delivery Zones'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            <button
+              onClick={() => setViewMode('both')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${viewMode === 'both' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+            >
+              Vista Completa
+            </button>
+            <button
+              onClick={() => setViewMode('map_only')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${viewMode === 'map_only' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+            >
+              Solo Mapa
+            </button>
+            <button
+              onClick={() => setViewMode('cards_only')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${viewMode === 'cards_only' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+            >
+              Solo Lista
+            </button>
+          </div>
+        </div>
+
+        {viewMode !== 'cards_only' && (
+          <RestaurantGoogleMap
+            locations={locations}
+            selectedLocation={selectedLocation}
+            onSelectLocation={(loc) => setSelectedLocation(loc)}
+            onBookTable={(loc) => {
+              setSelectedLocation(loc);
+              setCurrentView('reservations');
+            }}
+            height="440px"
+            showDeliveryZones={true}
+          />
+        )}
+      </div>
+
       {/* Locations Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+      {viewMode !== 'map_only' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
         {locations.map((loc) => {
           const isSelected = loc.id === selectedLocation.id;
 
@@ -170,7 +222,8 @@ export const LocationsView: React.FC = () => {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -13,6 +13,7 @@ import { ReservationView } from './components/reservation/ReservationView';
 import { OrderTrackerView } from './components/tracking/OrderTrackerView';
 import { LocationsView } from './components/locations/LocationsView';
 import { ReviewsView } from './components/reviews/ReviewsView';
+import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { SuperAdminDashboard } from './components/saas/SuperAdminDashboard';
 import { EmployeeDashboard } from './components/employee/EmployeeDashboard';
@@ -95,7 +96,7 @@ const AppContent: React.FC = () => {
               {tenantView === 'restaurant-reservas' && <ReservationView />}
               {tenantView === 'restaurant-domicilios' && <OrderTrackerView />}
               {tenantView === 'restaurant-empleados' && <EmployeeDashboard />}
-              {tenantView === 'restaurant-admin' && <AdminDashboard />}
+              {tenantView === 'restaurant-admin' && <AdminLayout />}
             </motion.div>
           )}
         </AnimatePresence>

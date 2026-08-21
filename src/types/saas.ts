@@ -93,6 +93,8 @@ export interface TenantEmployee {
   restaurantId: string; // Foreign Key: points to TenantRestaurant.id
   name: string;
   role: EmployeeRole;
+  position?: string; // Cargo: Chef Ejecutivo, Mesero Capitán, etc.
+  documentId?: string; // Cédula de Ciudadanía CC
   email: string;
   phone: string;
   avatar: string;
@@ -100,12 +102,34 @@ export interface TenantEmployee {
   shiftStatus: 'active' | 'break' | 'off';
   currentClockInTime?: string;
   hourlyRateCop?: number;
+  baseSalaryCop?: number; // Salario base mensual COP
   assignedTables?: string[];
   totalOrdersTaken?: number;
   monthlySalesGoalCop?: number;
   currentMonthlySalesCop?: number;
   accumulatedTipsCop?: number;
   shiftHistory?: EmployeeShiftLog[];
+}
+
+export interface PayrollRecord {
+  id: string;
+  restaurantId: string;
+  employeeId: string;
+  employeeName: string;
+  documentId: string;
+  position: string;
+  periodMonth: string; // "Agosto 2026"
+  baseSalaryCop: number;
+  workedDays: number; // e.g. 30
+  overtimeHours: number;
+  overtimePayCop: number;
+  transportAllowanceCop: number; // Auxilio de Transporte en Colombia
+  healthDeductionCop: number; // 4% Salud
+  pensionDeductionCop: number; // 4% Pensión
+  tipsShareCop: number; // Propinas acumuladas
+  netPayableCop: number;
+  paymentStatus: 'paid' | 'pending';
+  paidAt?: string;
 }
 
 export type TableStatus = 'available' | 'occupied' | 'reserved' | 'billing' | 'cleaning';
