@@ -49,6 +49,12 @@ import {
   getTenantMenuItems,
   getTenantInventory
 } from '../data/multiTenantData';
+import { 
+  getAliadosFromFirestore, 
+  subscribeToAliados, 
+  saveAliadoToFirestore, 
+  seedAliadosInFirestore 
+} from '../services/aliadosService';
 import { useTenantRoute, ParsedTenantRoute, AppRouteType } from '../hooks/useTenantRoute';
 import { archiveDianInvoiceToGoogleDrive } from '../services/googleDriveService';
 import { syncReservationToGoogleCalendar } from '../services/googleCalendarService';
@@ -262,6 +268,30 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [tables, setTables] = useState<RestaurantTable[]>(INITIAL_TABLES);
   const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
 
+  // Firestore Synchronizer for 'aliados' (table in Cloud Firestore)
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    const initAliados = async () => {
+      try {
+        const loadedAliados = await getAliadosFromFirestore();
+        if (loadedAliados && loadedAliados.length > 0) {
+          setTenants(loadedAliados);
+        }
+        unsubscribe = subscribeToAliados((realtimeAliados) => {
+          if (realtimeAliados && realtimeAliados.length > 0) {
+            setTenants(realtimeAliados);
+          }
+        });
+      } catch (err) {
+        console.warn('Could not sync /aliados with Firestore:', err);
+      }
+    };
+    initAliados();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
   // App Mode & Views (Milenia SaaS vs Specific Restaurant Tenant)
   const [mode, setMode] = useState<AppMode>(() => {
     // If URL has specific restaurant/dashboard route, default to restaurant mode
@@ -387,9 +417,10 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // DIAN & Colombia Tax Settings
   const updateDianSettings = (tenantId: string, dianInfo: DianResolutionInfo, nit?: string, legalName?: string) => {
+    let updatedTenant: TenantRestaurant | null = null;
     setTenants(prev => prev.map(t => {
       if (t.id === tenantId) {
-        return {
+        const mod: TenantRestaurant = {
           ...t,
           branding: {
             ...t.branding,
@@ -399,9 +430,16 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             dianDetails: dianInfo
           }
         };
+        updatedTenant = mod;
+        return mod;
       }
       return t;
     }));
+    if (updatedTenant) {
+      saveAliadoToFirestore(updatedTenant).catch(err => {
+        console.warn('Error saving updated DIAN settings to Firestore:', err);
+      });
+    }
     showToast('Resolución DIAN Guardada', `Prefijo ${dianInfo.prefix} y rango fiscal habilitados.`, 'success');
   };
 
@@ -520,6 +558,9 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const addTenant = (newTenant: TenantRestaurant) => {
     setTenants(prev => [...prev, newTenant]);
+    saveAliadoToFirestore(newTenant).catch(err => {
+      console.warn('Error saving aliado to Firestore:', err);
+    });
   };
 
   // Dynamic Categories per Tenant

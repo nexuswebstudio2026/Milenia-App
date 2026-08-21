@@ -127,9 +127,43 @@
         "taxRate": { "type": "number" }
       },
       "required": ["name", "acceptingOrders"]
+    },
+    "Aliado": {
+      "title": "Aliado",
+      "description": "Restaurante aliado registrado en la plataforma SaaS Milenia",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "slug": { "type": "string", "maxLength": 100 },
+        "name": { "type": "string", "maxLength": 150 },
+        "city": { "type": "string", "maxLength": 100 },
+        "address": { "type": "string", "maxLength": 200 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "maxLength": 150 },
+        "nit": { "type": "string", "maxLength": 50 },
+        "dianResolution": { "type": "string", "maxLength": 150 },
+        "plan": { "type": "string", "enum": ["basic", "pro", "enterprise"] },
+        "status": { "type": "string", "enum": ["active", "trial", "suspended"] },
+        "tablesCount": { "type": "number" },
+        "totalMonthlySalesCop": { "type": "number" },
+        "logoUrl": { "type": "string", "maxLength": 1000 },
+        "bannerImage": { "type": "string", "maxLength": 1000 },
+        "primaryColor": { "type": "string", "maxLength": 20 },
+        "tagline": { "type": "string", "maxLength": 250 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "city", "email", "status"]
     }
   },
   "firestore": {
+    "/aliados/{aliadoId}": {
+      "schema": "Aliado",
+      "description": "Tabla y colección de restaurantes aliados en la plataforma SaaS"
+    },
+    "/tenants/{tenantId}": {
+      "schema": "Aliado",
+      "description": "Alias de aliados/tenants en el backend de Firestore"
+    },
     "/users/{userId}": {
       "schema": "User",
       "description": "Perfiles de usuarios con roles y restaurantId asignado"

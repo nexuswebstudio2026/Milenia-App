@@ -99,5 +99,14 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isSignedIn() && isOwner();
     }
+
+    // 8. Aliados / Tenants Directory
+    match /aliados/{aliadoId} {
+      allow read, write: if true;
+    }
+
+    match /tenants/{tenantId} {
+      allow read, write: if true;
+    }
   }
 }
