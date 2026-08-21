@@ -2,52 +2,102 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Global Helper Primitives
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isValidId(id) {
-      return id is string && id.size() <= 128;
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Default deny
+    function hasUserDoc() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isSameRestaurant(restaurantId) {
+      return isSignedIn() && (
+        (request.auth.token.restaurantId != null && request.auth.token.restaurantId == restaurantId) ||
+        (hasUserDoc() && getUserData().restaurantId == restaurantId)
+      );
+    }
+
+    function isOwner() {
+      return isSignedIn() && (
+        (request.auth.token.role != null && request.auth.token.role == 'owner') ||
+        (hasUserDoc() && getUserData().role == 'owner')
+      );
+    }
+
+    // Global Safety Net: Default Deny
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Menu items: public read, write allowed for restaurant management
-    match /menu_items/{itemId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Orders: public create and read, updates for status progression
-    match /orders/{orderId} {
-      allow read: if true;
-      allow create: if request.resource.data.total is number && request.resource.data.total >= 0;
-      allow update: if true;
+    // 1. User Profiles Collection: /users/{userId}
+    // Users can read/write their own profile doc. Owners can also read staff in their restaurant.
+    match /users/{userId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId || 
+        (hasUserDoc() && getUserData().role == 'owner' && getUserData().restaurantId == resource.data.restaurantId)
+      );
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && (request.auth.uid == userId || isOwner());
       allow delete: if false;
     }
 
-    // Table Reservations: public create and read, update for status change
+    // 2. Sales & Revenue Data: /sales/{saleId}
+    // CRITICAL MULTI-TENANT ISOLATION: Empleados de un restaurante NO pueden leer ventas de otro restaurante.
+    match /sales/{saleId} {
+      allow read: if isSignedIn() && (
+        resource.data.restaurantId == request.auth.token.restaurantId ||
+        isSameRestaurant(resource.data.restaurantId)
+      );
+      allow create: if isSignedIn() && (
+        request.resource.data.restaurantId == request.auth.token.restaurantId ||
+        isSameRestaurant(request.resource.data.restaurantId)
+      );
+      allow update, delete: if isSignedIn() && isOwner() && isSameRestaurant(resource.data.restaurantId);
+    }
+
+    // 3. Attendance & Shift Logs: /attendance/{attendanceId}
+    match /attendance/{attendanceId} {
+      allow read: if isSignedIn() && isSameRestaurant(resource.data.restaurantId);
+      allow create: if isSignedIn() && isSameRestaurant(request.resource.data.restaurantId);
+      allow update: if isSignedIn() && isSameRestaurant(resource.data.restaurantId);
+      allow delete: if false;
+    }
+
+    // 4. Orders: /orders/{orderId}
+    match /orders/{orderId} {
+      // Diners can view their placed order, but tenant staff can read all within their restaurant
+      allow read: if true;
+      allow create: if request.resource.data.total is number && request.resource.data.total >= 0;
+      allow update: if isSignedIn() && isSameRestaurant(resource.data.restaurantId);
+      allow delete: if false;
+    }
+
+    // 5. Menu Items: /menu_items/{itemId}
+    match /menu_items/{itemId} {
+      allow read: if true;
+      allow write: if isSignedIn() && (
+        request.resource.data.restaurantId == request.auth.token.restaurantId ||
+        isSameRestaurant(request.resource.data.restaurantId)
+      );
+    }
+
+    // 6. Table Reservations: /reservations/{reservationId}
     match /reservations/{reservationId} {
       allow read: if true;
       allow create: if request.resource.data.guestName is string;
-      allow update: if true;
+      allow update: if isSignedIn() && isSameRestaurant(resource.data.restaurantId);
       allow delete: if false;
     }
 
-    // Reviews: public read, create allowed
-    match /reviews/{reviewId} {
-      allow read: if true;
-      allow create: if request.resource.data.rating is number && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
-      allow update, delete: if false;
-    }
-
-    // Restaurant configuration
+    // 7. Restaurant Configuration
     match /restaurant_config/{docId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isSignedIn() && isOwner();
     }
   }
 }

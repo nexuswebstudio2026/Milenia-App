@@ -1,6 +1,21 @@
 export type SubscriptionPlan = 'basic' | 'pro' | 'enterprise';
 export type RestaurantStatus = 'active' | 'trial' | 'suspended';
 
+export type UserRole = 'owner' | 'staff';
+
+export interface UserProfile {
+  uid: string;
+  role: UserRole;
+  restaurantId: string;
+  documentId: string; // Cédula de ciudadanía o Document ID
+  name: string;
+  email: string;
+  phone?: string;
+  photoURL?: string;
+  position?: string;
+  createdAt?: string;
+}
+
 export interface DianResolutionInfo {
   resolutionNumber: string; // e.g. "18764000001234"
   prefix: string; // e.g. "MIL-"

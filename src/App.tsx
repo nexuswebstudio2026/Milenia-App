@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TastyProvider, useTasty } from './context/TastyContext';
+import { AuthProvider } from './context/AuthContext';
 import { MileniaHeader } from './components/saas/MileniaHeader';
 import { MileniaLandingView } from './components/saas/MileniaLandingView';
 import { MileniaAlliesView } from './components/saas/MileniaAlliesView';
@@ -26,7 +27,6 @@ import { MileniaRewardsModal } from './components/rewards/MileniaRewardsModal';
 import { CheckoutModal } from './components/checkout/CheckoutModal';
 import { PwaInstallModal } from './components/pwa/PwaInstallModal';
 import { PwaInstallBanner } from './components/pwa/PwaInstallBanner';
-import { RouteGuardMiddleware } from './components/saas/RouteGuardMiddleware';
 import { ToastContainer } from './components/ui/Toast';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -50,9 +50,6 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-amber-500 selection:text-slate-950 antialiased transition-colors duration-300 pb-20 md:pb-0 w-full max-w-full overflow-x-clip">
       
-      {/* SaaS Dynamic Route Middleware & Security Inspector Bar */}
-      <RouteGuardMiddleware />
-
       {/* 1. Header Selection based on App Mode */}
       {mode === 'milenia' ? (
         <MileniaHeader />
@@ -128,7 +125,9 @@ const AppContent: React.FC = () => {
 export default function App() {
   return (
     <TastyProvider>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </TastyProvider>
   );
 }
