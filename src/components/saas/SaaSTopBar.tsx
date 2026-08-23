@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Code2
 } from 'lucide-react';
+import { useCurrentDomain } from '../../utils/domainHelper';
 
 export const SaaSTopBar: React.FC = () => {
   const { 
@@ -27,6 +28,8 @@ export const SaaSTopBar: React.FC = () => {
     navigateTo,
     theme
   } = useTasty();
+
+  const { domain } = useCurrentDomain();
 
   const isSuperAdmin = currentRoute.routeType === 'superadmin';
   const isAdmin = currentRoute.routeType === 'tenant_admin';
@@ -170,7 +173,7 @@ export const SaaSTopBar: React.FC = () => {
           {/* Dynamic Next.js URL Display Badge */}
           <div className="flex items-center gap-1.5 bg-slate-950 text-slate-300 px-3 py-1 rounded-xl border border-slate-800 font-mono text-[11px] select-all shadow-inner">
             <Code2 className="w-3 h-3 text-amber-400 shrink-0" />
-            <span className="text-slate-500">milenia.app</span>
+            <span className="text-slate-400 font-semibold">{domain}</span>
             <span className="text-amber-300 font-bold">{currentRoute.path}</span>
           </div>
 

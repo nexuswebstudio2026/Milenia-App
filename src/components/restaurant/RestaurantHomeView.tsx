@@ -17,9 +17,11 @@ import {
   Store
 } from 'lucide-react';
 import { formatCop } from '../../utils/currency';
+import { useCurrentDomain } from '../../utils/domainHelper';
 
 export const RestaurantHomeView: React.FC = () => {
   const { currentTenant, setTenantView, menuItems, selectDishForCustomization } = useTasty();
+  const { getTenantDisplayUrl } = useCurrentDomain();
 
   const featuredItems = menuItems.slice(0, 3);
 
@@ -47,7 +49,7 @@ export const RestaurantHomeView: React.FC = () => {
               {currentTenant.city}
             </span>
             <span className="px-2.5 py-1 rounded-xl bg-slate-900/80 text-amber-300 font-mono text-xs font-bold border border-amber-500/30">
-              milenia.app/{currentTenant.id}
+              {getTenantDisplayUrl(currentTenant.id)}
             </span>
           </div>
 

@@ -18,6 +18,7 @@ import {
   Filter
 } from 'lucide-react';
 import { formatCop } from '../../utils/currency';
+import { useCurrentDomain } from '../../utils/domainHelper';
 
 export const MileniaAlliesView: React.FC = () => {
   const { 
@@ -27,6 +28,8 @@ export const MileniaAlliesView: React.FC = () => {
     setCurrentView,
     navigateTo 
   } = useTasty();
+
+  const { domain, origin, getTenantDisplayUrl, getTenantFullUrl } = useCurrentDomain();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCity, setSelectedCity] = useState('all');
@@ -50,7 +53,7 @@ export const MileniaAlliesView: React.FC = () => {
 
   const handleCopyUrl = (tenantId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/#/${tenantId}`;
+    const url = getTenantFullUrl(tenantId);
     navigator.clipboard.writeText(url);
     setCopiedId(tenantId);
     setTimeout(() => setCopiedId(null), 2000);
@@ -167,12 +170,12 @@ export const MileniaAlliesView: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
                     <span className="font-mono text-xs font-bold text-slate-800 dark:text-amber-300 truncate">
-                      milenia.app/{tenant.id}
+                      {getTenantDisplayUrl(tenant.id)}
                     </span>
                     <button
                       onClick={(e) => handleCopyUrl(tenant.id, e)}
                       title="Copiar URL del Aliado"
-                      className="p-1 text-slate-400 hover:text-amber-500 transition cursor-pointer"
+                      className="p-1 text-slate-400 hover:text-amber-500 transition cursor-pointer shrink-0"
                     >
                       {copiedId === tenant.id ? (
                         <Check className="w-3.5 h-3.5 text-emerald-500" />

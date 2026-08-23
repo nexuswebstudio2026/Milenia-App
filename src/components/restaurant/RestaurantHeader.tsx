@@ -20,6 +20,7 @@ import {
   Cloud
 } from 'lucide-react';
 import { formatCop } from '../../utils/currency';
+import { useCurrentDomain } from '../../utils/domainHelper';
 
 interface RestaurantHeaderProps {
   onOpenCart?: () => void;
@@ -37,6 +38,8 @@ export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }
     setLanguage,
     setIsRewardsOpen
   } = useTasty();
+
+  const { getTenantDisplayUrl } = useCurrentDomain();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
@@ -64,7 +67,7 @@ export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }
 
           <div className="flex items-center gap-3">
             <span className="hidden sm:inline bg-black/20 px-2 py-0.5 rounded font-mono text-[10px]">
-              URL: milenia.app/{currentTenant.id}
+              URL: {getTenantDisplayUrl(currentTenant.id)}
             </span>
             <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-black uppercase">
               Aliado #{currentTenant.id}

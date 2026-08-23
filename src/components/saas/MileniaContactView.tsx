@@ -18,8 +18,10 @@ import {
   Layers,
   Check
 } from 'lucide-react';
+import { useCurrentDomain } from '../../utils/domainHelper';
 
 export const MileniaContactView: React.FC = () => {
+  const { domain, getTenantDisplayUrl } = useCurrentDomain();
   const [formSent, setFormSent] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -75,12 +77,15 @@ export const MileniaContactView: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormSent(true);
+    // Enviar automáticamente a WhatsApp con todos los datos seleccionados
+    const waUrl = generateWhatsAppUrl();
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
   const faqs = [
     {
       q: '¿Cómo obtiene mi restaurante su propia URL e ID?',
-      a: 'Al afiliarte, se te asigna inmediatamente un identificador único (ej. ID #5) y tu enlace milenia.app/5 con carta digital, módulo de domicilios, reservas y terminal de meseros.'
+      a: `Al afiliarte, se te asigna inmediatamente un identificador único (ej. ID #5) y tu enlace ${domain}/5 con carta digital, módulo de domicilios, reservas y terminal de meseros.`
     },
     {
       q: '¿Milenia cumple con la Facturación Electrónica y el Impoconsumo de la DIAN?',
