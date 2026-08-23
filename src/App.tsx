@@ -17,6 +17,7 @@ import { ReviewsView } from './components/reviews/ReviewsView';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { SuperAdminDashboard } from './components/saas/SuperAdminDashboard';
+import { MileniaOwnerDashboard } from './components/saas/MileniaOwnerDashboard';
 import { EmployeeDashboard } from './components/employee/EmployeeDashboard';
 import { Footer } from './components/layout/Footer';
 import { MobileNav } from './components/layout/MobileNav';
@@ -78,6 +79,7 @@ const AppContent: React.FC = () => {
               {mileniaView === 'aliados' && <MileniaAlliesView />}
               {mileniaView === 'login' && <MileniaLoginView />}
               {mileniaView === 'contactos' && <MileniaContactView />}
+              {(mileniaView === 'propietario' || mileniaView === 'superadmin') && <MileniaOwnerDashboard />}
             </motion.div>
           ) : (
             <motion.div
@@ -87,13 +89,19 @@ const AppContent: React.FC = () => {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              {tenantView === 'restaurant-inicio' && <RestaurantHomeView />}
-              {tenantView === 'restaurant-servicios' && <RestaurantServicesView />}
-              {tenantView === 'restaurant-platos' && <MenuExplorer />}
-              {tenantView === 'restaurant-reservas' && <ReservationView />}
-              {tenantView === 'restaurant-domicilios' && <OrderTrackerView />}
-              {tenantView === 'restaurant-empleados' && <EmployeeDashboard />}
-              {tenantView === 'restaurant-admin' && <AdminLayout />}
+              {currentView === 'superadmin' ? (
+                <MileniaOwnerDashboard />
+              ) : (
+                <>
+                  {tenantView === 'restaurant-inicio' && <RestaurantHomeView />}
+                  {tenantView === 'restaurant-servicios' && <RestaurantServicesView />}
+                  {tenantView === 'restaurant-platos' && <MenuExplorer />}
+                  {tenantView === 'restaurant-reservas' && <ReservationView />}
+                  {tenantView === 'restaurant-domicilios' && <OrderTrackerView />}
+                  {tenantView === 'restaurant-empleados' && <EmployeeDashboard />}
+                  {tenantView === 'restaurant-admin' && <AdminLayout />}
+                </>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

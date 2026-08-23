@@ -15,7 +15,8 @@ import {
   User,
   ShieldCheck,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Crown
 } from 'lucide-react';
 
 export const MileniaHeader: React.FC = () => {
@@ -146,6 +147,19 @@ export const MileniaHeader: React.FC = () => {
               <span>Contactos</span>
             </button>
 
+            <button
+              onClick={() => setMileniaView('propietario')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                mileniaView === 'propietario' || mileniaView === 'superadmin'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
+                  : 'text-amber-500 dark:text-amber-400 hover:bg-amber-500/10'
+              }`}
+              title="Panel Maestro de Control del Propietario de Milenia SaaS"
+            >
+              <Crown className="w-3.5 h-3.5" />
+              <span>Propietario Milenia</span>
+            </button>
+
           </nav>
 
           {/* Right Action Controls: "Ingreso Aliados" Button + Profile Status */}
@@ -249,6 +263,21 @@ export const MileniaHeader: React.FC = () => {
           >
             <span>Contactos</span>
             <Phone className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => { setMileniaView('propietario'); setMobileMenuOpen(false); }}
+            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-black flex items-center justify-between border ${
+              mileniaView === 'propietario' || mileniaView === 'superadmin' 
+                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md' 
+                : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <Crown className="w-4 h-4 text-amber-400" />
+              <span>Dashboard Propietario Milenia</span>
+            </span>
+            <ChevronRight className="w-4 h-4" />
           </button>
 
           <button

@@ -78,7 +78,7 @@ import {
 
 export type AppView = 'menu' | 'reservations' | 'locations' | 'reviews' | 'tracking' | 'admin' | 'superadmin' | 'dashboard';
 export type Language = 'es' | 'en';
-export type MileniaNavView = 'inicio' | 'aliados' | 'login' | 'contactos';
+export type MileniaNavView = 'inicio' | 'aliados' | 'login' | 'contactos' | 'propietario' | 'superadmin';
 export type RestaurantNavView = 'restaurant-inicio' | 'restaurant-servicios' | 'restaurant-platos' | 'restaurant-reservas' | 'restaurant-domicilios' | 'restaurant-empleados' | 'restaurant-admin';
 export type AppMode = 'milenia' | 'restaurant';
 
