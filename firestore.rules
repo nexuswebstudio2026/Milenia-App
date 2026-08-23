@@ -88,12 +88,20 @@ service cloud.firestore {
       allow write: if isSignedIn() && isOwner();
     }
 
-    // 8. Aliados / Tenants Directory
+    // 8. Aliados / Tenants Directory & Subcollections (e.g., /aliados/{aliadoId}/usuarios/{userId})
     match /aliados/{aliadoId} {
       allow read, write: if true;
     }
 
+    match /aliados/{aliadoId}/{document=**} {
+      allow read, write: if true;
+    }
+
     match /tenants/{tenantId} {
+      allow read, write: if true;
+    }
+
+    match /tenants/{tenantId}/{document=**} {
       allow read, write: if true;
     }
   }

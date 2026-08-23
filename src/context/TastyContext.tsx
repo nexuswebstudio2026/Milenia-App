@@ -55,6 +55,7 @@ import {
   saveAliadoToFirestore, 
   seedAliadosInFirestore 
 } from '../services/aliadosService';
+import { seedAllAllyUsersInFirestore } from '../services/tenantUsersService';
 import { useTenantRoute, ParsedTenantRoute, AppRouteType } from '../hooks/useTenantRoute';
 import { archiveDianInvoiceToGoogleDrive } from '../services/googleDriveService';
 import { syncReservationToGoogleCalendar } from '../services/googleCalendarService';
@@ -282,6 +283,8 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setTenants(realtimeAliados);
           }
         });
+        // Sincronizar e inicializar tablas de aliados y usuarios en Firestore
+        await seedAllAllyUsersInFirestore();
       } catch (err) {
         console.warn('Could not sync /aliados with Firestore:', err);
       }

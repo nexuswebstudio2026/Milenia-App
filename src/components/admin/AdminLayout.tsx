@@ -37,11 +37,14 @@ import {
   ExternalLink,
   Lock,
   ArrowRight,
-  Code2
+  Code2,
+  Database,
+  UserCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCop } from '../../utils/currency';
 import { InventoryItem, PayrollRecord } from '../../types';
+import { AllyUsersManagement } from './AllyUsersManagement';
 
 export const AdminLayout: React.FC = () => {
   const { 
@@ -72,7 +75,7 @@ export const AdminLayout: React.FC = () => {
     addInventoryItem
   } = useStore();
 
-  const [activeTab, setActiveTab] = useState<'sales' | 'inventory' | 'payroll' | 'dian'>('sales');
+  const [activeTab, setActiveTab] = useState<'sales' | 'inventory' | 'payroll' | 'users' | 'dian'>('sales');
   
   // Inventory state
   const [invSearch, setInvSearch] = useState('');
@@ -373,6 +376,18 @@ export const AdminLayout: React.FC = () => {
             >
               <Users className="w-4 h-4" />
               <span>Nómina Colombia</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer shrink-0 ${
+                activeTab === 'users' 
+                  ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-extrabold' 
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              <Database className="w-4 h-4 text-emerald-400" />
+              <span>Usuarios Firestore</span>
             </button>
 
             <button
@@ -983,6 +998,13 @@ export const AdminLayout: React.FC = () => {
             </div>
 
           </div>
+        )}
+
+        {/* =========================================================== */}
+        {/* TAB 4: TABLA DE USUARIOS Y ROLES EN FIRESTORE               */}
+        {/* =========================================================== */}
+        {activeTab === 'users' && (
+          <AllyUsersManagement />
         )}
 
       </main>
