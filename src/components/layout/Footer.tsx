@@ -147,7 +147,11 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2 text-xs">
               <li className="flex items-start gap-2">
                 <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-                <span>{selectedLocation.address}, {selectedLocation.city}</span>
+                <span>
+                  {selectedLocation.city && selectedLocation.city !== selectedLocation.address && !selectedLocation.address.includes(selectedLocation.city)
+                    ? `${selectedLocation.address}, ${selectedLocation.city}`
+                    : selectedLocation.address}
+                </span>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="w-3.5 h-3.5 text-amber-400 shrink-0" />

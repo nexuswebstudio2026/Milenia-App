@@ -385,10 +385,10 @@ export const INITIAL_LOCATIONS: RestaurantLocation[] = [
   {
     id: 'loc-center',
     name: 'MILENIA Central Bistro & Cava',
-    address: 'Av. Principal del Gourmet 42, Centro',
-    city: 'Madrid / Capital',
-    phone: '+34 912 345 678',
-    email: 'central@milenia-restaurant.com',
+    address: 'Pasto - Nariño',
+    city: 'Colombia',
+    phone: '+57 304-347-0984',
+    email: 'nexuswebstudio2026@gmail.com',
     rating: 4.9,
     reviewCount: 428,
     isOpen: true,
@@ -403,15 +403,15 @@ export const INITIAL_LOCATIONS: RestaurantLocation[] = [
     deliveryFee: 2.50,
     deliveryRadiusKm: 6.5,
     image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
-    coordinates: { lat: 40.4168, lng: -3.7038 }
+    coordinates: { lat: 1.2136, lng: -77.2811 }
   },
   {
     id: 'loc-north',
     name: 'MILENIA North Patio & Grill',
-    address: 'Paseo de la Terraza 118, Zona Norte',
-    city: 'Madrid Norte',
-    phone: '+34 915 889 900',
-    email: 'norte@milenia-restaurant.com',
+    address: 'Pasto - Nariño (Zona Norte)',
+    city: 'Colombia',
+    phone: '+57 304-347-0984',
+    email: 'nexuswebstudio2026@gmail.com',
     rating: 4.8,
     reviewCount: 290,
     isOpen: true,
@@ -425,7 +425,7 @@ export const INITIAL_LOCATIONS: RestaurantLocation[] = [
     deliveryFee: 2.90,
     deliveryRadiusKm: 8.0,
     image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-    coordinates: { lat: 40.4680, lng: -3.6890 }
+    coordinates: { lat: 1.2210, lng: -77.2780 }
   }
 ];
 

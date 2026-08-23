@@ -29,21 +29,9 @@ service cloud.firestore {
       );
     }
 
-    // Global Safety Net: Default Deny
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
     // 1. User Profiles Collection: /users/{userId}
-    // Users can read/write their own profile doc. Owners can also read staff in their restaurant.
     match /users/{userId} {
-      allow read: if isSignedIn() && (
-        request.auth.uid == userId || 
-        (hasUserDoc() && getUserData().role == 'owner' && getUserData().restaurantId == resource.data.restaurantId)
-      );
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && (request.auth.uid == userId || isOwner());
-      allow delete: if false;
+      allow read, write: if true;
     }
 
     // 2. Sales & Revenue Data: /sales/{saleId}

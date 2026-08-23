@@ -1,264 +1,256 @@
 import React, { useState } from 'react';
 import { useTasty } from '../../context/TastyContext';
-import { useAuth, DEMO_USERS, DemoAccountConfig } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { 
   Building2, 
   LogIn, 
-  PlusCircle, 
   ShieldCheck, 
   UserCheck, 
   KeyRound, 
-  Store, 
-  CheckCircle2, 
   Sparkles, 
   ArrowRight, 
-  Copy, 
-  ExternalLink,
-  Users,
-  Receipt,
-  MapPin,
-  Lock,
-  Eye,
-  EyeOff,
-  AlertCircle,
-  Mail,
-  User,
-  Hash,
-  LogOut,
-  RefreshCw,
+  Receipt, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  AlertCircle, 
+  Mail, 
+  User, 
+  LogOut, 
+  Loader2, 
+  CheckCircle2,
   HelpCircle,
-  Database
+  Laptop
 } from 'lucide-react';
-import { UserRole } from '../../types';
+import { loginUser, registerUser, UserRole, calculateRedirectUrl } from '../../lib/auth-service';
 
 export const MileniaLoginView: React.FC = () => {
-  const { tenants, navigateTo, setMileniaView } = useTasty();
+  const { tenants, navigateTo } = useTasty();
   const { 
-    user, 
     userProfile, 
-    loading, 
-    error, 
-    signInWithEmail, 
-    signUpWithEmail, 
-    signInWithGoogle, 
-    loginAsDemo, 
-    logout,
-    getRedirectPath,
-    clearError 
+    logout, 
+    loginAsDemo 
   } = useAuth();
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successInfo, setSuccessInfo] = useState<{ name: string; redirectUrl: string } | null>(null);
 
-  // Signup extra profile fields
-  const [signupRole, setSignupRole] = useState<UserRole>('staff');
-  const [signupRestaurantId, setSignupRestaurantId] = useState('3');
-  const [signupDocumentId, setSignupDocumentId] = useState('12345');
+  // Campos para nuevo registro
+  const [signupRole, setSignupRole] = useState<'OWNER' | 'STAFF'>('OWNER');
+  const [signupRestaurantId, setSignupRestaurantId] = useState('1');
+  const [signupEmployeeId, setSignupEmployeeId] = useState('101');
   const [signupName, setSignupName] = useState('');
-  const [signupPosition, setSignupPosition] = useState('Cajero Principal');
+  const [signupPosition, setSignupPosition] = useState('Propietario General');
 
-  const [localStatus, setLocalStatus] = useState<string | null>(null);
-
-  // Execute demo login and auto-redirect
-  const handleDemoClick = async (demoKey: 'miguel_owner' | 'alejandro_staff') => {
-    clearError();
-    setLocalStatus('Autenticando con Firebase...');
-    const targetUrl = await loginAsDemo(demoKey);
-    setLocalStatus(`Perfil resuelto en Firestore. Redirigiendo a ${targetUrl}...`);
-    
-    setTimeout(() => {
-      if (demoKey === 'miguel_owner') {
-        navigateTo({ routeType: 'tenant_admin', restaurantId: '5' });
-      } else {
-        navigateTo({ routeType: 'employee_dashboard', restaurantId: '3', employeeId: '12345' });
-      }
-    }, 400);
-  };
-
+  // Login con Email y Contraseña (Firebase Auth + Firestore)
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    clearError();
-    setLocalStatus('Procesando autenticación...');
+    setError(null);
+    setLoading(true);
 
     try {
       if (mode === 'signin') {
-        const profile = await signInWithEmail(email, password);
-        setLocalStatus(`Inicio exitoso. Redirigiendo a su portal...`);
-        const path = getRedirectPath(profile);
-        
+        const result = await loginUser(email, password);
+        setSuccessInfo({
+          name: result.profile.name,
+          redirectUrl: result.redirectUrl
+        });
+
+        // Redirección Dinámica
         setTimeout(() => {
-          if (profile.role === 'owner') {
-            navigateTo({ routeType: 'tenant_admin', restaurantId: profile.restaurantId || '5' });
+          const roleUpper = String(result.profile.role).toUpperCase();
+          const rId = String(result.profile.restaurantId || '1');
+          const empId = String(result.profile.employeeId || result.profile.documentId || '101');
+
+          if (roleUpper === 'OWNER' || roleUpper === 'ADMIN') {
+            navigateTo({ routeType: 'tenant_admin', restaurantId: rId });
           } else {
             navigateTo({ 
               routeType: 'employee_dashboard', 
-              restaurantId: profile.restaurantId || '3',
-              employeeId: profile.documentId || '12345'
+              restaurantId: rId,
+              employeeId: empId
             });
           }
-        }, 500);
+        }, 800);
       } else {
         if (!signupName.trim()) {
-          setLocalStatus('Por favor ingresa tu nombre completo.');
+          setError('Por favor ingresa tu nombre completo.');
+          setLoading(false);
           return;
         }
-        const profile = await signUpWithEmail(email, password, {
-          role: signupRole,
-          restaurantId: signupRestaurantId,
-          documentId: signupDocumentId,
+
+        const result = await registerUser(email, password, {
           name: signupName,
-          email,
+          restaurantId: signupRestaurantId,
+          role: signupRole,
+          employeeId: signupEmployeeId,
           position: signupPosition
         });
 
-        setLocalStatus(`Cuenta creada y registrada en /users/${profile.uid}. Redirigiendo...`);
+        setSuccessInfo({
+          name: result.profile.name,
+          redirectUrl: result.redirectUrl
+        });
+
         setTimeout(() => {
-          if (profile.role === 'owner') {
-            navigateTo({ routeType: 'tenant_admin', restaurantId: profile.restaurantId });
+          if (signupRole === 'OWNER') {
+            navigateTo({ routeType: 'tenant_admin', restaurantId: signupRestaurantId });
           } else {
             navigateTo({ 
               routeType: 'employee_dashboard', 
-              restaurantId: profile.restaurantId,
-              employeeId: profile.documentId
+              restaurantId: signupRestaurantId,
+              employeeId: signupEmployeeId
             });
           }
-        }, 500);
+        }, 800);
       }
     } catch (err: any) {
-      setLocalStatus(null);
+      setError(err?.message || 'Error al autenticar. Verifica tus credenciales.');
+      setLoading(false);
     }
   };
 
-  const handleGoogleSubmit = async () => {
-    clearError();
-    setLocalStatus('Abriendo ventana de autenticación Google...');
-    try {
-      const profile = await signInWithGoogle();
-      setLocalStatus(`Google Auth exitoso. Perfil sincronizado en Firestore.`);
-      setTimeout(() => {
-        if (profile.role === 'owner') {
-          navigateTo({ routeType: 'tenant_admin', restaurantId: profile.restaurantId });
-        } else {
-          navigateTo({ 
-            routeType: 'employee_dashboard', 
-            restaurantId: profile.restaurantId,
-            employeeId: profile.documentId
-          });
-        }
-      }, 500);
-    } catch (err) {
-      setLocalStatus(null);
-    }
-  };
-
-  const handleNavigateToActivePortal = () => {
-    if (!userProfile) return;
-    if (userProfile.role === 'owner') {
-      navigateTo({ routeType: 'tenant_admin', restaurantId: userProfile.restaurantId || '5' });
-    } else {
-      navigateTo({ 
-        routeType: 'employee_dashboard', 
-        restaurantId: userProfile.restaurantId || '3',
-        employeeId: userProfile.documentId || '12345'
-      });
+  // Helper para rellenar cuentas demo
+  const handleSelectDemo = (demoEmail: string, demoPass: string, demoType?: 'miguel_owner' | 'alejandro_staff') => {
+    setEmail(demoEmail);
+    setPassword(demoPass);
+    setError(null);
+    if (demoType) {
+      loginAsDemo(demoType);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 py-4 sm:py-8">
+    <div className="max-w-4xl mx-auto space-y-8 py-4 sm:py-8 font-sans">
       
       {/* Top Header */}
       <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs font-bold">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs font-bold tracking-wide">
           <KeyRound className="w-3.5 h-3.5" />
-          <span>Milenia SaaS • Firebase Authentication & Firestore RBAC</span>
+          <span>MILENIA SAAS &bull; AUTENTICACIÓN FIREBASE AUTH & FIRESTORE</span>
         </div>
-        <h1 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-          Ingreso de Aliados & Colaboradores
+        <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+          Ingreso de Restaurantes Aliados
         </h1>
         <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
-          Accede al panel de administración o a tu terminal de punto de venta (POS) y turno según tu rol y restaurante asignado en Firestore.
+          Inicia sesión con tu correo y contraseña. El sistema consultará tu rol en <span className="font-mono text-amber-500 font-bold">users/{'{uid}'}</span> y te redirigirá automáticamente a tu panel.
         </p>
       </div>
 
-      {/* 1. Quick Access Demo Profiles (MIGUEL & ALEJANDRO) */}
-      <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-6 rounded-3xl border border-amber-500/30 shadow-xl space-y-4">
+      {/* 1. Acceso Rápido y Casos de Prueba (Incluyendo Restaurante ID 1) */}
+      <div className="bg-slate-900 border border-amber-500/30 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-white">
             <Sparkles className="w-4 h-4 text-amber-400" />
-            <h2 className="text-sm font-black uppercase tracking-wider text-amber-400">
-              Acceso Rápido Demo (Casos de Prueba Solicitados)
+            <h2 className="text-xs font-black uppercase tracking-wider text-amber-400">
+              Perfiles de Prueba Pre-Configurados (Firebase + Firestore)
             </h2>
           </div>
-          <span className="text-[11px] font-mono text-slate-400 hidden sm:inline">1-Click Auto Login</span>
+          <span className="text-[11px] font-mono text-slate-400 hidden sm:inline">1-Click Auto-Fill</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           
-          {/* Miguel Owner Button */}
+          {/* Card Restaurante 1 - Owner (Camilo) */}
           <button
-            onClick={() => handleDemoClick('miguel_owner')}
-            className="text-left bg-slate-800/90 hover:bg-slate-800 border border-amber-500/40 hover:border-amber-500 p-4 rounded-2xl transition group relative overflow-hidden cursor-pointer"
+            type="button"
+            onClick={() => handleSelectDemo('camilo.owner@milenia.co', 'Milenia2026!')}
+            className="text-left bg-slate-950/70 hover:bg-slate-800 border border-amber-500/40 hover:border-amber-500 p-3.5 rounded-2xl transition group relative overflow-hidden cursor-pointer"
           >
             <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black">
-                  <ShieldCheck className="w-5 h-5" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black">
+                  <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-white group-hover:text-amber-400 transition">
-                      Miguel Ángel (Owner)
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-white group-hover:text-amber-400 transition">
+                      Rest. ID 1 (Owner)
                     </p>
-                    <span className="text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-black uppercase">
+                    <span className="text-[8px] bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded font-black uppercase">
                       Owner
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400">
-                    Restaurante ID: <strong className="text-white">5</strong> (Mar & Fuego Caribe)
+                  <p className="text-[11px] text-slate-400 truncate">
+                    Parrilla & Fuego Camilo
                   </p>
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-3.5 h-3.5 text-amber-400 group-hover:translate-x-1 transition-transform mt-1" />
             </div>
+            <div className="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-300 font-mono">
+              <span className="text-slate-500">Destino:</span>
+              <span className="text-amber-400 font-bold">/1/admin</span>
+            </div>
+          </button>
 
-            <div className="mt-3 pt-2.5 border-t border-slate-700/60 flex items-center justify-between text-[11px] text-slate-300 font-mono">
-              <span className="text-slate-400">Redirección Firestore:</span>
+          {/* Card Restaurante 5 - Owner (Miguel) */}
+          <button
+            type="button"
+            onClick={() => handleSelectDemo('miguel.owner@milenia.co', 'Milenia2026!', 'miguel_owner')}
+            className="text-left bg-slate-950/70 hover:bg-slate-800 border border-amber-500/40 hover:border-amber-500 p-3.5 rounded-2xl transition group relative overflow-hidden cursor-pointer"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-white group-hover:text-amber-400 transition">
+                      Rest. ID 5 (Owner)
+                    </p>
+                    <span className="text-[8px] bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded font-black uppercase">
+                      Owner
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 truncate">
+                    Mar & Fuego Caribe
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-amber-400 group-hover:translate-x-1 transition-transform mt-1" />
+            </div>
+            <div className="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-300 font-mono">
+              <span className="text-slate-500">Destino:</span>
               <span className="text-amber-400 font-bold">/5/admin</span>
             </div>
           </button>
 
-          {/* Alejandro Staff Button */}
+          {/* Card Restaurante 3 - Staff (Alejandro) */}
           <button
-            onClick={() => handleDemoClick('alejandro_staff')}
-            className="text-left bg-slate-800/90 hover:bg-slate-800 border border-teal-500/40 hover:border-teal-500 p-4 rounded-2xl transition group relative overflow-hidden cursor-pointer"
+            type="button"
+            onClick={() => handleSelectDemo('alejandro.cajero@milenia.co', 'Milenia2026!', 'alejandro_staff')}
+            className="text-left bg-slate-950/70 hover:bg-slate-800 border border-teal-500/40 hover:border-teal-500 p-3.5 rounded-2xl transition group relative overflow-hidden cursor-pointer"
           >
             <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-teal-500 text-white flex items-center justify-center font-black">
-                  <Receipt className="w-5 h-5" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center font-black">
+                  <Receipt className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-white group-hover:text-teal-400 transition">
-                      Alejandro Restrepo (Cajero)
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-white group-hover:text-teal-400 transition">
+                      Rest. ID 3 (Staff)
                     </p>
-                    <span className="text-[9px] bg-teal-500/20 text-teal-400 px-1.5 py-0.5 rounded font-black uppercase">
+                    <span className="text-[8px] bg-teal-500/20 text-teal-400 px-1 py-0.5 rounded font-black uppercase">
                       Staff
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400">
-                    Rest. ID: <strong className="text-white">3</strong> • CC: <strong className="text-white">12345</strong>
+                  <p className="text-[11px] text-slate-400 truncate">
+                    Alejandro &bull; CC: 12345
                   </p>
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-teal-400 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-3.5 h-3.5 text-teal-400 group-hover:translate-x-1 transition-transform mt-1" />
             </div>
-
-            <div className="mt-3 pt-2.5 border-t border-slate-700/60 flex items-center justify-between text-[11px] text-slate-300 font-mono">
-              <span className="text-slate-400">Redirección Firestore:</span>
+            <div className="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-300 font-mono">
+              <span className="text-slate-500">Destino:</span>
               <span className="text-teal-400 font-bold">/3/dashboard/12345</span>
             </div>
           </button>
@@ -266,7 +258,7 @@ export const MileniaLoginView: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Active Session Card if logged in */}
+      {/* 2. Sesión Activa */}
       {userProfile && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -276,27 +268,38 @@ export const MileniaLoginView: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-900 dark:text-white">{userProfile.name}</span>
-                <span className="text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded uppercase font-bold">
+                <span className="text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded font-black uppercase">
                   {userProfile.role}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Sesión activa • Restaurante: {userProfile.restaurantId} • Cédula/Doc: {userProfile.documentId}
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                Restaurante ID: {userProfile.restaurantId} &bull; Empleado ID: {userProfile.documentId || userProfile.employeeId || '101'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
-              onClick={handleNavigateToActivePortal}
-              className="flex-1 sm:flex-initial px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
+              onClick={() => {
+                const targetUrl = calculateRedirectUrl(userProfile);
+                if (String(userProfile.role).toUpperCase() === 'OWNER') {
+                  navigateTo({ routeType: 'tenant_admin', restaurantId: String(userProfile.restaurantId) });
+                } else {
+                  navigateTo({ 
+                    routeType: 'employee_dashboard', 
+                    restaurantId: String(userProfile.restaurantId),
+                    employeeId: String(userProfile.documentId || userProfile.employeeId || '101')
+                  });
+                }
+              }}
+              className="flex-1 sm:flex-initial px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
             >
-              <span>Ir a {getRedirectPath()}</span>
+              <span>Ir a {calculateRedirectUrl(userProfile)}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={logout}
-              className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-red-500/20 text-slate-700 dark:text-slate-300 hover:text-red-400 font-bold text-xs rounded-xl flex items-center gap-1 transition cursor-pointer"
+              className="px-3 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-red-500/20 text-slate-700 dark:text-slate-300 hover:text-red-400 font-bold text-xs rounded-xl flex items-center gap-1 transition cursor-pointer"
               title="Cerrar sesión"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -306,226 +309,232 @@ export const MileniaLoginView: React.FC = () => {
         </div>
       )}
 
-      {/* 3. Main Form: Firebase Authentication (Email/Password & Google) */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-sm">
+      {/* 3. Formulario Principal de Login / Registro (Estética Milenia Dark Gold) */}
+      <div className="bg-slate-900 border border-amber-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
         
-        {/* Toggle Mode: Iniciar Sesión vs Registrarse */}
+        {/* Línea dorada superior */}
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500 to-transparent" />
+
+        {/* Toggle Mode: Iniciar Sesión vs Registrar Cuenta */}
         <div className="flex items-center justify-center mb-6">
-          <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl flex items-center max-w-xs w-full">
+          <div className="bg-slate-950 p-1 rounded-2xl flex items-center max-w-xs w-full border border-slate-800">
             <button
               type="button"
-              onClick={() => { setMode('signin'); clearError(); }}
+              onClick={() => { setMode('signin'); setError(null); }}
               className={`flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
                 mode === 'signin'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-black'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               Iniciar Sesión
             </button>
             <button
               type="button"
-              onClick={() => { setMode('signup'); clearError(); }}
+              onClick={() => { setMode('signup'); setError(null); }}
               className={`flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
                 mode === 'signup'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-black'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              Crear Cuenta
+              Registrar Aliado
             </button>
           </div>
         </div>
 
-        {/* Status / Notifications */}
-        {localStatus && (
-          <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-medium flex items-center gap-2 animate-fade-in">
-            <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
-            <span>{localStatus}</span>
+        {/* Success / Loading redirect */}
+        {successInfo ? (
+          <div className="py-8 text-center space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400 shadow-lg">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">¡Autenticación Exitosa!</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Bienvenido, <strong className="text-white">{successInfo.name}</strong>. Accediendo a <span className="text-amber-400 font-mono font-bold">{successInfo.redirectUrl}</span>...
+              </p>
+            </div>
+            <div className="w-8 h-8 mx-auto border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
           </div>
-        )}
-
-        {error && (
-          <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-medium flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleEmailSubmit} className="space-y-4">
-          
-          {/* If Signup: Name, Role, RestaurantId, DocumentId */}
-          {mode === 'signup' && (
-            <div className="space-y-4 pt-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Nombre Completo
-                </label>
-                <div className="relative">
-                  <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    value={signupName}
-                    onChange={(e) => setSignupName(e.target.value)}
-                    placeholder="Ej. Carlos Mendoza"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-amber-500"
-                  />
-                </div>
+        ) : (
+          <form onSubmit={handleEmailSubmit} className="space-y-4">
+            
+            {/* Mensaje de Error Amigable */}
+            {error && (
+              <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-medium flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Role */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Rol en Firestore
-                  </label>
-                  <select
-                    value={signupRole}
-                    onChange={(e) => setSignupRole(e.target.value as UserRole)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-500 cursor-pointer"
-                  >
-                    <option value="owner">Owner (Propietario)</option>
-                    <option value="staff">Staff (Cajero / Operativo)</option>
-                  </select>
-                </div>
-
-                {/* RestaurantId */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Restaurante Asignado
-                  </label>
-                  <select
-                    value={signupRestaurantId}
-                    onChange={(e) => setSignupRestaurantId(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-500 cursor-pointer"
-                  >
-                    {tenants.map(t => (
-                      <option key={t.id} value={t.id}>
-                        ID {t.id} - {t.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* DocumentId / Cédula */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Cédula / Document ID
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={signupDocumentId}
-                    onChange={(e) => setSignupDocumentId(e.target.value)}
-                    placeholder="Ej. 12345"
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-500 font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Email */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Correo Electrónico (Firebase Auth)
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="ejemplo@milenia.co"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-amber-500"
-              />
-            </div>
-          </div>
-
-          {/* Password */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Contraseña
-            </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-amber-500"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Submit button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            {loading ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <LogIn className="w-4 h-4 stroke-[2.5]" />
             )}
-            <span>
-              {mode === 'signin' ? 'Iniciar Sesión con Firebase' : 'Registrar Aliado en Firestore'}
-            </span>
-          </button>
 
-        </form>
+            {/* Formulario adicional si es Registro */}
+            {mode === 'signup' && (
+              <div className="space-y-4 pt-1 pb-3 border-b border-slate-800">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Nombre Completo
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      value={signupName}
+                      onChange={(e) => setSignupName(e.target.value)}
+                      placeholder="Ej. Camilo Andrés Gómez"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white text-xs sm:text-sm focus:outline-none focus:border-amber-500 font-sans"
+                    />
+                  </div>
+                </div>
 
-        {/* Divider */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200 dark:border-slate-800" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white dark:bg-slate-900 px-3 text-slate-400 font-bold">
-              o continuar con
-            </span>
-          </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Rol */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Rol Asignado
+                    </label>
+                    <select
+                      value={signupRole}
+                      onChange={(e) => setSignupRole(e.target.value as 'OWNER' | 'STAFF')}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white text-xs focus:outline-none focus:border-amber-500 cursor-pointer"
+                    >
+                      <option value="OWNER">OWNER (Propietario)</option>
+                      <option value="STAFF">STAFF (Cajero / POS)</option>
+                    </select>
+                  </div>
+
+                  {/* Restaurante ID */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Restaurante ID
+                    </label>
+                    <select
+                      value={signupRestaurantId}
+                      onChange={(e) => setSignupRestaurantId(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white text-xs focus:outline-none focus:border-amber-500 cursor-pointer"
+                    >
+                      {tenants.map(t => (
+                        <option key={t.id} value={t.id}>
+                          ID {t.id} - {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Employee ID */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      ID Empleado / Cédula
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={signupEmployeeId}
+                      onChange={(e) => setSignupEmployeeId(e.target.value)}
+                      placeholder="101"
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white text-xs focus:outline-none focus:border-amber-500 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Email Field */}
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-slate-300">
+                Correo Electrónico
+              </label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 group-focus-within:text-amber-400 transition-colors">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="camilo.owner@milenia.co"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-all font-sans"
+                />
+              </div>
+            </div>
+
+            {/* Password Field */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Contraseña
+                </label>
+                <span className="text-[11px] text-slate-500">Mínimo 6 caracteres</span>
+              </div>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 group-focus-within:text-amber-400 transition-colors">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full pl-10 pr-11 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-all font-sans"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-amber-400 transition-colors cursor-pointer"
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Consultando Firestore...</span>
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-4 h-4 stroke-[2.5]" />
+                  <span>{mode === 'signin' ? 'Ingresar a mi Restaurante' : 'Crear Cuenta y Perfil en Firestore'}</span>
+                </>
+              )}
+            </button>
+
+          </form>
+        )}
+
+      </div>
+
+      {/* Explicación de Arquitectura Firestore */}
+      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 text-xs text-slate-400 space-y-2">
+        <div className="flex items-center gap-2 text-amber-400 font-bold">
+          <HelpCircle className="w-4 h-4" />
+          <span>Estructura del Documento en Firestore (Ruta: users/{'{uid}'}):</span>
         </div>
-
-        {/* Google Auth Button */}
-        <button
-          onClick={handleGoogleSubmit}
-          disabled={loading}
-          className="w-full py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-bold flex items-center justify-center gap-2.5 transition cursor-pointer"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
-            <path
-              fill="#4285F4"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-            />
-            <path
-              fill="#EA4335"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-            />
-          </svg>
-          <span>Acceder con Google Auth</span>
-        </button>
-
+        <pre className="bg-slate-950 p-3 rounded-xl text-[11px] font-mono text-slate-300 overflow-x-auto border border-slate-800/80">
+{`// Ejemplo Firestore Doc: /users/\${uid}
+{
+  "name": "Camilo Andrés Gómez",
+  "email": "camilo.owner@milenia.co",
+  "restaurantId": "1",
+  "role": "OWNER",          // Redirige dinámicamente a: /1/admin
+  "employeeId": "101"       // Si role == 'STAFF' -> /1/dashboard/101
+}`}
+        </pre>
       </div>
 
     </div>

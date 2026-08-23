@@ -130,7 +130,11 @@ export const LocationsView: React.FC = () => {
                     <h3 className="text-xl font-serif font-bold">{loc.name}</h3>
                     <p className="text-xs text-slate-200 flex items-center gap-1 mt-0.5">
                       <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <span>{loc.address}, {loc.city}</span>
+                      <span>
+                        {loc.city && loc.city !== loc.address && !loc.address.includes(loc.city)
+                          ? `${loc.address}, ${loc.city}`
+                          : loc.address}
+                      </span>
                     </p>
                   </div>
                 </div>

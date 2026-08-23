@@ -8,6 +8,7 @@ export interface UserProfile {
   role: UserRole;
   restaurantId: string;
   documentId: string; // Cédula de ciudadanía o Document ID
+  employeeId?: string; // ID Empleado alias
   name: string;
   email: string;
   phone?: string;

@@ -143,6 +143,7 @@ export const MileniaContactView: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white"
                   >
+                    <option value="Pasto">Pasto (Nariño)</option>
                     <option value="Bogotá D.C.">Bogotá D.C.</option>
                     <option value="Medellín">Medellín</option>
                     <option value="Cali">Cali</option>
@@ -160,7 +161,7 @@ export const MileniaContactView: React.FC = () => {
                   <input
                     type="tel"
                     required
-                    placeholder="+57 310 000 0000"
+                    placeholder="+57 304-347-0984"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white"
@@ -173,7 +174,7 @@ export const MileniaContactView: React.FC = () => {
                   </label>
                   <input
                     type="email"
-                    placeholder="contacto@restaurante.co"
+                    placeholder="nexuswebstudio2026@gmail.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white"
@@ -239,13 +240,44 @@ export const MileniaContactView: React.FC = () => {
               </div>
             </div>
             <a
-              href="https://wa.me/573104589201"
+              href="https://wa.me/573043470984"
               target="_blank"
               rel="noopener noreferrer"
-              className="block text-center py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition"
+              className="block text-center py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition cursor-pointer shadow-xs"
             >
-              Contactar por WhatsApp (+57 310 458 9201)
+              Contactar por WhatsApp (+57 304-347-0984)
             </a>
+          </div>
+
+          {/* Contacto Directo Telefónico y Email */}
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-3xl p-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black">
+                <Phone className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-black text-sm text-slate-900 dark:text-white">
+                  Línea Directa de Llamadas
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Atención comercial y soporte telefónico
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2 pt-1">
+              <a
+                href="tel:+573043470984"
+                className="block text-center py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl transition cursor-pointer"
+              >
+                Llamar a Línea Comercial: 304-347-0984
+              </a>
+              <div className="flex items-center justify-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                <Mail className="w-3.5 h-3.5 text-amber-500" />
+                <a href="mailto:nexuswebstudio2026@gmail.com" className="hover:text-amber-500 transition font-medium">
+                  nexuswebstudio2026@gmail.com
+                </a>
+              </div>
+            </div>
           </div>
 
           {/* Sedes Colombia */}
@@ -257,6 +289,22 @@ export const MileniaContactView: React.FC = () => {
 
             <div className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
               
+              {/* Sede Pasto - Nariño */}
+              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1">
+                <div className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                  <span>Pasto - Nariño</span>
+                  <span className="text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded font-black uppercase font-mono">
+                    Sede Comercial
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-600 dark:text-slate-300">
+                  Pasto, Nariño - Colombia
+                </div>
+                <div className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold">
+                  Tel: +57 304-347-0984 &bull; nexuswebstudio2026@gmail.com
+                </div>
+              </div>
+
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1">
                 <div className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
                   <span>Bogotá D.C. (Sede Principal)</span>
@@ -265,7 +313,7 @@ export const MileniaContactView: React.FC = () => {
                 <div className="text-[11px] text-slate-500 dark:text-slate-400">
                   Cra. 7 # 71-21, Torre B, Piso 14
                 </div>
-                <div className="text-[10px] text-slate-400">PBX: +57 (601) 745 9200</div>
+                <div className="text-[10px] text-slate-400">PBX: +57 304-347-0984</div>
               </div>
 
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1">

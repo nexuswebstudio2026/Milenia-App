@@ -88,7 +88,7 @@ model Restaurant {
   legalBusinessName   String?            // "Milenia Gastronomía Colombiana S.A.S."
   city                String             // "Medellín, Antioquia"
   address             String             // "Cra. 37 #8A-12, El Poblado"
-  phone               String             // "+57 310 458 9201"
+  phone               String             // "+57 304-347-0984"
   email               String             // "contacto@parrillacamilo.co"
   
   // Subscription Plan
