@@ -78,35 +78,52 @@ export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }
         <div className="flex items-center justify-between h-16 sm:h-20 gap-2">
           
           {/* Restaurant Identity Logo & Name */}
-          <button
-            onClick={() => setTenantView('restaurant-inicio')}
-            className="flex items-center gap-3 group text-left cursor-pointer focus:outline-none shrink-0"
-          >
-            <div 
-              style={{ borderColor: currentTenant.branding.primaryColor }}
-              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden border-2 shadow-md shrink-0 bg-slate-100"
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setTenantView('restaurant-inicio')}
+              className="flex items-center gap-3 group text-left cursor-pointer focus:outline-none shrink-0"
             >
-              <img 
-                src={currentTenant.branding.logoUrl} 
-                alt={currentTenant.name} 
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover" 
-              />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-black text-sm sm:text-base text-slate-900 dark:text-white tracking-tight line-clamp-1">
-                  {currentTenant.name}
-                </span>
-                <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded">
-                  #{currentTenant.id}
-                </span>
+              {/* If restaurantId is '1', show Milenia official brand logo; if '2' or other, load partner data from Firestore */}
+              {String(currentTenant.id) === '1' ? (
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 p-0.5 shadow-md shrink-0 flex items-center justify-center text-slate-950">
+                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-amber-400">
+                    <Sparkles className="w-5 h-5 fill-amber-400" />
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  style={{ borderColor: currentTenant.branding.primaryColor }}
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden border-2 shadow-md shrink-0 bg-slate-100 dark:bg-slate-800 relative"
+                >
+                  <img 
+                    src={currentTenant.branding.logoUrl} 
+                    alt={currentTenant.name} 
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover" 
+                  />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-slate-900" title="Sincronizado con Firestore /aliados" />
+                </div>
+              )}
+
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-black text-sm sm:text-base text-slate-900 dark:text-white tracking-tight line-clamp-1">
+                    {String(currentTenant.id) === '1' ? 'Milenia Suite • Parrilla & Fuego' : currentTenant.name}
+                  </span>
+                  <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                    String(currentTenant.id) === '1' 
+                      ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300' 
+                      : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                  }`}>
+                    {String(currentTenant.id) === '1' ? 'Milenia Core #1' : `Aliado #${currentTenant.id} (Firestore)`}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
+                  NIT: {currentTenant.branding.nit} • {currentTenant.city.split(',')[0]}
+                </p>
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
-                NIT: {currentTenant.branding.nit} • {currentTenant.city.split(',')[0]}
-              </p>
-            </div>
-          </button>
+            </button>
+          </div>
 
           {/* Desktop Navigation Tabs */}
           <nav className="hidden lg:flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">

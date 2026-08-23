@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTasty } from '../../context/TastyContext';
 import { useStore } from '../../store/useStore';
+import { useAuth } from '../../context/AuthContext';
 import { 
   Building2, 
   TrendingUp, 
@@ -10,6 +11,7 @@ import {
   Receipt, 
   Calendar, 
   ShieldCheck, 
+  ShieldAlert,
   AlertTriangle, 
   Plus, 
   Edit3, 
@@ -32,7 +34,10 @@ import {
   Layers,
   ChevronRight,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Lock,
+  ArrowRight,
+  Code2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCop } from '../../utils/currency';
@@ -52,6 +57,12 @@ export const AdminLayout: React.FC = () => {
     showToast,
     navigateTo 
   } = useTasty();
+
+  const { userProfile, loginAsDemo } = useAuth();
+  const [showNextJsCode, setShowNextJsCode] = useState(false);
+
+  // AUTH GUARD: Verificar si el usuario tiene rol de STAFF (ej. Alejandro) y bloquear el acceso a /admin
+  const isStaffRole = userProfile && String(userProfile.role).toUpperCase() === 'STAFF';
 
   const {
     payrollRecords,
@@ -161,6 +172,122 @@ export const AdminLayout: React.FC = () => {
     setIsNewItemModalOpen(false);
     showToast('Insumo Registrado', `${newItemData.name} añadido al inventario.`, 'success');
   };
+
+  // Si el usuario es STAFF (ej. Alejandro), bloqueamos el acceso mediante AUTH GUARD
+  if (isStaffRole) {
+    const empId = userProfile?.employeeId || userProfile?.documentId || '12345';
+    const restId = userProfile?.restaurantId || currentTenant.id;
+
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
+        <div className="max-w-xl w-full bg-slate-900 border border-rose-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden">
+          
+          {/* Accent red banner */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-600 via-amber-500 to-rose-600" />
+
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded-full border border-rose-500/30 font-mono">
+                  AUTH GUARD &bull; ACCESO DENEGADO
+                </span>
+                <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono">
+                  HTTP 403 Forbidden
+                </span>
+              </div>
+              <h2 className="text-xl font-bold text-white mt-1">
+                Ruta Administrativa Protegida
+              </h2>
+            </div>
+          </div>
+
+          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3 text-xs">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+              <span className="text-slate-400">Usuario Autenticado:</span>
+              <span className="font-bold text-white">{userProfile?.name}</span>
+            </div>
+            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+              <span className="text-slate-400">Rol en Firestore:</span>
+              <span className="font-mono font-bold text-rose-400 uppercase bg-rose-500/10 px-2 py-0.5 rounded">
+                {userProfile?.role} (Staff / Operativo)
+              </span>
+            </div>
+            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+              <span className="text-slate-400">Restaurante ID:</span>
+              <span className="font-mono text-amber-400 font-bold">#{restId}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Ruta Solicitada:</span>
+              <span className="font-mono text-slate-300 font-bold">/{currentTenant.id}/admin</span>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Hola <strong className="text-white">{userProfile?.name}</strong>. Tu cuenta tiene permisos de colaborador operativo (<span className="text-amber-400 font-mono">role: 'staff'</span>). No tienes autorización para consultar nóminas, configuraciones DIAN ni métricas financieras del propietario en esta ruta.
+          </p>
+
+          <div className="space-y-3 pt-2">
+            <button
+              onClick={() => navigateTo({ 
+                routeType: 'employee_dashboard', 
+                restaurantId: String(restId), 
+                employeeId: String(empId) 
+              })}
+              className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Ir a mi Dashboard de Empleado (/{restId}/dashboard/{empId})</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={async () => {
+                await loginAsDemo('miguel_owner');
+                navigateTo({ routeType: 'tenant_admin', restaurantId: '5' });
+              }}
+              className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Lock className="w-3.5 h-3.5 text-amber-400" />
+              <span>Cambiar a Propietario (Owner - Miguel Ángel /5/admin)</span>
+            </button>
+
+            <button
+              onClick={() => setShowNextJsCode(!showNextJsCode)}
+              className="w-full py-2 text-[11px] text-slate-500 hover:text-slate-400 flex items-center justify-center gap-1 cursor-pointer font-mono"
+            >
+              <Code2 className="w-3.5 h-3.5" />
+              <span>{showNextJsCode ? 'Ocultar Código Middleware Next.js' : 'Ver Arquitectura Auth Guard Next.js'}</span>
+            </button>
+          </div>
+
+          {showNextJsCode && (
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-[11px] font-mono text-slate-300 space-y-2 max-h-60 overflow-y-auto">
+              <p className="text-amber-400 font-bold">// middleware.ts en Next.js (App Router)</p>
+              <pre className="text-[10px] text-slate-400">
+{`export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const token = request.cookies.get('firebase_token')?.value;
+
+  // Proteger rutas /[restaurantId]/admin
+  if (pathname.includes('/admin')) {
+    const userRole = await getUserRoleFromTokenOrFirestore(token);
+    if (userRole !== 'owner') {
+      const redirectUrl = new URL(\`/\${restaurantId}/dashboard/\${empId}\`, request.url);
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+  return NextResponse.next();
+}`}
+              </pre>
+            </div>
+          )}
+
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
