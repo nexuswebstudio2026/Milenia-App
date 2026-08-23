@@ -72,41 +72,7 @@ export const MileniaAlliesView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 sm:space-y-12 py-4">
-      
-      {/* Header Title Section */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-amber-950 text-white rounded-3xl p-6 sm:p-10 border border-amber-500/20 shadow-xl space-y-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold">
-          <Building2 className="w-3.5 h-3.5" />
-          <span>Directorio Oficial de Restaurantes Aliados</span>
-        </div>
-
-        <div className="max-w-3xl space-y-2">
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight">
-            Restaurantes Aliados Milenia
-          </h1>
-          <p className="text-slate-300 text-xs sm:text-base leading-relaxed">
-            Cada aliado opera de manera independiente con su propio enlace <span className="font-mono text-amber-300 font-bold">milenia.app/[ID]</span>, menú, gestión de reservas, domicilios y acceso seguro para sus empleados.
-          </p>
-        </div>
-
-        {/* Quick ID Finder callout */}
-        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-between gap-4 text-xs text-amber-200">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>
-              <strong>Tip de Navegación:</strong> Selecciona cualquier aliado (por ejemplo <strong>Aliado #5</strong>) para ingresar directamente a su portal completo.
-            </span>
-          </div>
-          <button
-            onClick={() => handleEnterRestaurant('5', 'home')}
-            className="px-3 py-1.5 bg-amber-500 text-slate-950 font-black text-xs rounded-xl shrink-0 hover:bg-amber-400 transition cursor-pointer"
-          >
-            Probar Aliado 5 →
-          </button>
-        </div>
-      </div>
-
+    <div className="space-y-6 py-2">
       {/* Search & City Filter Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
         
