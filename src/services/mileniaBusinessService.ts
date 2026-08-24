@@ -10,6 +10,7 @@ export interface DigitalWalletKeys {
   nequiKey: string;
   daviplataKey: string;
   bancolombiaKey: string;
+  checkingAccountKey?: string;
   daleKey?: string;
   moviiKey?: string;
   transfiyaKey?: string;
@@ -18,8 +19,9 @@ export interface DigitalWalletKeys {
 
 export interface BankAccountInfo {
   bankName: string;
-  accountType: 'Ahorros' | 'Corriente';
+  accountType: 'Ahorros' | 'Corriente' | 'Ahorro para la Vivienda' | 'Ahorro Programado';
   accountNumber: string;
+  accountKey?: string; // Llave de la cuenta / Llave Breve / Transferencia
   accountHolder: string;
   holderDocument: string;
 }
@@ -44,7 +46,9 @@ export interface MileniaBusinessProfile {
   qrBreveUrl: string;
 
   // Cuentas Bancarias
-  bankAccount: BankAccountInfo;
+  bankAccount: BankAccountInfo; // Cuenta principal / Ahorros / Vivienda
+  savingsAccount?: BankAccountInfo; // Cuenta de Ahorro para la Vivienda
+  checkingAccount?: BankAccountInfo; // Cuenta Corriente (Checking Account)
 
   // Llaves de Breve y Billeteras Digitales
   digitalKeys: DigitalWalletKeys;
@@ -72,8 +76,27 @@ export const DEFAULT_BUSINESS_PROFILE: MileniaBusinessProfile = {
 
   bankAccount: {
     bankName: 'Bancolombia',
-    accountType: 'Ahorros',
-    accountNumber: '912-847291-04',
+    accountType: 'Ahorro para la Vivienda',
+    accountNumber: '488432227616',
+    accountKey: '488432227616',
+    accountHolder: 'Andrés Camilo Vidal Canchón / Milenia S.A.S.',
+    holderDocument: '1085312034'
+  },
+
+  savingsAccount: {
+    bankName: 'Bancolombia',
+    accountType: 'Ahorro para la Vivienda',
+    accountNumber: '488432227616',
+    accountKey: '488432227616',
+    accountHolder: 'Andrés Camilo Vidal Canchón / Milenia S.A.S.',
+    holderDocument: '1085312034'
+  },
+
+  checkingAccount: {
+    bankName: 'Bancolombia',
+    accountType: 'Corriente',
+    accountNumber: '488432227616',
+    accountKey: 'CC-MILENIA-488432227616',
     accountHolder: 'Andrés Camilo Vidal Canchón / Milenia S.A.S.',
     holderDocument: '1085312034'
   },
@@ -81,7 +104,8 @@ export const DEFAULT_BUSINESS_PROFILE: MileniaBusinessProfile = {
   digitalKeys: {
     nequiKey: '3043470984',
     daviplataKey: '3043470984',
-    bancolombiaKey: '91284729104',
+    bancolombiaKey: '488432227616',
+    checkingAccountKey: 'CC-MILENIA-488432227616',
     transfiyaKey: '3043470984',
     qrBreveInteroperableKey: 'BREVE-MILENIA-901450888-COL',
     daleKey: '3043470984'

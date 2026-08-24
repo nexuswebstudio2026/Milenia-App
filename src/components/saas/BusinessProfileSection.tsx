@@ -726,6 +726,103 @@ export const BusinessProfileSection: React.FC<BusinessProfileSectionProps> = ({ 
               </div>
             </div>
 
+            {/* LLAVE CUENTA CORRIENTE (CHECKING ACCOUNT KEY) */}
+            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-white flex items-center gap-1.5">
+                  <Landmark className="w-4 h-4 text-emerald-400" />
+                  <span>Llave Cuenta Corriente</span>
+                </span>
+                <span className="text-[10px] text-emerald-400 font-mono">Bancarizada</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={visibleKeys['checkingAccount'] ? 'text' : 'password'}
+                    value={profile.digitalKeys?.checkingAccountKey || profile.checkingAccount?.accountKey || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setProfile({
+                        ...profile,
+                        digitalKeys: { ...profile.digitalKeys, checkingAccountKey: val },
+                        checkingAccount: {
+                          ...(profile.checkingAccount || profile.bankAccount),
+                          accountKey: val
+                        }
+                      });
+                    }}
+                    placeholder="CC-MILENIA-488432227616"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-emerald-300 font-mono text-xs focus:outline-none focus:border-emerald-500 transition pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => toggleKeyVisibility('checkingAccount')}
+                    className="absolute right-3 top-2.5 text-slate-500 hover:text-white cursor-pointer"
+                  >
+                    {visibleKeys['checkingAccount'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleCopy(profile.digitalKeys?.checkingAccountKey || profile.checkingAccount?.accountKey || '', 'Llave Cuenta Corriente')}
+                  className="px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0"
+                >
+                  {copiedKey === 'Llave Cuenta Corriente' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* LLAVE CUENTA DE AHORROS / VIVIENDA */}
+            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-white flex items-center gap-1.5">
+                  <Landmark className="w-4 h-4 text-amber-400" />
+                  <span>Llave Cuenta Ahorro Vivienda</span>
+                </span>
+                <span className="text-[10px] text-amber-400 font-mono">Bancarizada</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={visibleKeys['savingsAccount'] ? 'text' : 'password'}
+                    value={profile.digitalKeys?.bancolombiaKey || profile.bankAccount?.accountKey || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setProfile({
+                        ...profile,
+                        digitalKeys: { ...profile.digitalKeys, bancolombiaKey: val },
+                        bankAccount: { ...profile.bankAccount, accountKey: val },
+                        savingsAccount: {
+                          ...(profile.savingsAccount || profile.bankAccount),
+                          accountKey: val
+                        }
+                      });
+                    }}
+                    placeholder="488432227616"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-amber-300 font-mono text-xs focus:outline-none focus:border-amber-500 transition pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => toggleKeyVisibility('savingsAccount')}
+                    className="absolute right-3 top-2.5 text-slate-500 hover:text-white cursor-pointer"
+                  >
+                    {visibleKeys['savingsAccount'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleCopy(profile.digitalKeys?.bancolombiaKey || profile.bankAccount?.accountKey || '', 'Llave Cuenta Ahorro Vivienda')}
+                  className="px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0"
+                >
+                  {copiedKey === 'Llave Cuenta Ahorro Vivienda' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
             {/* LLAVE DALE / MOVII / OTRAS */}
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -771,104 +868,346 @@ export const BusinessProfileSection: React.FC<BusinessProfileSectionProps> = ({ 
         </div>
 
         {/* ========================================================================= */}
-        {/* 4. CUENTA BANCARIA PRINCIPAL DE RECAUDO MILENIA                           */}
+        {/* 4. CUENTAS BANCARIAS DE RECAUDO MILENIA (AHORRO VIVIENDA & CORRIENTE)      */}
         {/* ========================================================================= */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 space-y-6 shadow-xl">
-          <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
-              <Landmark className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-white">Cuenta Bancaria Principal</h2>
-              <p className="text-xs text-slate-400 font-mono">Datos bancarios para transferencias directas y consignaciones de suscripciones</p>
-            </div>
-          </div>
+        <div className="space-y-6">
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-xs">
-            <div>
-              <label className="block text-slate-400 font-medium mb-1">Entidad Bancaria *</label>
-              <input
-                type="text"
-                required
-                value={profile.bankAccount?.bankName || ''}
-                onChange={(e) => setProfile({
-                  ...profile,
-                  bankAccount: { ...profile.bankAccount, bankName: e.target.value }
-                })}
-                placeholder="Bancolombia"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-500 transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-slate-400 font-medium mb-1">Tipo de Cuenta *</label>
-              <select
-                value={profile.bankAccount?.accountType || 'Ahorros'}
-                onChange={(e) => setProfile({
-                  ...profile,
-                  bankAccount: { ...profile.bankAccount, accountType: e.target.value as any }
-                })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-500 transition"
-              >
-                <option value="Ahorros">Cuenta de Ahorros</option>
-                <option value="Corriente">Cuenta Corriente</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-slate-400 font-medium mb-1">Número de Cuenta *</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  required
-                  value={profile.bankAccount?.accountNumber || ''}
-                  onChange={(e) => setProfile({
-                    ...profile,
-                    bankAccount: { ...profile.bankAccount, accountNumber: e.target.value }
-                  })}
-                  placeholder="912-847291-04"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-amber-400 font-mono focus:outline-none focus:border-amber-500 transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleCopy(profile.bankAccount?.accountNumber || '', 'Número de Cuenta')}
-                  className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 hover:text-white cursor-pointer"
-                >
-                  <Copy className="w-4 h-4" />
-                </button>
+          {/* CUENTA 1: CUENTA DE AHORROS / AHORRO PARA LA VIVIENDA */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 space-y-6 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                  <Landmark className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>Cuenta de Ahorro para la Vivienda / Ahorros</span>
+                    <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                      Principal
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-400 font-mono">Datos bancarios para transferencias directas y consignaciones</p>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-slate-400 font-medium mb-1">Titular de la Cuenta *</label>
-              <input
-                type="text"
-                required
-                value={profile.bankAccount?.accountHolder || ''}
-                onChange={(e) => setProfile({
-                  ...profile,
-                  bankAccount: { ...profile.bankAccount, accountHolder: e.target.value }
-                })}
-                placeholder="Andrés Camilo Vidal Canchón / Milenia S.A.S."
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-500 transition"
-              />
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-xs">
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">Entidad Bancaria *</label>
+                <input
+                  type="text"
+                  required
+                  value={profile.bankAccount?.bankName || 'Bancolombia'}
+                  onChange={(e) => {
+                    const bankName = e.target.value;
+                    setProfile({
+                      ...profile,
+                      bankAccount: { ...profile.bankAccount, bankName },
+                      savingsAccount: { ...(profile.savingsAccount || profile.bankAccount), bankName }
+                    });
+                  }}
+                  placeholder="Bancolombia"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-500 transition"
+                />
+              </div>
 
-            <div>
-              <label className="block text-slate-400 font-medium mb-1">Documento / Cédula / NIT Titular *</label>
-              <input
-                type="text"
-                required
-                value={profile.bankAccount?.holderDocument || ''}
-                onChange={(e) => setProfile({
-                  ...profile,
-                  bankAccount: { ...profile.bankAccount, holderDocument: e.target.value }
-                })}
-                placeholder="1085312034"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-amber-500 transition"
-              />
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">Tipo de Cuenta *</label>
+                <select
+                  value={profile.bankAccount?.accountType || 'Ahorro para la Vivienda'}
+                  onChange={(e) => {
+                    const accountType = e.target.value as any;
+                    setProfile({
+                      ...profile,
+                      bankAccount: { ...profile.bankAccount, accountType },
+                      savingsAccount: { ...(profile.savingsAccount || profile.bankAccount), accountType }
+                    });
+                  }}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-500 transition"
+                >
+                  <option value="Ahorro para la Vivienda">Cuenta de Ahorro para la Vivienda</option>
+                  <option value="Ahorros">Cuenta de Ahorros</option>
+                  <option value="Ahorro Programado">Cuenta de Ahorro Programado</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">Número de Cuenta de Ahorros / Vivienda *</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={profile.bankAccount?.accountNumber || ''}
+                    onChange={(e) => {
+                      const accountNumber = e.target.value;
+                      setProfile({
+                        ...profile,
+                        bankAccount: { ...profile.bankAccount, accountNumber },
+                        savingsAccount: { ...(profile.savingsAccount || profile.bankAccount), accountNumber },
+                        digitalKeys: { ...profile.digitalKeys, bancolombiaKey: accountNumber }
+                      });
+                    }}
+                    placeholder="488432227616"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-amber-400 font-mono focus:outline-none focus:border-amber-500 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(profile.bankAccount?.accountNumber || '', 'Número Cuenta de Ahorros')}
+                    className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 hover:text-white cursor-pointer"
+                    title="Copiar número"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">Llave de Transferencia / Breve (Ahorros) *</label>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type={visibleKeys['savingsKeyInput'] ? 'text' : 'password'}
+                      value={profile.bankAccount?.accountKey || profile.digitalKeys?.bancolombiaKey || ''}
+                      onChange={(e) => {
+                        const accountKey = e.target.value;
+                        setProfile({
+                          ...profile,
+                          bankAccount: { ...profile.bankAccount, accountKey },
+                          savingsAccount: { ...(profile.savingsAccount || profile.bankAccount), accountKey },
+                          digitalKeys: { ...profile.digitalKeys, bancolombiaKey: accountKey }
+                        });
+                      }}
+                      placeholder="488432227616"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-amber-300 font-mono focus:outline-none focus:border-amber-500 transition pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => toggleKeyVisibility('savingsKeyInput')}
+                      className="absolute right-3 top-2.5 text-slate-500 hover:text-white cursor-pointer"
+                    >
+                      {visibleKeys['savingsKeyInput'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(profile.bankAccount?.accountKey || profile.digitalKeys?.bancolombiaKey || '', 'Llave Cuenta de Ahorros')}
+                    className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 hover:text-white cursor-pointer"
+                    title="Copiar llave"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">Titular de la Cuenta *</label>
+                <input
+                  type="text"
+                  required
+                  value={profile.bankAccount?.accountHolder || ''}
+                  onChange={(e) => {
+                    const accountHolder = e.target.value;
+                    setProfile({
+                      ...profile,
+                      bankAccount: { ...profile.bankAccount, accountHolder },
+                      savingsAccount: { ...(profile.savingsAccount || profile.bankAccount), accountHolder }
+                    });
+                  }}
+                  placeholder="Andrés Camilo Vidal Canchón / Milenia S.A.S."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-500 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">Documento / Cédula / NIT Titular *</label>
+                <input
+                  type="text"
+                  required
+                  value={profile.bankAccount?.holderDocument || ''}
+                  onChange={(e) => {
+                    const holderDocument = e.target.value;
+                    setProfile({
+                      ...profile,
+                      bankAccount: { ...profile.bankAccount, holderDocument },
+                      savingsAccount: { ...(profile.savingsAccount || profile.bankAccount), holderDocument }
+                    });
+                  }}
+                  placeholder="1085312034"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-amber-500 transition"
+                />
+              </div>
             </div>
           </div>
+
+          {/* CUENTA 2: CUENTA CORRIENTE (CHECKING ACCOUNT) */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 space-y-6 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <Landmark className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>Cuenta Corriente (Checking Account)</span>
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      Corriente
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-400 font-mono">Modificación y administración del número de cuenta corriente y llave de seguridad</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-xs">
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">Entidad Bancaria *</label>
+                <input
+                  type="text"
+                  required
+                  value={profile.checkingAccount?.bankName || 'Bancolombia'}
+                  onChange={(e) => {
+                    const bankName = e.target.value;
+                    setProfile({
+                      ...profile,
+                      checkingAccount: {
+                        ...(profile.checkingAccount || profile.bankAccount),
+                        bankName
+                      }
+                    });
+                  }}
+                  placeholder="Bancolombia"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">Tipo de Cuenta *</label>
+                <input
+                  type="text"
+                  readOnly
+                  value="Cuenta Corriente (Checking Account)"
+                  className="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-400 font-medium cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">Número de Cuenta Corriente *</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={profile.checkingAccount?.accountNumber || ''}
+                    onChange={(e) => {
+                      const accountNumber = e.target.value;
+                      setProfile({
+                        ...profile,
+                        checkingAccount: {
+                          ...(profile.checkingAccount || profile.bankAccount),
+                          accountNumber
+                        }
+                      });
+                    }}
+                    placeholder="488432227616"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-emerald-400 font-mono focus:outline-none focus:border-emerald-500 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(profile.checkingAccount?.accountNumber || '', 'Número Cuenta Corriente')}
+                    className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 hover:text-white cursor-pointer"
+                    title="Copiar número"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">Llave de la Cuenta Corriente (Checking Key) *</label>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type={visibleKeys['checkingKeyInput'] ? 'text' : 'password'}
+                      value={profile.checkingAccount?.accountKey || profile.digitalKeys?.checkingAccountKey || ''}
+                      onChange={(e) => {
+                        const accountKey = e.target.value;
+                        setProfile({
+                          ...profile,
+                          checkingAccount: {
+                            ...(profile.checkingAccount || profile.bankAccount),
+                            accountKey
+                          },
+                          digitalKeys: {
+                            ...profile.digitalKeys,
+                            checkingAccountKey: accountKey
+                          }
+                        });
+                      }}
+                      placeholder="CC-MILENIA-488432227616"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-emerald-300 font-mono focus:outline-none focus:border-emerald-500 transition pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => toggleKeyVisibility('checkingKeyInput')}
+                      className="absolute right-3 top-2.5 text-slate-500 hover:text-white cursor-pointer"
+                    >
+                      {visibleKeys['checkingKeyInput'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(profile.checkingAccount?.accountKey || profile.digitalKeys?.checkingAccountKey || '', 'Llave Cuenta Corriente')}
+                    className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 hover:text-white cursor-pointer"
+                    title="Copiar llave"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">Titular de la Cuenta Corriente *</label>
+                <input
+                  type="text"
+                  required
+                  value={profile.checkingAccount?.accountHolder || profile.bankAccount?.accountHolder || ''}
+                  onChange={(e) => {
+                    const accountHolder = e.target.value;
+                    setProfile({
+                      ...profile,
+                      checkingAccount: {
+                        ...(profile.checkingAccount || profile.bankAccount),
+                        accountHolder
+                      }
+                    });
+                  }}
+                  placeholder="Andrés Camilo Vidal Canchón / Milenia S.A.S."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">Documento / Cédula / NIT Titular *</label>
+                <input
+                  type="text"
+                  required
+                  value={profile.checkingAccount?.holderDocument || profile.bankAccount?.holderDocument || ''}
+                  onChange={(e) => {
+                    const holderDocument = e.target.value;
+                    setProfile({
+                      ...profile,
+                      checkingAccount: {
+                        ...(profile.checkingAccount || profile.bankAccount),
+                        holderDocument
+                      }
+                    });
+                  }}
+                  placeholder="1085312034"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-emerald-500 transition"
+                />
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* Botón de Guardado */}
