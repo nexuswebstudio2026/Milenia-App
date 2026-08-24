@@ -15,45 +15,59 @@ import {
   MapPin, 
   Layers, 
   Database, 
-  Search,
-  RefreshCw,
-  Download,
-  Server,
-  Cloud,
-  CheckCircle,
-  AlertCircle,
-  FileSpreadsheet,
-  Activity,
-  Award,
-  Crown,
-  Flame,
-  ArrowUpRight,
-  Phone,
-  Mail,
-  Zap,
-  Filter,
-  Check,
-  X,
-  UserCheck,
-  Cpu,
-  Lock,
-  ChevronRight,
-  Globe,
-  HardDrive
+  Search, 
+  RefreshCw, 
+  Download, 
+  Server, 
+  Cloud, 
+  CheckCircle, 
+  AlertCircle, 
+  FileSpreadsheet, 
+  Activity, 
+  Award, 
+  Crown, 
+  Flame, 
+  ArrowUpRight, 
+  Phone, 
+  Mail, 
+  Zap, 
+  Filter, 
+  Check, 
+  X, 
+  UserCheck, 
+  Cpu, 
+  Lock, 
+  ChevronRight, 
+  Globe, 
+  HardDrive,
+  LogOut
 } from 'lucide-react';
 import { TenantRestaurant, SubscriptionPlan } from '../../types';
 import { getAllyUsers, AllyUser } from '../../services/tenantUsersService';
 import { formatCop } from '../../utils/currency';
+import { MileniaOwnerAuthScreen } from './MileniaOwnerAuthScreen';
 
 export const MileniaOwnerDashboard: React.FC = () => {
   const { 
     tenants, 
     switchTenant, 
     navigateTo, 
-    addTenant,
-    setMileniaView,
+    addTenant, 
+    setMileniaView, 
     showToast 
   } = useTasty();
+
+  // Authentication State for Owner Portal
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      const stored = sessionStorage.getItem('milenia_owner_session_token');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.authenticated === true;
+      }
+    } catch (_) {}
+    return false;
+  });
 
   const [activeTab, setActiveTab] = useState<'resumen' | 'aliados' | 'facturacion' | 'usuarios' | 'infraestructura' | 'configuracion'>('resumen');
   const [searchTerm, setSearchTerm] = useState('');
@@ -92,8 +106,21 @@ export const MileniaOwnerDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    loadAllUsers();
-  }, [tenants.length]);
+    if (isAuthenticated) {
+      loadAllUsers();
+    }
+  }, [isAuthenticated, tenants.length]);
+
+  const handleLogoutOwner = () => {
+    sessionStorage.removeItem('milenia_owner_session_token');
+    setIsAuthenticated(false);
+    showToast('Sesión Cerrada', 'Has salido del panel privado del propietario.', 'info');
+  };
+
+  // If not authenticated as Owner, render the Login/Registration Screen
+  if (!isAuthenticated) {
+    return <MileniaOwnerAuthScreen onSuccess={() => setIsAuthenticated(true)} />;
+  }
 
   // Platform Metrics
   const totalTenants = tenants.length;
@@ -251,6 +278,15 @@ export const MileniaOwnerDashboard: React.FC = () => {
             >
               <Plus className="w-4 h-4 text-slate-950 stroke-[3]" />
               <span>Aprovisionar Nuevo Aliado</span>
+            </button>
+
+            <button
+              onClick={handleLogoutOwner}
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-rose-400 border border-rose-500/30 font-bold text-xs rounded-2xl transition cursor-pointer"
+              title="Cerrar sesión y proteger el panel del propietario"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Cerrar Sesión</span>
             </button>
           </div>
         </div>
