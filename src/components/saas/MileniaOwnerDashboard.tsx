@@ -1,63 +1,91 @@
 import React, { useState, useEffect } from 'react';
 import { useTasty } from '../../context/TastyContext';
 import { 
+  LayoutDashboard, 
   Building2, 
+  Receipt, 
+  Settings, 
+  User, 
+  LogOut, 
   TrendingUp, 
-  Users, 
+  TrendingDown, 
   DollarSign, 
   CreditCard, 
-  ShieldCheck, 
   Plus, 
-  Store, 
-  CheckCircle2, 
-  ExternalLink, 
-  Sparkles, 
-  MapPin, 
-  Layers, 
-  Database, 
+  Edit, 
+  Trash2, 
   Search, 
-  RefreshCw, 
-  Download, 
-  Server, 
-  Cloud, 
-  CheckCircle, 
+  Filter, 
+  CheckCircle2, 
+  XCircle, 
   AlertCircle, 
-  FileSpreadsheet, 
-  Activity, 
-  Award, 
-  Crown, 
-  Flame, 
-  ArrowUpRight, 
+  Calendar, 
+  Store, 
+  MapPin, 
   Phone, 
   Mail, 
-  Zap, 
-  Filter, 
+  ShieldCheck, 
+  Crown, 
+  Flame, 
+  RefreshCw, 
+  ArrowUpRight, 
+  ArrowDownRight, 
+  Sparkles, 
+  Server, 
+  Database, 
+  FileSpreadsheet, 
+  Save, 
   Check, 
   X, 
-  UserCheck, 
-  Cpu, 
-  Lock, 
   ChevronRight, 
-  Globe, 
-  HardDrive,
-  LogOut
+  ExternalLink,
+  Wallet,
+  PieChart,
+  ArrowRight,
+  Clock,
+  Briefcase,
+  Layers,
+  FileText
 } from 'lucide-react';
-import { TenantRestaurant, SubscriptionPlan } from '../../types';
-import { getAllyUsers, AllyUser } from '../../services/tenantUsersService';
 import { formatCop } from '../../utils/currency';
+import { 
+  MileniaAlly, 
+  AllyPlan, 
+  AllyStatus, 
+  getAliados, 
+  addAliado, 
+  updateAliado, 
+  deleteAliado, 
+  subscribeToAliados 
+} from '../../services/mileniaAliadosService';
+import { 
+  MileniaTransaction, 
+  TransactionType, 
+  TransactionCategory, 
+  getContabilidad, 
+  addTransaction, 
+  updateTransaction, 
+  deleteTransaction, 
+  subscribeToContabilidad 
+} from '../../services/mileniaContabilidadService';
+import { 
+  MileniaSystemConfig, 
+  MileniaOwnerProfile, 
+  getSystemConfig, 
+  saveSystemConfig, 
+  getOwnerProfile, 
+  saveOwnerProfile,
+  DEFAULT_SYSTEM_CONFIG,
+  DEFAULT_OWNER_PROFILE
+} from '../../services/mileniaSystemService';
 import { MileniaOwnerAuthScreen } from './MileniaOwnerAuthScreen';
 
-export const MileniaOwnerDashboard: React.FC = () => {
-  const { 
-    tenants, 
-    switchTenant, 
-    navigateTo, 
-    addTenant, 
-    setMileniaView, 
-    showToast 
-  } = useTasty();
+type NavigationSection = 'dashboard' | 'aliados' | 'contabilidad' | 'configuracion' | 'perfil';
 
-  // Authentication State for Owner Portal
+export const MileniaOwnerDashboard: React.FC = () => {
+  const { setMileniaView, showToast, switchTenant, navigateTo } = useTasty();
+
+  // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     try {
       const stored = sessionStorage.getItem('milenia_owner_session_token');
@@ -69,1178 +97,1714 @@ export const MileniaOwnerDashboard: React.FC = () => {
     return false;
   });
 
-  const [activeTab, setActiveTab] = useState<'resumen' | 'aliados' | 'facturacion' | 'usuarios' | 'infraestructura' | 'configuracion'>('resumen');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCity, setSelectedCity] = useState<string>('all');
-  const [selectedPlan, setSelectedPlan] = useState<string>('all');
-  const [isNewTenantModalOpen, setIsNewTenantModalOpen] = useState(false);
-  const [allUsers, setAllUsers] = useState<AllyUser[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
+  // Active Navigation Tab
+  const [currentSection, setCurrentSection] = useState<NavigationSection>('dashboard');
 
-  // New Tenant Form State
-  const [newTenantName, setNewTenantName] = useState('');
-  const [newTenantSlug, setNewTenantSlug] = useState('');
-  const [newTenantCity, setNewTenantCity] = useState('Bogotá D.C.');
-  const [newTenantAddress, setNewTenantAddress] = useState('');
-  const [newTenantNit, setNewTenantNit] = useState('');
-  const [newTenantPhone, setNewTenantPhone] = useState('+57 300 000 0000');
-  const [newTenantEmail, setNewTenantEmail] = useState('');
-  const [newTenantPlan, setNewTenantPlan] = useState<SubscriptionPlan>('pro');
-  const [newTenantColor, setNewTenantColor] = useState('#f59e0b');
+  // Aliados State
+  const [aliados, setAliados] = useState<MileniaAlly[]>([]);
+  const [loadingAliados, setLoadingAliados] = useState(false);
+  const [searchAliado, setSearchAliado] = useState('');
+  const [filterPlan, setFilterPlan] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [isAllyModalOpen, setIsAllyModalOpen] = useState(false);
+  const [editingAlly, setEditingAlly] = useState<MileniaAlly | null>(null);
+  const [deletingAlly, setDeletingAlly] = useState<MileniaAlly | null>(null);
 
-  // Load all users from all allies
-  const loadAllUsers = async () => {
-    setLoadingUsers(true);
-    try {
-      const usersAccumulator: AllyUser[] = [];
-      for (const tenant of tenants) {
-        const allyUsers = await getAllyUsers(tenant.id);
-        usersAccumulator.push(...allyUsers);
-      }
-      setAllUsers(usersAccumulator);
-    } catch (e) {
-      console.warn('Error loading global users:', e);
-    } finally {
-      setLoadingUsers(false);
-    }
-  };
+  // Aliado Form State
+  const [allyFormData, setAllyFormData] = useState({
+    name: '',
+    nit: '',
+    city: 'Bogotá D.C.',
+    address: '',
+    phone: '',
+    email: '',
+    plan: 'Pro' as AllyPlan,
+    status: 'Activo' as AllyStatus,
+    monthlyFeeCop: 289000,
+    tablesCount: 16,
+    contactName: ''
+  });
 
+  // Contabilidad State
+  const [transactions, setTransactions] = useState<MileniaTransaction[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [searchTx, setSearchTx] = useState('');
+  const [filterTxType, setFilterTxType] = useState<string>('all');
+  const [isTxModalOpen, setIsTxModalOpen] = useState(false);
+  const [editingTx, setEditingTx] = useState<MileniaTransaction | null>(null);
+  const [deletingTx, setDeletingTx] = useState<MileniaTransaction | null>(null);
+
+  // Transaction Form State
+  const [txFormData, setTxFormData] = useState({
+    type: 'INGRESO' as TransactionType,
+    description: '',
+    category: 'SUSCRIPCION_SAAS' as TransactionCategory,
+    amountCop: 289000,
+    date: new Date().toISOString().split('T')[0],
+    restaurantName: '',
+    paymentMethod: 'PSE' as const,
+    referenceNumber: '',
+    notes: ''
+  });
+
+  // System Settings State
+  const [systemConfig, setSystemConfig] = useState<MileniaSystemConfig>(DEFAULT_SYSTEM_CONFIG);
+  const [savingConfig, setSavingConfig] = useState(false);
+
+  // Owner Profile State
+  const [ownerProfile, setOwnerProfile] = useState<MileniaOwnerProfile>(DEFAULT_OWNER_PROFILE);
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Load Data on Mount & Listeners
   useEffect(() => {
-    if (isAuthenticated) {
-      loadAllUsers();
-    }
-  }, [isAuthenticated, tenants.length]);
+    if (!isAuthenticated) return;
 
-  const handleLogoutOwner = () => {
+    // Load Aliados
+    const loadAllAliados = async () => {
+      setLoadingAliados(true);
+      const data = await getAliados();
+      setAliados(data);
+      setLoadingAliados(false);
+    };
+
+    // Load Contabilidad
+    const loadAllContabilidad = async () => {
+      setLoadingTransactions(true);
+      const data = await getContabilidad();
+      setTransactions(data);
+      setLoadingTransactions(false);
+    };
+
+    // Load System & Profile
+    const loadSystemData = async () => {
+      const config = await getSystemConfig();
+      setSystemConfig(config);
+      const profile = await getOwnerProfile();
+      setOwnerProfile(profile);
+    };
+
+    loadAllAliados();
+    loadAllContabilidad();
+    loadSystemData();
+
+    // Realtime Subscriptions
+    const unsubAliados = subscribeToAliados((updated) => setAliados(updated));
+    const unsubContabilidad = subscribeToContabilidad((updated) => setTransactions(updated));
+
+    return () => {
+      unsubAliados();
+      unsubContabilidad();
+    };
+  }, [isAuthenticated]);
+
+  const handleLogout = () => {
     sessionStorage.removeItem('milenia_owner_session_token');
     setIsAuthenticated(false);
-    showToast('Sesión Cerrada', 'Has salido del panel privado del propietario.', 'info');
+    showToast('Sesión Finalizada', 'Has cerrado la sesión del Propietario de Milenia.', 'info');
   };
 
-  // If not authenticated as Owner, render the Login/Registration Screen
+  // If not logged in as Owner, show Auth screen
   if (!isAuthenticated) {
     return <MileniaOwnerAuthScreen onSuccess={() => setIsAuthenticated(true)} />;
   }
 
-  // Platform Metrics
-  const totalTenants = tenants.length;
-  const totalMrrCop = tenants.reduce((acc, t) => acc + (t.subscription?.mrrCop || (t.subscription?.plan === 'basic' ? 149000 : t.subscription?.plan === 'pro' ? 289000 : 499000)), 0);
-  const totalArrCop = totalMrrCop * 12;
-  const totalTables = tenants.reduce((acc, t) => acc + (t.tablesCount || 15), 0);
-  const totalMonthlySales = tenants.reduce((acc, t) => acc + (t.totalMonthlySalesCop || 48500000), 0);
+  // ==========================================
+  // FINANCIAL CALCULATIONS & STATS
+  // ==========================================
+  const totalIngresos = transactions
+    .filter(t => t.type === 'INGRESO')
+    .reduce((acc, t) => acc + (t.amountCop || 0), 0);
 
-  // Plan Distribution
-  const basicCount = tenants.filter(t => t.subscription?.plan === 'basic').length;
-  const proCount = tenants.filter(t => t.subscription?.plan === 'pro').length;
-  const enterpriseCount = tenants.filter(t => t.subscription?.plan === 'enterprise').length;
+  const totalGastos = transactions
+    .filter(t => t.type === 'GASTO')
+    .reduce((acc, t) => acc + (t.amountCop || 0), 0);
 
-  // Filtered Allies
-  const filteredTenants = tenants.filter(t => {
+  const balanceNeto = totalIngresos - totalGastos;
+  const margenNeto = totalIngresos > 0 ? ((balanceNeto / totalIngresos) * 100).toFixed(1) : '0.0';
+
+  const totalAliadosCount = aliados.length;
+  const activeAliadosCount = aliados.filter(a => a.status === 'Activo').length;
+  const totalMrrEstimado = aliados
+    .filter(a => a.status === 'Activo')
+    .reduce((acc, a) => acc + (a.monthlyFeeCop || 0), 0);
+
+  const totalTablesNetwork = aliados.reduce((acc, a) => acc + (a.tablesCount || 0), 0);
+
+  // Latest 3 Aliados
+  const recentAliados = [...aliados]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 3);
+
+  // Filtered Aliados
+  const filteredAliados = aliados.filter(a => {
     const matchesSearch = 
-      t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (t.branding?.nit && t.branding.nit.includes(searchTerm));
-    
-    const matchesCity = selectedCity === 'all' || t.city.toLowerCase().includes(selectedCity.toLowerCase());
-    const matchesPlan = selectedPlan === 'all' || t.subscription?.plan === selectedPlan;
-
-    return matchesSearch && matchesCity && matchesPlan;
+      a.name.toLowerCase().includes(searchAliado.toLowerCase()) ||
+      a.nit.toLowerCase().includes(searchAliado.toLowerCase()) ||
+      a.city.toLowerCase().includes(searchAliado.toLowerCase()) ||
+      (a.contactName && a.contactName.toLowerCase().includes(searchAliado.toLowerCase()));
+    const matchesPlan = filterPlan === 'all' || a.plan === filterPlan;
+    const matchesStatus = filterStatus === 'all' || a.status === filterStatus;
+    return matchesSearch && matchesPlan && matchesStatus;
   });
 
-  const handleCreateTenant = (e: React.FormEvent) => {
+  // Filtered Transactions
+  const filteredTransactions = transactions.filter(t => {
+    const matchesSearch = 
+      t.description.toLowerCase().includes(searchTx.toLowerCase()) ||
+      (t.restaurantName && t.restaurantName.toLowerCase().includes(searchTx.toLowerCase())) ||
+      (t.referenceNumber && t.referenceNumber.toLowerCase().includes(searchTx.toLowerCase()));
+    const matchesType = filterTxType === 'all' || t.type === filterTxType;
+    return matchesSearch && matchesType;
+  });
+
+  // ==========================================
+  // ALIADO CRUD HANDLERS
+  // ==========================================
+  const handleOpenCreateAlly = () => {
+    setEditingAlly(null);
+    setAllyFormData({
+      name: '',
+      nit: '',
+      city: 'Bogotá D.C.',
+      address: '',
+      phone: '+57 300 000 0000',
+      email: '',
+      plan: 'Pro',
+      status: 'Activo',
+      monthlyFeeCop: 289000,
+      tablesCount: 16,
+      contactName: ''
+    });
+    setIsAllyModalOpen(true);
+  };
+
+  const handleOpenEditAlly = (ally: MileniaAlly) => {
+    setEditingAlly(ally);
+    setAllyFormData({
+      name: ally.name,
+      nit: ally.nit,
+      city: ally.city,
+      address: ally.address || '',
+      phone: ally.phone || '',
+      email: ally.email || '',
+      plan: ally.plan,
+      status: ally.status,
+      monthlyFeeCop: ally.monthlyFeeCop,
+      tablesCount: ally.tablesCount || 10,
+      contactName: ally.contactName || ''
+    });
+    setIsAllyModalOpen(true);
+  };
+
+  const handleSaveAlly = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTenantName || !newTenantSlug) {
-      showToast('Campos requeridos', 'Ingresa el nombre y el slug del restaurante.', 'warning');
+    if (!allyFormData.name.trim() || !allyFormData.nit.trim()) {
+      showToast('Campos Requeridos', 'Por favor ingresa nombre comercial y NIT.', 'warning');
       return;
     }
 
-    const nextId = (tenants.length + 1).toString();
-    const planMrr = newTenantPlan === 'basic' ? 149000 : newTenantPlan === 'pro' ? 289000 : 499000;
+    // Auto calculate fee by plan if default
+    let fee = allyFormData.monthlyFeeCop;
+    if (allyFormData.plan === 'Básico' && fee === 289000) fee = 149000;
+    if (allyFormData.plan === 'Enterprise' && fee === 289000) fee = 499000;
 
-    const createdTenant: TenantRestaurant = {
-      id: nextId,
-      slug: newTenantSlug.toLowerCase().replace(/\s+/g, '-'),
-      name: newTenantName,
-      city: newTenantCity,
-      address: newTenantAddress || 'Calle Principal #10-20',
-      phone: newTenantPhone || '+57 300 000 0000',
-      email: newTenantEmail || `contacto@${newTenantSlug}.co`,
-      createdAt: new Date().toISOString().split('T')[0],
-      tablesCount: newTenantPlan === 'basic' ? 10 : newTenantPlan === 'pro' ? 20 : 50,
-      activeOrdersCount: 0,
-      totalMonthlySalesCop: 15000000,
-      branding: {
-        logoUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=200&q=80',
-        primaryColor: newTenantColor,
-        accentColor: '#f59e0b',
-        themeStyle: 'modern',
-        bannerImage: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
-        tagline: 'Experiencia gastronómica de autor',
-        currency: 'COP',
-        currencySymbol: '$',
-        dianResolution: 'Resolución DIAN No. 1876400000 de 2026',
-        nit: newTenantNit || '901.999.888-0',
-        tipSuggestedPercentage: 10
-      },
-      subscription: {
-        plan: newTenantPlan,
-        status: 'active',
-        mrrCop: planMrr,
-        renewsAt: '2026-09-30',
-        maxTables: newTenantPlan === 'basic' ? 12 : newTenantPlan === 'pro' ? 25 : 60,
-        maxEmployees: newTenantPlan === 'basic' ? 5 : newTenantPlan === 'pro' ? 12 : 30,
-        features: ['POS Meseros', 'KDS Cocina', 'Facturación Electrónica DIAN', 'Menú QR']
-      }
-    };
+    if (editingAlly) {
+      // Update
+      await updateAliado(editingAlly.id, {
+        ...allyFormData,
+        monthlyFeeCop: fee
+      });
+      showToast('Aliado Actualizado', `Se guardaron los cambios para ${allyFormData.name}.`, 'success');
+    } else {
+      // Create
+      await addAliado({
+        ...allyFormData,
+        monthlyFeeCop: fee
+      });
+      showToast('Aliado Registrado', `Restaurante ${allyFormData.name} añadido a Firestore.`, 'success');
+    }
 
-    addTenant(createdTenant);
-    setIsNewTenantModalOpen(false);
-    showToast('Restaurante aprovisionado', `El tenant "${newTenantName}" ha sido creado con ID: ${nextId}.`, 'success');
-    
-    // Reset form
-    setNewTenantName('');
-    setNewTenantSlug('');
-    setNewTenantAddress('');
-    setNewTenantNit('');
-    setNewTenantEmail('');
+    setIsAllyModalOpen(false);
+    setEditingAlly(null);
   };
 
-  const exportAlliesToCsv = () => {
-    const headers = ['ID', 'Nombre', 'Slug', 'Ciudad', 'NIT', 'Plan', 'MRR_COP', 'Mesas', 'Telefono', 'Email'];
-    const rows = tenants.map(t => [
-      t.id,
-      `"${t.name}"`,
-      t.slug,
-      `"${t.city}"`,
-      t.branding?.nit || 'N/A',
-      t.subscription?.plan || 'pro',
-      t.subscription?.mrrCop || 289000,
-      t.tablesCount || 0,
-      t.phone,
-      t.email
-    ]);
+  const handleConfirmDeleteAlly = async () => {
+    if (!deletingAlly) return;
+    await deleteAliado(deletingAlly.id);
+    showToast('Aliado Eliminado', `Se borró el aliado ${deletingAlly.name} de Firestore.`, 'info');
+    setDeletingAlly(null);
+  };
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `milenia_aliados_reporte_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('Reporte Descargado', 'Archivo CSV con todos los aliados generado.', 'info');
+  // ==========================================
+  // TRANSACTION CRUD HANDLERS
+  // ==========================================
+  const handleOpenCreateTx = () => {
+    setEditingTx(null);
+    setTxFormData({
+      type: 'INGRESO',
+      description: '',
+      category: 'SUSCRIPCION_SAAS',
+      amountCop: 289000,
+      date: new Date().toISOString().split('T')[0],
+      restaurantName: '',
+      paymentMethod: 'PSE',
+      referenceNumber: `REF-${Date.now().toString().slice(-6)}`,
+      notes: ''
+    });
+    setIsTxModalOpen(true);
+  };
+
+  const handleOpenEditTx = (tx: MileniaTransaction) => {
+    setEditingTx(tx);
+    setTxFormData({
+      type: tx.type,
+      description: tx.description,
+      category: tx.category,
+      amountCop: tx.amountCop,
+      date: tx.date,
+      restaurantName: tx.restaurantName || '',
+      paymentMethod: tx.paymentMethod || 'PSE',
+      referenceNumber: tx.referenceNumber || '',
+      notes: tx.notes || ''
+    });
+    setIsTxModalOpen(true);
+  };
+
+  const handleSaveTransaction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!txFormData.description.trim() || txFormData.amountCop <= 0) {
+      showToast('Datos inválidos', 'Ingresa una descripción y monto válido.', 'warning');
+      return;
+    }
+
+    if (editingTx) {
+      await updateTransaction(editingTx.id, txFormData);
+      showToast('Transacción Actualizada', 'Cambios guardados en contabilidad.', 'success');
+    } else {
+      await addTransaction(txFormData);
+      showToast('Movimiento Registrado', 'Transacción guardada en Firestore.', 'success');
+    }
+
+    setIsTxModalOpen(false);
+    setEditingTx(null);
+  };
+
+  const handleConfirmDeleteTx = async () => {
+    if (!deletingTx) return;
+    await deleteTransaction(deletingTx.id);
+    showToast('Transacción Eliminada', 'Se borró el registro de contabilidad.', 'info');
+    setDeletingTx(null);
+  };
+
+  // ==========================================
+  // CONFIG & PROFILE HANDLERS
+  // ==========================================
+  const handleSaveSystemConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingConfig(true);
+    await saveSystemConfig(systemConfig);
+    setSavingConfig(false);
+    showToast('Configuración Guardada', 'Parámetros del sistema Milenia actualizados.', 'success');
+  };
+
+  const handleSaveOwnerProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    await saveOwnerProfile(ownerProfile);
+    setSavingProfile(false);
+    showToast('Perfil Actualizado', 'Tus datos de Propietario se guardaron en Firestore.', 'success');
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fade-in pb-12">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row antialiased">
       
-      {/* 1. Header Banner SuperAdmin Milenia */}
-      <div className="bg-slate-950 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden">
-        <div className="absolute -right-12 -bottom-12 w-96 h-96 bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-purple-600"></div>
-
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/30 rounded-full font-mono text-xs font-black flex items-center gap-1.5 shadow-xs">
-                <Crown className="w-3.5 h-3.5 text-amber-400" />
-                DASHBOARD PROPIETARIO MILENIA
-              </span>
-              <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full font-mono text-[11px] flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                Plataforma Activa &bull; Multi-Tenant Colombia
-              </span>
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight flex items-center gap-3">
-              <span>Control Maestro de Plataforma SaaS</span>
-              <Flame className="w-7 h-7 text-amber-500 shrink-0" />
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-3xl leading-relaxed">
-              Supervisión en tiempo real de todos los restaurantes aliados, ingresos recurrentes (MRR), facturación DIAN, base de datos Firestore y aprovisionamiento instantáneo de tenants.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={exportAlliesToCsv}
-              className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 font-bold text-xs rounded-2xl transition cursor-pointer"
-              title="Exportar base de datos a Excel/CSV"
-            >
-              <Download className="w-4 h-4 text-emerald-400" />
-              <span>Exportar CSV</span>
-            </button>
-
-            <button
-              onClick={() => setIsNewTenantModalOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-amber-500/25 transition cursor-pointer"
-            >
-              <Plus className="w-4 h-4 text-slate-950 stroke-[3]" />
-              <span>Aprovisionar Nuevo Aliado</span>
-            </button>
-
-            <button
-              onClick={handleLogoutOwner}
-              className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-rose-400 border border-rose-500/30 font-bold text-xs rounded-2xl transition cursor-pointer"
-              title="Cerrar sesión y proteger el panel del propietario"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Cerrar Sesión</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Quick Platform Indicators */}
-        <div className="mt-6 pt-6 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
-          <div>
-            <span className="text-slate-500 block text-[11px]">ADMINISTRADOR PLATAFORMA</span>
-            <span className="text-white font-bold">Propietario / Fundador Milenia</span>
-          </div>
-          <div>
-            <span className="text-slate-500 block text-[11px]">SISTEMA DE BASE DE DATOS</span>
-            <span className="text-emerald-400 font-bold flex items-center gap-1">
-              <Database className="w-3 h-3" />
-              Cloud Firestore Multi-Tenant
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-500 block text-[11px]">COBERTURA NACIONAL</span>
-            <span className="text-amber-400 font-bold">7 Ciudades de Colombia</span>
-          </div>
-          <div>
-            <span className="text-slate-500 block text-[11px]">LÍNEA COMERCIAL WHATSAPP</span>
-            <span className="text-teal-400 font-bold">+57 304-347-0984</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Top Executive Metrics (Cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      {/* ========================================================================= */}
+      {/* 1. SIDEBAR NAVEGACIÓN LATERAL FIJO (Estilo Milenia Premium)              */}
+      {/* ========================================================================= */}
+      <aside className="w-full md:w-64 lg:w-72 bg-slate-900 border-r border-slate-800 shrink-0 flex flex-col justify-between p-4 sm:p-5 sticky top-0 md:h-screen z-30 shadow-2xl">
         
-        {/* MRR Card */}
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-3 shadow-lg relative overflow-hidden group hover:border-amber-500/50 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
-              MRR Ingreso Recurrente
-            </span>
-            <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-2xl">
-              <CreditCard className="w-5 h-5" />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl sm:text-3xl font-black text-amber-400 tracking-tight">
-              {formatCop(totalMrrCop)}
-            </div>
-            <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5 font-sans">
-              <span className="text-emerald-400 font-bold flex items-center">
-                <TrendingUp className="w-3.5 h-3.5 inline mr-0.5" /> +24.8%
-              </span>
-              <span>vs mes anterior</span>
-            </div>
-          </div>
-          <div className="pt-2 border-t border-slate-800 text-[11px] text-slate-500 font-mono flex justify-between">
-            <span>ARR Proyectado:</span>
-            <span className="text-slate-300 font-bold">{formatCop(totalArrCop)}/año</span>
-          </div>
-        </div>
-
-        {/* Active Allies Card */}
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-3 shadow-lg relative overflow-hidden group hover:border-purple-500/50 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
-              Restaurantes Aliados
-            </span>
-            <div className="p-2.5 bg-purple-500/20 text-purple-400 rounded-2xl">
-              <Building2 className="w-5 h-5" />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-baseline gap-2">
-              <span>{totalTenants}</span>
-              <span className="text-xs font-bold text-purple-400 font-sans">Tenants Activos</span>
-            </div>
-            <div className="text-[11px] text-slate-400 mt-1 font-sans">
-              {basicCount} Básico &bull; {proCount} Pro &bull; {enterpriseCount} Enterprise
-            </div>
-          </div>
-          <div className="pt-2 border-t border-slate-800 text-[11px] text-slate-500 font-mono flex justify-between">
-            <span>Tasa de Retención:</span>
-            <span className="text-emerald-400 font-bold">100% (0% Churn)</span>
-          </div>
-        </div>
-
-        {/* Mesas Conectadas */}
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-3 shadow-lg relative overflow-hidden group hover:border-emerald-500/50 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
-              Mesas & Puntos POS
-            </span>
-            <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-2xl">
-              <Layers className="w-5 h-5" />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-baseline gap-2">
-              <span>{totalTables}</span>
-              <span className="text-xs font-bold text-emerald-400 font-sans">Mesas Salón</span>
-            </div>
-            <div className="text-[11px] text-slate-400 mt-1 font-sans">
-              Comandas en vivo con KDS Cocina
-            </div>
-          </div>
-          <div className="pt-2 border-t border-slate-800 text-[11px] text-slate-500 font-mono flex justify-between">
-            <span>Dispositivos Móviles:</span>
-            <span className="text-slate-300 font-bold">Sincronización PWA</span>
-          </div>
-        </div>
-
-        {/* Total GMV (Gross Merchandise Value) */}
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-3 shadow-lg relative overflow-hidden group hover:border-blue-500/50 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
-              Volumen Facturado Red
-            </span>
-            <div className="p-2.5 bg-blue-500/20 text-blue-400 rounded-2xl">
-              <DollarSign className="w-5 h-5" />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl sm:text-3xl font-black text-blue-400 tracking-tight">
-              {formatCop(totalMonthlySales)}
-            </div>
-            <div className="text-[11px] text-slate-400 mt-1 font-sans">
-              Procesado por todos los restaurantes
-            </div>
-          </div>
-          <div className="pt-2 border-t border-slate-800 text-[11px] text-slate-500 font-mono flex justify-between">
-            <span>Facturación DIAN:</span>
-            <span className="text-emerald-400 font-bold">Habilitada 100%</span>
-          </div>
-        </div>
-
-      </div>
-
-      {/* 3. Navigation Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800 no-scrollbar">
-        <button
-          onClick={() => setActiveTab('resumen')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap cursor-pointer ${
-            activeTab === 'resumen'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <Activity className="w-4 h-4" />
-          <span>Resumen Ejecutivo</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('aliados')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap cursor-pointer ${
-            activeTab === 'aliados'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <Building2 className="w-4 h-4" />
-          <span>Red de Aliados ({tenants.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('facturacion')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap cursor-pointer ${
-            activeTab === 'facturacion'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <CreditCard className="w-4 h-4" />
-          <span>Planes & Facturación SaaS</span>
-        </button>
-
-        <button
-          onClick={() => { setActiveTab('usuarios'); loadAllUsers(); }}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap cursor-pointer ${
-            activeTab === 'usuarios'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>Directorio Usuarios Firestore ({allUsers.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('infraestructura')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap cursor-pointer ${
-            activeTab === 'infraestructura'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <Server className="w-4 h-4" />
-          <span>Servicios Cloud & Salud</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('configuracion')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap cursor-pointer ${
-            activeTab === 'configuracion'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <Zap className="w-4 h-4" />
-          <span>Configuración Plataforma</span>
-        </button>
-      </div>
-
-      {/* =================================================================== */}
-      {/* TAB 1: RESUMEN EJECUTIVO & PANEL MAESTRO                            */}
-      {/* =================================================================== */}
-      {activeTab === 'resumen' && (
+        {/* Brand Header */}
         <div className="space-y-6">
           
-          {/* Quick Actions Matrix */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Zap className="w-5 h-5 text-amber-400" />
-              <span>Accesos Directos a Restaurantes de la Franquicia</span>
-            </h3>
-            <p className="text-xs text-slate-400">
-              Como Propietario de Milenia, puedes ingresar directamente con 1 clic al panel de cualquier restaurante en modo Administrador o Empleado POS:
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {tenants.map((t) => (
-                <div key={t.id} className="bg-slate-950 border border-slate-800 hover:border-slate-700 p-4 rounded-2xl space-y-3 transition">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-400 font-mono font-black text-xs flex items-center justify-center">
-                        #{t.id}
-                      </span>
-                      <div>
-                        <h4 className="font-bold text-sm text-white">{t.name}</h4>
-                        <span className="text-[10px] text-slate-400 font-mono">{t.city}</span>
-                      </div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-slate-800 text-slate-300">
-                      {t.subscription?.plan || 'pro'}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
-                    <button
-                      onClick={() => {
-                        switchTenant(t.id);
-                        navigateTo({ restaurantId: t.id, routeType: 'tenant_admin' });
-                      }}
-                      className="py-2 px-3 bg-slate-900 hover:bg-slate-800 text-amber-400 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 border border-amber-500/20 cursor-pointer"
-                    >
-                      <Store className="w-3.5 h-3.5" />
-                      <span>Admin Dueño</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        switchTenant(t.id);
-                        navigateTo({ restaurantId: t.id, routeType: 'employee_dashboard' });
-                      }}
-                      className="py-2 px-3 bg-slate-900 hover:bg-slate-800 text-emerald-400 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 border border-emerald-500/20 cursor-pointer"
-                    >
-                      <Users className="w-3.5 h-3.5" />
-                      <span>POS Meseros</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
+          <div className="flex items-center gap-3 px-2 pt-2">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/25">
+              <Crown className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-white tracking-tight flex items-center gap-1.5">
+                <span>MILENIA</span>
+                <span className="text-amber-500 text-xs px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 font-mono">
+                  OWNER
+                </span>
+              </h2>
+              <p className="text-[11px] text-slate-400 font-mono truncate">
+                Portal del Propietario
+              </p>
             </div>
           </div>
 
-          {/* Revenue Breakdown & Plan Stats */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent"></div>
+
+          {/* Navigation Items */}
+          <nav className="space-y-1.5">
             
-            {/* Plan Distribution Breakdown */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-purple-400" />
-                <span>Distribución de Planes Milenia SaaS</span>
-              </h3>
-              
-              <div className="space-y-3">
-                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                    <div>
-                      <h4 className="font-bold text-white text-xs">Plan Básico ($149.000 COP/mes)</h4>
-                      <p className="text-[11px] text-slate-400">Cafés y locales independientes</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-sm font-black text-white font-mono">{basicCount} Aliados</span>
-                    <p className="text-[10px] text-slate-500 font-mono">{formatCop(basicCount * 149000)}/mes</p>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-slate-950 rounded-2xl border border-amber-500/30 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                    <div>
-                      <h4 className="font-bold text-amber-300 text-xs">Plan Pro ($289.000 COP/mes) ⭐ Más Popular</h4>
-                      <p className="text-[11px] text-slate-400">Parrillas, asaderos y pizzerías con KDS</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-sm font-black text-amber-400 font-mono">{proCount} Aliados</span>
-                    <p className="text-[10px] text-slate-500 font-mono">{formatCop(proCount * 289000)}/mes</p>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                    <div>
-                      <h4 className="font-bold text-purple-300 text-xs">Plan Enterprise ($499.000 COP/mes)</h4>
-                      <p className="text-[11px] text-slate-400">Franquicias multi-sede y alta cocina</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-sm font-black text-purple-400 font-mono">{enterpriseCount} Aliados</span>
-                    <p className="text-[10px] text-slate-500 font-mono">{formatCop(enterpriseCount * 499000)}/mes</p>
-                  </div>
-                </div>
+            {/* Dashboard */}
+            <button
+              onClick={() => setCurrentSection('dashboard')}
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                currentSection === 'dashboard'
+                  ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <LayoutDashboard className={`w-4 h-4 ${currentSection === 'dashboard' ? 'text-amber-400' : 'text-slate-400'}`} />
+                <span>Dashboard</span>
               </div>
-            </div>
+              {currentSection === 'dashboard' && <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></div>}
+            </button>
 
-            {/* Growth & Expansion Projections */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-emerald-400" />
-                <span>Metas de Crecimiento y Escalabilidad 2026</span>
-              </h3>
-
-              <div className="space-y-3 text-xs">
-                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2">
-                  <div className="flex justify-between font-mono">
-                    <span className="text-slate-400">Meta Fase 1: 15 Restaurantes</span>
-                    <span className="text-emerald-400 font-bold">{Math.round((tenants.length / 15) * 100)}% alcanzado</span>
-                  </div>
-                  <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, (tenants.length / 15) * 100)}%` }}></div>
-                  </div>
-                  <p className="text-[11px] text-slate-400">MRR proyectado: $4.335.000 COP/mes</p>
-                </div>
-
-                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2">
-                  <div className="flex justify-between font-mono">
-                    <span className="text-slate-400">Meta Fase 2: 50 Restaurantes</span>
-                    <span className="text-amber-400 font-bold">{Math.round((tenants.length / 50) * 100)}%</span>
-                  </div>
-                  <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-500 rounded-full" style={{ width: `${Math.min(100, (tenants.length / 50) * 100)}%` }}></div>
-                  </div>
-                  <p className="text-[11px] text-slate-400">MRR proyectado: $14.450.000 COP/mes (ARR: $173.4M COP)</p>
-                </div>
+            {/* Aliados */}
+            <button
+              onClick={() => setCurrentSection('aliados')}
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                currentSection === 'aliados'
+                  ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Building2 className={`w-4 h-4 ${currentSection === 'aliados' ? 'text-amber-400' : 'text-slate-400'}`} />
+                <span>Aliados</span>
               </div>
-            </div>
+              <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-slate-800 text-slate-300">
+                {aliados.length}
+              </span>
+            </button>
 
-          </div>
+            {/* Contabilidad */}
+            <button
+              onClick={() => setCurrentSection('contabilidad')}
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                currentSection === 'contabilidad'
+                  ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Receipt className={`w-4 h-4 ${currentSection === 'contabilidad' ? 'text-amber-400' : 'text-slate-400'}`} />
+                <span>Contabilidad</span>
+              </div>
+              <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Finanzas
+              </span>
+            </button>
+
+            {/* Configuración */}
+            <button
+              onClick={() => setCurrentSection('configuracion')}
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                currentSection === 'configuracion'
+                  ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Settings className={`w-4 h-4 ${currentSection === 'configuracion' ? 'text-amber-400' : 'text-slate-400'}`} />
+                <span>Configuración</span>
+              </div>
+            </button>
+
+            {/* Perfil */}
+            <button
+              onClick={() => setCurrentSection('perfil')}
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                currentSection === 'perfil'
+                  ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <User className={`w-4 h-4 ${currentSection === 'perfil' ? 'text-amber-400' : 'text-slate-400'}`} />
+                <span>Perfil</span>
+              </div>
+              <span className="text-[10px] font-mono text-amber-400 font-bold">1085312034</span>
+            </button>
+
+          </nav>
 
         </div>
-      )}
 
-      {/* =================================================================== */}
-      {/* TAB 2: GESTIÓN DE LA RED DE ALIADOS & RESTAURANTES                 */}
-      {/* =================================================================== */}
-      {activeTab === 'aliados' && (
-        <div className="space-y-5">
+        {/* Footer User Info & Logout Button */}
+        <div className="space-y-4 pt-4 border-t border-slate-800">
           
-          {/* Filter Bar */}
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Buscar por nombre, slug, ciudad o NIT..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
-              />
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-9 h-9 rounded-xl bg-slate-800 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xs shrink-0">
+              AC
             </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500"
-              >
-                <option value="all">Todas las Ciudades</option>
-                <option value="Bogotá">Bogotá D.C.</option>
-                <option value="Medellín">Medellín</option>
-                <option value="Cali">Cali</option>
-                <option value="Pasto">Pasto</option>
-                <option value="Barranquilla">Barranquilla</option>
-                <option value="Cartagena">Cartagena</option>
-                <option value="Bucaramanga">Bucaramanga</option>
-              </select>
-
-              <select
-                value={selectedPlan}
-                onChange={(e) => setSelectedPlan(e.target.value)}
-                className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500"
-              >
-                <option value="all">Todos los Planes</option>
-                <option value="basic">Plan Básico ($149k)</option>
-                <option value="pro">Plan Pro ($289k)</option>
-                <option value="enterprise">Plan Enterprise ($499k)</option>
-              </select>
-
-              <button
-                onClick={() => setIsNewTenantModalOpen(true)}
-                className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/20"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Nuevo Aliado</span>
-              </button>
+            <div className="overflow-hidden">
+              <p className="text-xs font-bold text-white truncate">Andrés Camilo Vidal</p>
+              <p className="text-[10px] text-slate-400 font-mono truncate">camilovidal.1704@gmail.com</p>
             </div>
           </div>
 
-          {/* Allies Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredTenants.map((tenant) => {
-              const plan = tenant.subscription?.plan || 'pro';
-              const mrr = tenant.subscription?.mrrCop || (plan === 'basic' ? 149000 : plan === 'pro' ? 289000 : 499000);
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Cerrar Sesión</span>
+          </button>
 
-              return (
-                <div 
-                  key={tenant.id}
-                  className="bg-slate-900 border border-slate-800 hover:border-amber-500/40 rounded-3xl p-5 space-y-4 shadow-xl transition-all flex flex-col justify-between"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-8 h-8 rounded-2xl bg-amber-500/20 text-amber-400 font-mono font-black text-xs flex items-center justify-center border border-amber-500/30">
-                          #{tenant.id}
-                        </span>
-                        <div>
-                          <h3 className="font-bold text-sm text-white leading-tight">{tenant.name}</h3>
-                          <p className="text-[11px] text-slate-400 font-mono">/{tenant.slug}</p>
+        </div>
+
+      </aside>
+
+      {/* ========================================================================= */}
+      {/* 2. MAIN CONTENT AREA                                                      */}
+      {/* ========================================================================= */}
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto w-full">
+        
+        {/* ======================================================================= */}
+        {/* SECCIÓN 1: DASHBOARD (RESUMEN EJECUTIVO)                                */}
+        {/* ======================================================================= */}
+        {currentSection === 'dashboard' && (
+          <div className="space-y-8 animate-fade-in">
+            
+            {/* Header Banner */}
+            <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-amber-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+              
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-xs font-bold">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Panel de Control Maestro &bull; Milenia SaaS Colombia
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                    Bienvenido, Propietario Andrés Camilo
+                  </h1>
+                  <p className="text-xs sm:text-sm text-slate-400 max-w-2xl">
+                    Monitoreo en tiempo real de la red gastronómica conectada a Firebase Firestore, estado de facturación DIAN y balance financiero consolidado.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleOpenCreateAlly}
+                    className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs rounded-2xl shadow-lg shadow-amber-500/20 transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4 stroke-[3]" />
+                    <span>Nuevo Aliado</span>
+                  </button>
+
+                  <button
+                    onClick={handleOpenCreateTx}
+                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs rounded-2xl transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <Receipt className="w-4 h-4 text-emerald-400" />
+                    <span>Registrar Transacción</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+              
+              {/* Stat 1: Total Aliados */}
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-3 shadow-xl hover:border-amber-500/40 transition">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold uppercase text-slate-400">Total Aliados</span>
+                  <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-2xl">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-3xl font-black text-white">{totalAliadosCount}</div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    <strong className="text-emerald-400 font-sans">{activeAliadosCount} activos</strong> &bull; {totalTablesNetwork} mesas totales
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-500 flex justify-between">
+                  <span>Colección:</span>
+                  <span className="text-amber-400">/aliados (Firestore)</span>
+                </div>
+              </div>
+
+              {/* Stat 2: Ingresos del Mes */}
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-3 shadow-xl hover:border-emerald-500/40 transition">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold uppercase text-slate-400">Ingresos Totales</span>
+                  <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-2xl">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl sm:text-3xl font-black text-emerald-400">{formatCop(totalIngresos)}</div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Suscripciones SaaS & Servicios
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-500 flex justify-between">
+                  <span>MRR Base:</span>
+                  <span className="text-emerald-400 font-bold">{formatCop(totalMrrEstimado)}/mes</span>
+                </div>
+              </div>
+
+              {/* Stat 3: Gastos del Mes */}
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-3 shadow-xl hover:border-rose-500/40 transition">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold uppercase text-slate-400">Gastos Totales</span>
+                  <div className="p-2.5 bg-rose-500/20 text-rose-400 rounded-2xl">
+                    <TrendingDown className="w-5 h-5" />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl sm:text-3xl font-black text-rose-400">{formatCop(totalGastos)}</div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Servidores, Timbrado DIAN y Pauta
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-500 flex justify-between">
+                  <span>Operación Cloud:</span>
+                  <span className="text-slate-300">Controlada</span>
+                </div>
+              </div>
+
+              {/* Stat 4: Balance Neto */}
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-3 shadow-xl hover:border-amber-500/40 transition">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold uppercase text-slate-400">Balance Neto</span>
+                  <div className="p-2.5 bg-gradient-to-br from-amber-500 to-orange-500 text-slate-950 rounded-2xl">
+                    <Wallet className="w-5 h-5" />
+                  </div>
+                </div>
+                <div>
+                  <div className={`text-2xl sm:text-3xl font-black ${balanceNeto >= 0 ? 'text-white' : 'text-rose-400'}`}>
+                    {formatCop(balanceNeto)}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Margen de Ganancia: <strong className="text-amber-400 font-sans">{margenNeto}%</strong>
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-500 flex justify-between">
+                  <span>Estado Financiero:</span>
+                  <span className="text-emerald-400 font-bold">Saludable</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Split: Recent Allies & Financial Overview */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* Left 7 Cols: Últimos 3 Aliados Registrados */}
+              <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-5 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <Store className="w-4 h-4 text-amber-400" />
+                      <span>Últimos Aliados Registrados</span>
+                    </h3>
+                    <p className="text-xs text-slate-400">Restaurantes incorporados recientemente a la plataforma.</p>
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentSection('aliados')}
+                    className="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Ver todos</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {recentAliados.length === 0 ? (
+                    <p className="text-xs text-slate-500 py-6 text-center">No hay aliados registrados aún.</p>
+                  ) : (
+                    recentAliados.map(ally => (
+                      <div 
+                        key={ally.id}
+                        className="bg-slate-950 border border-slate-800/80 hover:border-slate-700 p-4 rounded-2xl transition flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center shrink-0">
+                            <Building2 className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-sm text-white">{ally.name}</h4>
+                            <div className="flex items-center gap-2 text-xs text-slate-400 font-mono mt-0.5">
+                              <span>{ally.city}</span>
+                              <span>&bull;</span>
+                              <span>NIT: {ally.nit}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase ${
+                            ally.plan === 'Enterprise'
+                              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                              : ally.plan === 'Pro'
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                              : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                          }`}>
+                            Plan {ally.plan}
+                          </span>
+
+                          <span className="text-xs font-mono font-bold text-emerald-400">
+                            {formatCop(ally.monthlyFeeCop)}/m
+                          </span>
                         </div>
                       </div>
+                    ))
+                  )}
+                </div>
+              </div>
 
-                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border ${
-                        plan === 'enterprise'
-                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
-                          : plan === 'pro'
-                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                          : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-                      }`}>
-                        {plan}
+              {/* Right 5 Cols: Resumen Financiero Rápido */}
+              <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-5 shadow-xl flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="space-y-0.5">
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <PieChart className="w-4 h-4 text-emerald-400" />
+                      <span>Resumen Financiero Rápido</span>
+                    </h3>
+                    <p className="text-xs text-slate-400">Distribución de flujo de caja y rentabilidad neta.</p>
+                  </div>
+
+                  {/* Progress Bar Visual */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs font-mono">
+                      <span className="text-emerald-400 font-bold">Ingresos: {formatCop(totalIngresos)}</span>
+                      <span className="text-rose-400 font-bold">Gastos: {formatCop(totalGastos)}</span>
+                    </div>
+
+                    <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden flex border border-slate-800">
+                      <div 
+                        className="bg-emerald-500 h-full transition-all" 
+                        style={{ width: `${totalIngresos > 0 ? (totalIngresos / (totalIngresos + totalGastos)) * 100 : 50}%` }}
+                      ></div>
+                      <div 
+                        className="bg-rose-500 h-full transition-all" 
+                        style={{ width: `${totalGastos > 0 ? (totalGastos / (totalIngresos + totalGastos)) * 100 : 50}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Highlights */}
+                  <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2.5 text-xs font-mono">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Total Transacciones:</span>
+                      <span className="font-bold text-white">{transactions.length} registros</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Suscripción Promedio:</span>
+                      <span className="font-bold text-amber-400">
+                        {formatCop(totalAliadosCount > 0 ? totalMrrEstimado / totalAliadosCount : 289000)}/mes
                       </span>
                     </div>
-
-                    <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800/80 space-y-1.5 text-xs text-slate-400">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-500" />
-                        <span className="text-slate-300">{tenant.city} &bull; {tenant.address}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800">
-                        <span>NIT: {tenant.branding?.nit || '901.999.888-0'}</span>
-                        <span className="font-bold text-slate-200">{tenant.tablesCount || 15} Mesas</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Cuota SaaS:</span>
-                        <span className="font-bold text-amber-400 font-mono">{formatCop(mrr)}/mes</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Ventas Facturadas:</span>
-                        <span className="font-bold text-emerald-400 font-mono">{formatCop(tenant.totalMonthlySalesCop || 25000000)}</span>
-                      </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Resolución DIAN:</span>
+                      <span className="font-bold text-emerald-400">{systemConfig.dianPrefix} Habilitada</span>
                     </div>
                   </div>
-
-                  {/* Action Buttons */}
-                  <div className="space-y-2 pt-3 border-t border-slate-800">
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => {
-                          switchTenant(tenant.id);
-                          navigateTo({ restaurantId: tenant.id, routeType: 'tenant_admin' });
-                        }}
-                        className="py-2 px-3 bg-slate-950 hover:bg-slate-800 text-amber-400 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 border border-amber-500/20 cursor-pointer"
-                      >
-                        <Store className="w-3.5 h-3.5" />
-                        <span>Admin Dueño</span>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          switchTenant(tenant.id);
-                          navigateTo({ restaurantId: tenant.id, routeType: 'employee_dashboard' });
-                        }}
-                        className="py-2 px-3 bg-slate-950 hover:bg-slate-800 text-emerald-400 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 border border-emerald-500/20 cursor-pointer"
-                      >
-                        <Users className="w-3.5 h-3.5" />
-                        <span>POS Meseros</span>
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        switchTenant(tenant.id);
-                        navigateTo({ restaurantId: tenant.id, routeType: 'customer_menu' });
-                      }}
-                      className="w-full py-2 bg-slate-950 hover:bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5 border border-slate-800 cursor-pointer"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Ver Carta Digital /{tenant.slug}</span>
-                    </button>
-                  </div>
-
                 </div>
-              );
-            })}
-          </div>
 
-        </div>
-      )}
+                <button
+                  onClick={() => setCurrentSection('contabilidad')}
+                  className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer border border-slate-700"
+                >
+                  <Receipt className="w-4 h-4 text-amber-400" />
+                  <span>Ver Libro Mayor de Contabilidad</span>
+                </button>
+              </div>
 
-      {/* =================================================================== */}
-      {/* TAB 3: FACTURACIÓN SAAS & SUSCRIPCIONES                             */}
-      {/* =================================================================== */}
-      {activeTab === 'facturacion' && (
-        <div className="space-y-6">
-          
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-amber-400" />
-                  <span>Cobranzas & Suscripciones Activas de la Red Milenia</span>
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Monitoreo de recaudos mensuales por software gastronómico en Colombia.
-                </p>
-              </div>
-              <div className="text-right">
-                <span className="text-xs text-slate-400">Recaudo Mensual Estimado:</span>
-                <p className="text-xl font-black text-amber-400 font-mono">{formatCop(totalMrrCop)} COP</p>
-              </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-slate-950 text-slate-400 font-mono text-[11px] uppercase tracking-wider border-b border-slate-800">
-                  <tr>
-                    <th className="py-3 px-4">Aliado / Razón Social</th>
-                    <th className="py-3 px-4">Ciudad</th>
-                    <th className="py-3 px-4">Plan Actual</th>
-                    <th className="py-3 px-4">Tarifa Mensual</th>
-                    <th className="py-3 px-4">Próxima Renovación</th>
-                    <th className="py-3 px-4">Estado Cobro</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 font-mono">
-                  {tenants.map((t) => {
-                    const plan = t.subscription?.plan || 'pro';
-                    const mrr = t.subscription?.mrrCop || (plan === 'basic' ? 149000 : plan === 'pro' ? 289000 : 499000);
-                    return (
-                      <tr key={t.id} className="hover:bg-slate-800/40 transition">
-                        <td className="py-3.5 px-4 font-bold text-white font-sans">
-                          #{t.id} - {t.name}
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-400 font-sans">
-                          {t.city}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-amber-400 border border-slate-700">
-                            Plan {plan}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 font-bold text-amber-400">
-                          {formatCop(mrr)}
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-400">
-                          {t.subscription?.renewsAt || '2026-09-30'}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 w-fit">
-                            <Check className="w-3 h-3" />
-                            Al Día
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
           </div>
+        )}
 
-        </div>
-      )}
-
-      {/* =================================================================== */}
-      {/* TAB 4: DIRECTORIO GLOBAL DE USUARIOS FIRESTORE                      */}
-      {/* =================================================================== */}
-      {activeTab === 'usuarios' && (
-        <div className="space-y-6">
-          
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* ======================================================================= */}
+        {/* SECCIÓN 2: MÓDULO ALIADOS (CRUD COMPLETO FIRESTORE)                     */}
+        {/* ======================================================================= */}
+        {currentSection === 'aliados' && (
+          <div className="space-y-6 animate-fade-in">
+            
+            {/* Header & Actions */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Users className="w-5 h-5 text-amber-400" />
-                  <span>Usuarios y Roles Registrados en Firestore</span>
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Tabla unificada de Propietarios y Colaboradores registrados en cada restaurante aliado.
+                <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
+                  <Building2 className="w-6 h-6 text-amber-500" />
+                  <span>Gestión de Aliados (Restaurantes)</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Administra los restaurantes suscritos a Milenia almacenados en la colección Firestore <span className="font-mono text-amber-400">/aliados</span>.
                 </p>
               </div>
 
               <button
-                onClick={loadAllUsers}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                onClick={handleOpenCreateAlly}
+                className="px-4 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs rounded-2xl shadow-lg shadow-amber-500/20 transition flex items-center gap-2 cursor-pointer"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${loadingUsers ? 'animate-spin' : ''}`} />
-                <span>Refrescar Usuarios</span>
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>Agregar Nuevo Aliado</span>
               </button>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-slate-950 text-slate-400 font-mono text-[11px] uppercase tracking-wider border-b border-slate-800">
-                  <tr>
-                    <th className="py-3 px-4">Usuario</th>
-                    <th className="py-3 px-4">Cédula / ID</th>
-                    <th className="py-3 px-4">Restaurante Asignado</th>
-                    <th className="py-3 px-4">Rol Asignado</th>
-                    <th className="py-3 px-4">Cargo</th>
-                    <th className="py-3 px-4">Teléfono</th>
-                    <th className="py-3 px-4">Estado</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {allUsers.map((u, idx) => {
-                    const isOwner = String(u.role).toUpperCase() === 'OWNER' || String(u.role).toUpperCase() === 'ADMIN';
-                    const tenant = tenants.find(t => String(t.id) === String(u.restaurantId));
+            {/* Filter Bar */}
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre, NIT, ciudad o contacto..."
+                  value={searchAliado}
+                  onChange={(e) => setSearchAliado(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                />
+              </div>
 
-                    return (
-                      <tr key={`${u.uid}-${idx}`} className="hover:bg-slate-800/40 transition">
-                        <td className="py-3.5 px-4">
-                          <div className="font-bold text-white">{u.name}</div>
-                          <div className="text-[11px] text-slate-400 font-mono">{u.email}</div>
-                        </td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-200">
-                          {u.documentId || u.employeeId || 'N/A'}
-                        </td>
-                        <td className="py-3.5 px-4 font-bold text-amber-400">
-                          {tenant ? `#${tenant.id} - ${tenant.name}` : `Restaurante #${u.restaurantId}`}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-mono text-[10px] font-bold uppercase border ${
-                            isOwner 
-                              ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' 
-                              : 'bg-teal-500/20 text-teal-300 border-teal-500/30'
-                          }`}>
-                            <ShieldCheck className="w-3 h-3" />
-                            <span>{isOwner ? 'OWNER' : 'STAFF'}</span>
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-300">
-                          {u.position || 'Colaborador'}
-                        </td>
-                        <td className="py-3.5 px-4 font-mono text-slate-400">
-                          {u.phone || 'N/A'}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                            Activo
-                          </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={filterPlan}
+                  onChange={(e) => setFilterPlan(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500"
+                >
+                  <option value="all">Todos los Planes</option>
+                  <option value="Básico">Plan Básico ($149k)</option>
+                  <option value="Pro">Plan Pro ($289k)</option>
+                  <option value="Enterprise">Plan Enterprise ($499k)</option>
+                </select>
+
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500"
+                >
+                  <option value="all">Todos los Estados</option>
+                  <option value="Activo">Activo</option>
+                  <option value="Inactivo">Inactivo</option>
+                </select>
+
+                <div className="text-xs text-slate-500 font-mono pl-2">
+                  Total: <strong className="text-amber-400">{filteredAliados.length}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* TABLA DE ALIADOS */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-slate-950 text-slate-400 font-mono text-[11px] uppercase tracking-wider border-b border-slate-800">
+                    <tr>
+                      <th className="py-3.5 px-5">Restaurante / Nombre</th>
+                      <th className="py-3.5 px-4">NIT</th>
+                      <th className="py-3.5 px-4">Ciudad</th>
+                      <th className="py-3.5 px-4">Plan</th>
+                      <th className="py-3.5 px-4">Tarifa Mensual</th>
+                      <th className="py-3.5 px-4">Estado</th>
+                      <th className="py-3.5 px-4 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-sans">
+                    {filteredAliados.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-slate-500 text-xs">
+                          No se encontraron aliados que coincidan con la búsqueda.
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                    ) : (
+                      filteredAliados.map(ally => (
+                        <tr key={ally.id} className="hover:bg-slate-800/40 transition">
+                          
+                          {/* Nombre */}
+                          <td className="py-4 px-5">
+                            <div className="font-bold text-white text-sm">{ally.name}</div>
+                            <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5 font-mono">
+                              <span>{ally.contactName || 'Sin contacto'}</span>
+                              {ally.phone && <span>&bull; {ally.phone}</span>}
+                            </div>
+                          </td>
 
-        </div>
-      )}
+                          {/* NIT */}
+                          <td className="py-4 px-4 font-mono font-semibold text-slate-200">
+                            {ally.nit}
+                          </td>
 
-      {/* =================================================================== */}
-      {/* TAB 5: SALUD DE INFRAESTRUCTURA & SERVICIOS CLOUD                   */}
-      {/* =================================================================== */}
-      {activeTab === 'infraestructura' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400">
-                <Database className="w-6 h-6" />
+                          {/* Ciudad */}
+                          <td className="py-4 px-4 text-slate-300">
+                            {ally.city}
+                          </td>
+
+                          {/* Plan */}
+                          <td className="py-4 px-4">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase border ${
+                              ally.plan === 'Enterprise'
+                                ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                                : ally.plan === 'Pro'
+                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                                : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                            }`}>
+                              {ally.plan}
+                            </span>
+                          </td>
+
+                          {/* Tarifa */}
+                          <td className="py-4 px-4 font-mono font-bold text-amber-400">
+                            {formatCop(ally.monthlyFeeCop)}
+                          </td>
+
+                          {/* Estado */}
+                          <td className="py-4 px-4">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase font-mono border ${
+                              ally.status === 'Activo'
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                                : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                            }`}>
+                              {ally.status === 'Activo' ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                              <span>{ally.status}</span>
+                            </span>
+                          </td>
+
+                          {/* Acciones */}
+                          <td className="py-4 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleOpenEditAlly(ally)}
+                                className="p-2 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl transition cursor-pointer"
+                                title="Editar Aliado"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={() => setDeletingAlly(ally)}
+                                className="p-2 bg-slate-800 hover:bg-rose-900/40 text-rose-400 rounded-xl transition cursor-pointer"
+                                title="Eliminar Aliado"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> Operacional
-              </span>
             </div>
-            <h4 className="font-bold text-white text-sm">Google Cloud Firestore</h4>
-            <p className="text-xs text-slate-400">
-              Colecciones multi-tenant `/aliados`, `/users` y `/orders` con caché persistente y latencia &lt; 20ms.
-            </p>
-          </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="p-3 rounded-2xl bg-purple-500/20 text-purple-400">
-                <ShieldCheck className="w-6 h-6" />
+          </div>
+        )}
+
+        {/* ======================================================================= */}
+        {/* SECCIÓN 3: MÓDULO CONTABILIDAD (INGRESOS & GASTOS FIRESTORE)             */}
+        {/* ======================================================================= */}
+        {currentSection === 'contabilidad' && (
+          <div className="space-y-6 animate-fade-in">
+            
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+              <div>
+                <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
+                  <Receipt className="w-6 h-6 text-emerald-400" />
+                  <span>Contabilidad & Finanzas de la Plataforma</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Control de ingresos recurrentes, comisiones y costos de infraestructura en la colección <span className="font-mono text-emerald-400">/contabilidad</span>.
+                </p>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> Operacional
-              </span>
-            </div>
-            <h4 className="font-bold text-white text-sm">Firebase Authentication</h4>
-            <p className="text-xs text-slate-400">
-              Módulo de autenticación con Email, Cédula de Identidad y control de acceso basado en roles (RBAC).
-            </p>
-          </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="p-3 rounded-2xl bg-blue-500/20 text-blue-400">
-                <FileSpreadsheet className="w-6 h-6" />
+              <button
+                onClick={handleOpenCreateTx}
+                className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-black text-xs rounded-2xl shadow-lg shadow-emerald-500/20 transition flex items-center gap-2 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>Registrar Ingreso / Gasto</span>
+              </button>
+            </div>
+
+            {/* Financial Balance Summary Banner */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              
+              <div className="bg-slate-900 border border-emerald-500/30 p-5 rounded-3xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold uppercase text-slate-400">Ingresos Totales</span>
+                  <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
+                    <ArrowUpRight className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                </div>
+                <div className="text-2xl font-black text-emerald-400">{formatCop(totalIngresos)}</div>
+                <p className="text-[10px] text-slate-500 font-mono">Entradas por suscripción y onboarding</p>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> Operacional
-              </span>
-            </div>
-            <h4 className="font-bold text-white text-sm">Facturación DIAN Colombia</h4>
-            <p className="text-xs text-slate-400">
-              Generador XML con CUFE y códigos QR para resoluciones de facturación electrónica 2026.
-            </p>
-          </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-400">
-                <HardDrive className="w-6 h-6" />
+              <div className="bg-slate-900 border border-rose-500/30 p-5 rounded-3xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold uppercase text-slate-400">Gastos Totales</span>
+                  <div className="p-2 bg-rose-500/20 text-rose-400 rounded-xl">
+                    <ArrowDownRight className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                </div>
+                <div className="text-2xl font-black text-rose-400">{formatCop(totalGastos)}</div>
+                <p className="text-[10px] text-slate-500 font-mono">Servidores GCP, timbrado DIAN y pauta</p>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> Operacional
-              </span>
-            </div>
-            <h4 className="font-bold text-white text-sm">Google Drive Vault Backup</h4>
-            <p className="text-xs text-slate-400">
-              Respaldo automático en la nube de todas las facturas y cierres de caja diarios en formato PDF/JSON.
-            </p>
-          </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="p-3 rounded-2xl bg-teal-500/20 text-teal-400">
-                <Globe className="w-6 h-6" />
+              <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-amber-500/40 p-5 rounded-3xl space-y-2 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold uppercase text-amber-300">Balance Neto (Ganancia)</span>
+                  <div className="p-2 bg-amber-500/20 text-amber-400 rounded-xl">
+                    <Wallet className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                </div>
+                <div className={`text-2xl font-black ${balanceNeto >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>
+                  {formatCop(balanceNeto)}
+                </div>
+                <p className="text-[10px] text-slate-400 font-mono">
+                  Margen Operativo: <strong className="text-white">{margenNeto}%</strong>
+                </p>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> Operacional
-              </span>
-            </div>
-            <h4 className="font-bold text-white text-sm">Google Calendar Reservas</h4>
-            <p className="text-xs text-slate-400">
-              Sincronización bidireccional de reservas de mesas para salones y zonas VIP.
-            </p>
-          </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="p-3 rounded-2xl bg-rose-500/20 text-rose-400">
-                <Cpu className="w-6 h-6" />
+            </div>
+
+            {/* Filter Bar */}
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Buscar por descripción, restaurante o referencia..."
+                  value={searchTx}
+                  onChange={(e) => setSearchTx(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> Operacional
-              </span>
-            </div>
-            <h4 className="font-bold text-white text-sm">Gemini AI Sommelier & Analytics</h4>
-            <p className="text-xs text-slate-400">
-              Motor de inteligencia artificial para recomendación de maridajes y análisis predictivo de ventas.
-            </p>
-          </div>
 
-        </div>
-      )}
+              <div className="flex items-center gap-2">
+                <select
+                  value={filterTxType}
+                  onChange={(e) => setFilterTxType(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="all">Todos los Movimientos</option>
+                  <option value="INGRESO">Solo Ingresos (+)</option>
+                  <option value="GASTO">Solo Gastos (-)</option>
+                </select>
 
-      {/* =================================================================== */}
-      {/* TAB 6: CONFIGURACIÓN DE PLATAFORMA                                  */}
-      {/* =================================================================== */}
-      {activeTab === 'configuracion' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6">
-          <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Zap className="w-5 h-5 text-amber-400" />
-              <span>Parámetros Globales de Milenia SaaS</span>
-            </h3>
-            <p className="text-xs text-slate-400">
-              Ajustes de marca, soporte técnico y canales comerciales de Milenia en Colombia.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-800 text-xs">
-            <div className="space-y-2">
-              <label className="block text-slate-400 font-bold">Línea Oficial WhatsApp Comercial</label>
-              <input
-                type="text"
-                readOnly
-                value="+57 304 347 0984"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-amber-400 font-mono font-bold"
-              />
-              <p className="text-[11px] text-slate-500">Recibe las solicitudes de cotización de nuevos restaurantes.</p>
+                <div className="text-xs text-slate-500 font-mono pl-2">
+                  Registros: <strong className="text-emerald-400">{filteredTransactions.length}</strong>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-slate-400 font-bold">Moneda del Sistema</label>
-              <input
-                type="text"
-                readOnly
-                value="COP (Peso Colombiano - $)"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white font-mono font-bold"
-              />
-              <p className="text-[11px] text-slate-500">Tarifas y facturación configuradas para el mercado colombiano.</p>
-            </div>
-          </div>
-        </div>
-      )}
+            {/* TABLA DE CONTABILIDAD */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-slate-950 text-slate-400 font-mono text-[11px] uppercase tracking-wider border-b border-slate-800">
+                    <tr>
+                      <th className="py-3.5 px-5">Fecha</th>
+                      <th className="py-3.5 px-4">Tipo</th>
+                      <th className="py-3.5 px-4">Descripción / Concepto</th>
+                      <th className="py-3.5 px-4">Categoría</th>
+                      <th className="py-3.5 px-4">Método / Ref</th>
+                      <th className="py-3.5 px-4 text-right">Monto (COP)</th>
+                      <th className="py-3.5 px-4 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-sans">
+                    {filteredTransactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-slate-500 text-xs">
+                          No hay transacciones que coincidan con la búsqueda.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredTransactions.map(tx => (
+                        <tr key={tx.id} className="hover:bg-slate-800/40 transition">
+                          
+                          {/* Fecha */}
+                          <td className="py-4 px-5 font-mono text-slate-400 whitespace-nowrap">
+                            {tx.date}
+                          </td>
 
-      {/* =================================================================== */}
-      {/* MODAL: REGISTRAR NUEVO ALIADO RESTAURANTE                           */}
-      {/* =================================================================== */}
-      {isNewTenantModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl">
+                          {/* Tipo */}
+                          <td className="py-4 px-4">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase border ${
+                              tx.type === 'INGRESO'
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                                : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                            }`}>
+                              {tx.type === 'INGRESO' ? '+' : '-'} {tx.type}
+                            </span>
+                          </td>
+
+                          {/* Descripción */}
+                          <td className="py-4 px-4">
+                            <div className="font-bold text-white">{tx.description}</div>
+                            {tx.restaurantName && (
+                              <div className="text-[11px] text-amber-400 font-mono mt-0.5">
+                                Aliado: {tx.restaurantName}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Categoría */}
+                          <td className="py-4 px-4 font-mono text-[11px] text-slate-400">
+                            {tx.category.replace(/_/g, ' ')}
+                          </td>
+
+                          {/* Método */}
+                          <td className="py-4 px-4 font-mono text-[11px] text-slate-300">
+                            <div>{tx.paymentMethod.replace(/_/g, ' ')}</div>
+                            {tx.referenceNumber && <span className="text-slate-500 text-[10px]">{tx.referenceNumber}</span>}
+                          </td>
+
+                          {/* Monto */}
+                          <td className={`py-4 px-4 text-right font-mono font-black text-sm whitespace-nowrap ${
+                            tx.type === 'INGRESO' ? 'text-emerald-400' : 'text-rose-400'
+                          }`}>
+                            {tx.type === 'INGRESO' ? '+' : '-'} {formatCop(tx.amountCop)}
+                          </td>
+
+                          {/* Acciones */}
+                          <td className="py-4 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleOpenEditTx(tx)}
+                                className="p-2 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl transition cursor-pointer"
+                                title="Editar Transacción"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={() => setDeletingTx(tx)}
+                                className="p-2 bg-slate-800 hover:bg-rose-900/40 text-rose-400 rounded-xl transition cursor-pointer"
+                                title="Eliminar Transacción"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* ======================================================================= */}
+        {/* SECCIÓN 4: CONFIGURACIÓN DEL SISTEMA                                    */}
+        {/* ======================================================================= */}
+        {currentSection === 'configuracion' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="pb-2 border-b border-slate-800">
+              <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
+                <Settings className="w-6 h-6 text-amber-500" />
+                <span>Configuración Global del Sistema Milenia</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Ajustes de facturación electrónica DIAN, integración con pasarelas de pago y copias de seguridad.
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveSystemConfig} className="space-y-6 max-w-4xl">
+              
+              {/* Facturación DIAN */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-amber-400" />
+                  <span>Parámetros de Facturación Electrónica DIAN 2026</span>
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Número de Resolución DIAN</label>
+                    <input
+                      type="text"
+                      value={systemConfig.dianResolutionNumber}
+                      onChange={(e) => setSystemConfig({ ...systemConfig, dianResolutionNumber: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Prefijo de Factura</label>
+                    <input
+                      type="text"
+                      value={systemConfig.dianPrefix}
+                      onChange={(e) => setSystemConfig({ ...systemConfig, dianPrefix: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Rango Inicial - Final</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={systemConfig.dianStartRange}
+                        onChange={(e) => setSystemConfig({ ...systemConfig, dianStartRange: Number(e.target.value) })}
+                        className="w-1/2 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono"
+                      />
+                      <input
+                        type="number"
+                        value={systemConfig.dianEndRange}
+                        onChange={(e) => setSystemConfig({ ...systemConfig, dianEndRange: Number(e.target.value) })}
+                        className="w-1/2 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Vigencia Resolución</label>
+                    <input
+                      type="date"
+                      value={systemConfig.dianValidUntil}
+                      onChange={(e) => setSystemConfig({ ...systemConfig, dianValidUntil: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pasarelas de Pago & Cloud */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-emerald-400" />
+                  <span>Pasarelas de Pago & Infraestructura Cloud</span>
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Llave Pública Wompi / PSE</label>
+                    <input
+                      type="text"
+                      value={systemConfig.wompiPublicKey}
+                      onChange={(e) => setSystemConfig({ ...systemConfig, wompiPublicKey: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Región Google Cloud</label>
+                    <input
+                      type="text"
+                      value={systemConfig.cloudRegion}
+                      disabled
+                      className="w-full bg-slate-950/60 border border-slate-800/60 rounded-xl px-3 py-2 text-slate-400 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={savingConfig}
+                  className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-2 cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{savingConfig ? 'Guardando...' : 'Guardar Configuración en Firestore'}</span>
+                </button>
+              </div>
+
+            </form>
+          </div>
+        )}
+
+        {/* ======================================================================= */}
+        {/* SECCIÓN 5: PERFIL DEL PROPIETARIO                                       */}
+        {/* ======================================================================= */}
+        {currentSection === 'perfil' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="pb-2 border-b border-slate-800">
+              <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
+                <User className="w-6 h-6 text-amber-500" />
+                <span>Perfil del Propietario & Fundador</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Datos personales y de facturación del titular de la cuenta Milenia SaaS.
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveOwnerProfile} className="space-y-6 max-w-4xl">
+              
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl">
+                
+                <div className="flex items-center gap-4 pb-4 border-b border-slate-800">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-slate-950 font-black text-xl flex items-center justify-center shadow-lg shadow-amber-500/25 shrink-0">
+                    AC
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">{ownerProfile.name}</h3>
+                    <p className="text-xs text-amber-400 font-mono font-bold">{ownerProfile.role}</p>
+                    <p className="text-xs text-slate-400">{ownerProfile.companyName} &bull; NIT: {ownerProfile.nit}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Nombre Completo *</label>
+                    <input
+                      type="text"
+                      required
+                      value={ownerProfile.name}
+                      onChange={(e) => setOwnerProfile({ ...ownerProfile, name: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Cédula de Ciudadanía *</label>
+                    <input
+                      type="text"
+                      required
+                      value={ownerProfile.documentId}
+                      onChange={(e) => setOwnerProfile({ ...ownerProfile, documentId: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Correo Electrónico *</label>
+                    <input
+                      type="email"
+                      required
+                      value={ownerProfile.email}
+                      onChange={(e) => setOwnerProfile({ ...ownerProfile, email: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Teléfono WhatsApp *</label>
+                    <input
+                      type="text"
+                      required
+                      value={ownerProfile.phone}
+                      onChange={(e) => setOwnerProfile({ ...ownerProfile, phone: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Razón Social Empresa</label>
+                    <input
+                      type="text"
+                      value={ownerProfile.companyName}
+                      onChange={(e) => setOwnerProfile({ ...ownerProfile, companyName: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Ciudad / País</label>
+                    <input
+                      type="text"
+                      value={ownerProfile.city}
+                      onChange={(e) => setOwnerProfile({ ...ownerProfile, city: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1">Biografía / Perfil Profesional</label>
+                  <textarea
+                    rows={3}
+                    value={ownerProfile.bio || ''}
+                    onChange={(e) => setOwnerProfile({ ...ownerProfile, bio: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white text-xs"
+                  ></textarea>
+                </div>
+
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={savingProfile}
+                  className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-2 cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{savingProfile ? 'Guardando Perfil...' : 'Actualizar Perfil en Firestore'}</span>
+                </button>
+              </div>
+
+            </form>
+          </div>
+        )}
+
+      </main>
+
+      {/* ========================================================================= */}
+      {/* MODALES: CREAR / EDITAR ALIADO                                            */}
+      {/* ========================================================================= */}
+      {isAllyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+            
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Aprovisionar Restaurante Aliado</h3>
-                  <p className="text-xs text-slate-400">Creación instantánea de Tenant en Milenia SaaS</p>
+                  <h3 className="text-sm font-bold text-white">
+                    {editingAlly ? 'Editar Restaurante Aliado' : 'Registrar Nuevo Restaurante Aliado'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-mono">Colección Firestore /aliados</p>
                 </div>
               </div>
+
               <button 
-                onClick={() => setIsNewTenantModalOpen(false)}
-                className="text-slate-500 hover:text-white cursor-pointer text-xl"
+                onClick={() => setIsAllyModalOpen(false)}
+                className="text-slate-500 hover:text-white cursor-pointer"
               >
-                &times;
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateTenant} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveAlly} className="space-y-3.5 text-xs">
+              
               <div>
-                <label className="block text-slate-400 font-medium mb-1">Nombre del Restaurante *</label>
+                <label className="block text-slate-400 font-medium mb-1">Nombre Comercial del Restaurante *</label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej. Parrilla & Fuego San Antonio"
-                  value={newTenantName}
-                  onChange={(e) => {
-                    setNewTenantName(e.target.value);
-                    if (!newTenantSlug) {
-                      setNewTenantSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'));
-                    }
-                  }}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500"
+                  placeholder="Ej. Parrilla & Fuego Camilo"
+                  value={allyFormData.name}
+                  onChange={(e) => setAllyFormData({ ...allyFormData, name: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 font-medium mb-1">Slug / Subdominio *</label>
+                  <label className="block text-slate-400 font-medium mb-1">NIT / Identificación Fiscal *</label>
                   <input
                     type="text"
                     required
-                    placeholder="parrilla-san-antonio"
-                    value={newTenantSlug}
-                    onChange={(e) => setNewTenantSlug(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-600 font-mono focus:outline-none focus:border-amber-500"
+                    placeholder="901.450.888-1"
+                    value={allyFormData.nit}
+                    onChange={(e) => setAllyFormData({ ...allyFormData, nit: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 font-medium mb-1">Ciudad en Colombia *</label>
+                  <label className="block text-slate-400 font-medium mb-1">Ciudad *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Bogotá D.C."
+                    value={allyFormData.city}
+                    onChange={(e) => setAllyFormData({ ...allyFormData, city: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1">Plan Suscripción *</label>
                   <select
-                    value={newTenantCity}
-                    onChange={(e) => setNewTenantCity(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-500"
+                    value={allyFormData.plan}
+                    onChange={(e) => {
+                      const newPlan = e.target.value as AllyPlan;
+                      const fee = newPlan === 'Básico' ? 149000 : newPlan === 'Pro' ? 289000 : 499000;
+                      setAllyFormData({ ...allyFormData, plan: newPlan, monthlyFeeCop: fee });
+                    }}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                   >
-                    <option value="Bogotá D.C.">Bogotá D.C.</option>
-                    <option value="Medellín">Medellín</option>
-                    <option value="Cali">Cali</option>
-                    <option value="Pasto">Pasto</option>
-                    <option value="Barranquilla">Barranquilla</option>
-                    <option value="Cartagena">Cartagena</option>
-                    <option value="Bucaramanga">Bucaramanga</option>
+                    <option value="Básico">Básico ($149,000 COP)</option>
+                    <option value="Pro">Pro ($289,000 COP)</option>
+                    <option value="Enterprise">Enterprise ($499,000 COP)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1">Estado de Cuenta *</label>
+                  <select
+                    value={allyFormData.status}
+                    onChange={(e) => setAllyFormData({ ...allyFormData, status: e.target.value as AllyStatus })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="Activo">Activo (Habilitado)</option>
+                    <option value="Inactivo">Inactivo (Suspendido)</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 font-medium mb-1">NIT / RUT DIAN</label>
+                  <label className="block text-slate-400 font-medium mb-1">Nombre Contacto / Gerente</label>
                   <input
                     type="text"
-                    placeholder="901.884.234-1"
-                    value={newTenantNit}
-                    onChange={(e) => setNewTenantNit(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-600 font-mono focus:outline-none focus:border-amber-500"
+                    placeholder="Ej. Marco Bellini"
+                    value={allyFormData.contactName}
+                    onChange={(e) => setAllyFormData({ ...allyFormData, contactName: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 font-medium mb-1">Plan de Suscripción</label>
-                  <select
-                    value={newTenantPlan}
-                    onChange={(e) => setNewTenantPlan(e.target.value as SubscriptionPlan)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-500 font-bold text-amber-400"
-                  >
-                    <option value="basic">Plan Básico ($149k COP)</option>
-                    <option value="pro">Plan Pro ($289k COP)</option>
-                    <option value="enterprise">Plan Enterprise ($499k COP)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-400 font-medium mb-1">Color de Marca</label>
-                <div className="flex items-center gap-3">
+                  <label className="block text-slate-400 font-medium mb-1">Teléfono WhatsApp</label>
                   <input
-                    type="color"
-                    value={newTenantColor}
-                    onChange={(e) => setNewTenantColor(e.target.value)}
-                    className="w-10 h-10 rounded-xl border border-slate-700 cursor-pointer"
+                    type="text"
+                    placeholder="+57 315 000 0000"
+                    value={allyFormData.phone}
+                    onChange={(e) => setAllyFormData({ ...allyFormData, phone: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
                   />
-                  <span className="font-mono text-slate-400">{newTenantColor}</span>
                 </div>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-800">
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-800">
                 <button
                   type="button"
-                  onClick={() => setIsNewTenantModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition cursor-pointer"
+                  onClick={() => setIsAllyModalOpen(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black rounded-xl transition shadow-lg shadow-amber-500/20 cursor-pointer"
+                  className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black rounded-xl transition shadow-md shadow-amber-500/20 cursor-pointer"
                 >
-                  Aprovisionar Aliado
+                  {editingAlly ? 'Actualizar Aliado' : 'Crear en Firestore'}
                 </button>
               </div>
+
             </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CONFIRMAR ELIMINACIÓN DE ALIADO */}
+      {deletingAlly && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-rose-500/40 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3 text-rose-400">
+              <div className="w-10 h-10 rounded-2xl bg-rose-500/20 flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <h3 className="text-base font-bold text-white">¿Eliminar Aliado?</h3>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              ¿Estás seguro de eliminar el restaurante <strong className="text-white">{deletingAlly.name}</strong> (NIT: {deletingAlly.nit}) de la colección <span className="font-mono text-amber-400">/aliados</span> en Firestore? Esta acción no se puede deshacer.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeletingAlly(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteAlly}
+                className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-lg shadow-rose-500/20"
+              >
+                Sí, Eliminar de Firestore
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODALES: REGISTRAR / EDITAR TRANSACCIÓN CONTABILIDAD                      */}
+      {/* ========================================================================= */}
+      {isTxModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+            
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <Receipt className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    {editingTx ? 'Editar Movimiento Contable' : 'Registrar Transacción'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-mono">Colección Firestore /contabilidad</p>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setIsTxModalOpen(false)}
+                className="text-slate-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTransaction} className="space-y-3.5 text-xs">
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1">Tipo de Movimiento *</label>
+                  <select
+                    value={txFormData.type}
+                    onChange={(e) => setTxFormData({ ...txFormData, type: e.target.value as TransactionType })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="INGRESO">Ingreso (+ Entrada)</option>
+                    <option value="GASTO">Gasto (- Salida)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1">Monto en COP *</label>
+                  <input
+                    type="number"
+                    required
+                    min={1000}
+                    value={txFormData.amountCop}
+                    onChange={(e) => setTxFormData({ ...txFormData, amountCop: Number(e.target.value) })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-emerald-400 font-mono font-bold focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">Descripción / Concepto *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Suscripción Mensual Plan Pro - Bella Italia"
+                  value={txFormData.description}
+                  onChange={(e) => setTxFormData({ ...txFormData, description: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1">Categoría *</label>
+                  <select
+                    value={txFormData.category}
+                    onChange={(e) => setTxFormData({ ...txFormData, category: e.target.value as TransactionCategory })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="SUSCRIPCION_SAAS">Suscripción SaaS</option>
+                    <option value="COMISION_VENTAS">Comisión de Ventas</option>
+                    <option value="SERVIDORES_CLOUD">Servidores Cloud</option>
+                    <option value="SOPORTE_DIAN">Soporte DIAN</option>
+                    <option value="MARKETING_PAUTA">Marketing & Pauta</option>
+                    <option value="OTRO">Otro</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1">Fecha *</label>
+                  <input
+                    type="date"
+                    required
+                    value={txFormData.date}
+                    onChange={(e) => setTxFormData({ ...txFormData, date: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1">Método de Pago</label>
+                  <select
+                    value={txFormData.paymentMethod}
+                    onChange={(e) => setTxFormData({ ...txFormData, paymentMethod: e.target.value as any })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="PSE">PSE / Débito</option>
+                    <option value="WOMPI">Wompi Pasarela</option>
+                    <option value="TRANSFERENCIA_BANCARIA">Transferencia Bancaria</option>
+                    <option value="TARJETA_CREDITO">Tarjeta de Crédito</option>
+                    <option value="EFECTIVO">Efectivo</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1">Número de Referencia</label>
+                  <input
+                    type="text"
+                    placeholder="REF-2026-001"
+                    value={txFormData.referenceNumber}
+                    onChange={(e) => setTxFormData({ ...txFormData, referenceNumber: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsTxModalOpen(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-black rounded-xl transition shadow-md shadow-emerald-500/20 cursor-pointer"
+                >
+                  {editingTx ? 'Actualizar Transacción' : 'Guardar en Firestore'}
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CONFIRMAR ELIMINACIÓN DE TRANSACCIÓN */}
+      {deletingTx && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-rose-500/40 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3 text-rose-400">
+              <div className="w-10 h-10 rounded-2xl bg-rose-500/20 flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <h3 className="text-base font-bold text-white">¿Eliminar Transacción?</h3>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              ¿Estás seguro de eliminar el movimiento <strong className="text-white">{deletingTx.description}</strong> por valor de <strong className="text-emerald-400 font-mono">{formatCop(deletingTx.amountCop)}</strong> de la contabilidad?
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeletingTx(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteTx}
+                className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-lg shadow-rose-500/20"
+              >
+                Sí, Eliminar
+              </button>
+            </div>
           </div>
         </div>
       )}

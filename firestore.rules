@@ -97,6 +97,20 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // 9. Contabilidad y Finanzas Milenia
+    match /contabilidad/{transactionId} {
+      allow read, write: if true;
+    }
+
+    match /contabilidad/{document=**} {
+      allow read, write: if true;
+    }
+
+    // 10. Configuración del Sistema Milenia
+    match /system_config/{configId} {
+      allow read, write: if true;
+    }
+
     match /tenants/{tenantId} {
       allow read, write: if true;
     }
