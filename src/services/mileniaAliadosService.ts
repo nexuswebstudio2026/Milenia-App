@@ -118,28 +118,19 @@ export async function getAliados(): Promise<MileniaAlly[]> {
     const colRef = collection(db, 'aliados');
     const snap = await getDocs(colRef);
 
-    if (!snap.empty) {
-      const list = snap.docs.map(d => ({
-        ...d.data(),
-        id: d.id
-      })) as MileniaAlly[];
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
-      return list;
-    }
-
-    // Inicializar con aliados base si está vacía
-    for (const a of INITIAL_ALIADOS) {
-      await setDoc(doc(db, 'aliados', a.id), a, { merge: true });
-    }
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(INITIAL_ALIADOS));
-    return INITIAL_ALIADOS;
+    const list = snap.docs.map(d => ({
+      ...d.data(),
+      id: d.id
+    })) as MileniaAlly[];
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
+    return list;
   } catch (e) {
     console.warn('Error en getAliados desde Firestore:', e);
     try {
       const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (cached) return JSON.parse(cached);
     } catch (_) {}
-    return INITIAL_ALIADOS;
+    return [];
   }
 }
 
@@ -226,14 +217,12 @@ export function subscribeToAliados(onUpdate: (aliados: MileniaAlly[]) => void) {
   try {
     const colRef = collection(db, 'aliados');
     return onSnapshot(colRef, (snap) => {
-      if (!snap.empty) {
-        const list = snap.docs.map(d => ({
-          ...d.data(),
-          id: d.id
-        })) as MileniaAlly[];
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
-        onUpdate(list);
-      }
+      const list = snap.docs.map(d => ({
+        ...d.data(),
+        id: d.id
+      })) as MileniaAlly[];
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
+      onUpdate(list);
     }, (err) => {
       console.warn('Snapshot listener en aliados:', err);
     });

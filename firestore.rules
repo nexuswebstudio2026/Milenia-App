@@ -111,6 +111,15 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // 11. Perfil del Negocio Milenia & Pagos QR / Breve
+    match /negocio/{docId} {
+      allow read, write: if true;
+    }
+
+    match /negocio/{document=**} {
+      allow read, write: if true;
+    }
+
     match /tenants/{tenantId} {
       allow read, write: if true;
     }

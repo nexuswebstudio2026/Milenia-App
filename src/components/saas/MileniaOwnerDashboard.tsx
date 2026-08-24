@@ -79,11 +79,17 @@ import {
   DEFAULT_OWNER_PROFILE
 } from '../../services/mileniaSystemService';
 import { MileniaOwnerAuthScreen } from './MileniaOwnerAuthScreen';
+import { BusinessProfileSection } from './BusinessProfileSection';
+import { Menu, PanelLeftClose, PanelLeft, ChevronLeft } from 'lucide-react';
 
-type NavigationSection = 'dashboard' | 'aliados' | 'contabilidad' | 'configuracion' | 'perfil';
+type NavigationSection = 'dashboard' | 'aliados' | 'contabilidad' | 'configuracion' | 'perfil_usuario' | 'perfil_negocio';
 
 export const MileniaOwnerDashboard: React.FC = () => {
   const { setMileniaView, showToast, switchTenant, navigateTo } = useTasty();
+
+  // Sidebar toggle state (abrir / cerrar sidebar nav)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -416,31 +422,80 @@ export const MileniaOwnerDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row antialiased">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row antialiased relative overflow-x-hidden">
       
+      {/* Mobile Top Header with Hamburger Toggle */}
+      <div className="md:hidden bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-slate-950 shadow-md">
+            <Crown className="w-4 h-4 stroke-[2.5]" />
+          </div>
+          <span className="font-black text-white text-sm tracking-tight">MILENIA OWNER</span>
+        </div>
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-slate-700 cursor-pointer"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Backdrop for mobile drawer */}
+      {isMobileMenuOpen && (
+        <div 
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="md:hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 animate-fade-in"
+        />
+      )}
+
       {/* ========================================================================= */}
-      {/* 1. SIDEBAR NAVEGACIÓN LATERAL FIJO (Estilo Milenia Premium)              */}
+      {/* 1. SIDEBAR NAVEGACIÓN LATERAL (COLAPSABLE / EXPANDIBLE CON BOTÓN)         */}
       {/* ========================================================================= */}
-      <aside className="w-full md:w-64 lg:w-72 bg-slate-900 border-r border-slate-800 shrink-0 flex flex-col justify-between p-4 sm:p-5 sticky top-0 md:h-screen z-30 shadow-2xl">
+      <aside 
+        className={`
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          ${isSidebarOpen ? 'md:w-64 lg:w-72' : 'md:w-20'}
+          fixed md:sticky top-0 left-0 h-screen bg-slate-900 border-r border-slate-800 shrink-0 flex flex-col justify-between p-3.5 sm:p-4 z-50 transition-all duration-300 ease-in-out shadow-2xl
+        `}
+      >
         
-        {/* Brand Header */}
-        <div className="space-y-6">
+        {/* Brand Header & Toggle Button */}
+        <div className="space-y-5">
           
-          <div className="flex items-center gap-3 px-2 pt-2">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/25">
-              <Crown className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div>
-              <h2 className="text-base font-black text-white tracking-tight flex items-center gap-1.5">
-                <span>MILENIA</span>
-                <span className="text-amber-500 text-xs px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 font-mono">
-                  OWNER
-                </span>
-              </h2>
-              <p className="text-[11px] text-slate-400 font-mono truncate">
-                Portal del Propietario
-              </p>
-            </div>
+          <div className="flex items-center justify-between px-1.5 pt-1">
+            {isSidebarOpen ? (
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/25 shrink-0">
+                  <Crown className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div className="truncate">
+                  <h2 className="text-sm font-black text-white tracking-tight flex items-center gap-1.5">
+                    <span>MILENIA</span>
+                    <span className="text-amber-500 text-[10px] px-1.5 py-0.2 rounded bg-amber-500/10 border border-amber-500/20 font-mono">
+                      OWNER
+                    </span>
+                  </h2>
+                  <p className="text-[10px] text-slate-400 font-mono truncate">
+                    Portal del Propietario
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="mx-auto">
+                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/25">
+                  <Crown className="w-5 h-5 stroke-[2.5]" />
+                </div>
+              </div>
+            )}
+
+            {/* Desktop Sidebar Toggle Button (Abrir / Cerrar) */}
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              title={isSidebarOpen ? 'Cerrar Sidebar' : 'Abrir Sidebar'}
+              className="hidden md:flex items-center justify-center w-7 h-7 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-amber-400 border border-slate-700 transition cursor-pointer shrink-0"
+            >
+              {isSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
+            </button>
           </div>
 
           <div className="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent"></div>
@@ -450,85 +505,135 @@ export const MileniaOwnerDashboard: React.FC = () => {
             
             {/* Dashboard */}
             <button
-              onClick={() => setCurrentSection('dashboard')}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+              onClick={() => {
+                setCurrentSection('dashboard');
+                setIsMobileMenuOpen(false);
+              }}
+              title="Dashboard"
+              className={`w-full flex items-center ${isSidebarOpen ? 'justify-between px-3.5' : 'justify-center px-0'} py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
                 currentSection === 'dashboard'
                   ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
               }`}
             >
               <div className="flex items-center gap-3">
-                <LayoutDashboard className={`w-4 h-4 ${currentSection === 'dashboard' ? 'text-amber-400' : 'text-slate-400'}`} />
-                <span>Dashboard</span>
+                <LayoutDashboard className={`w-4 h-4 shrink-0 ${currentSection === 'dashboard' ? 'text-amber-400' : 'text-slate-400'}`} />
+                {isSidebarOpen && <span>Dashboard</span>}
               </div>
-              {currentSection === 'dashboard' && <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></div>}
+              {isSidebarOpen && currentSection === 'dashboard' && <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></div>}
             </button>
 
             {/* Aliados */}
             <button
-              onClick={() => setCurrentSection('aliados')}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+              onClick={() => {
+                setCurrentSection('aliados');
+                setIsMobileMenuOpen(false);
+              }}
+              title="Aliados Gastronómicos"
+              className={`w-full flex items-center ${isSidebarOpen ? 'justify-between px-3.5' : 'justify-center px-0'} py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
                 currentSection === 'aliados'
                   ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
               }`}
             >
               <div className="flex items-center gap-3">
-                <Building2 className={`w-4 h-4 ${currentSection === 'aliados' ? 'text-amber-400' : 'text-slate-400'}`} />
-                <span>Aliados</span>
+                <Building2 className={`w-4 h-4 shrink-0 ${currentSection === 'aliados' ? 'text-amber-400' : 'text-slate-400'}`} />
+                {isSidebarOpen && <span>Aliados</span>}
               </div>
-              <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-slate-800 text-slate-300">
-                {aliados.length}
-              </span>
+              {isSidebarOpen && (
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-slate-800 text-slate-300">
+                  {aliados.length}
+                </span>
+              )}
             </button>
 
             {/* Contabilidad */}
             <button
-              onClick={() => setCurrentSection('contabilidad')}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+              onClick={() => {
+                setCurrentSection('contabilidad');
+                setIsMobileMenuOpen(false);
+              }}
+              title="Contabilidad & Finanzas"
+              className={`w-full flex items-center ${isSidebarOpen ? 'justify-between px-3.5' : 'justify-center px-0'} py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
                 currentSection === 'contabilidad'
                   ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
               }`}
             >
               <div className="flex items-center gap-3">
-                <Receipt className={`w-4 h-4 ${currentSection === 'contabilidad' ? 'text-amber-400' : 'text-slate-400'}`} />
-                <span>Contabilidad</span>
+                <Receipt className={`w-4 h-4 shrink-0 ${currentSection === 'contabilidad' ? 'text-amber-400' : 'text-slate-400'}`} />
+                {isSidebarOpen && <span>Contabilidad</span>}
               </div>
-              <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                Finanzas
-              </span>
+              {isSidebarOpen && (
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Finanzas
+                </span>
+              )}
             </button>
 
             {/* Configuración */}
             <button
-              onClick={() => setCurrentSection('configuracion')}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+              onClick={() => {
+                setCurrentSection('configuracion');
+                setIsMobileMenuOpen(false);
+              }}
+              title="Configuración del Sistema"
+              className={`w-full flex items-center ${isSidebarOpen ? 'justify-between px-3.5' : 'justify-center px-0'} py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
                 currentSection === 'configuracion'
                   ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
               }`}
             >
               <div className="flex items-center gap-3">
-                <Settings className={`w-4 h-4 ${currentSection === 'configuracion' ? 'text-amber-400' : 'text-slate-400'}`} />
-                <span>Configuración</span>
+                <Settings className={`w-4 h-4 shrink-0 ${currentSection === 'configuracion' ? 'text-amber-400' : 'text-slate-400'}`} />
+                {isSidebarOpen && <span>Configuración</span>}
               </div>
             </button>
 
-            {/* Perfil */}
+            {/* Perfil del Negocio (Milenia / QR / Breve / Bancos) */}
             <button
-              onClick={() => setCurrentSection('perfil')}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
-                currentSection === 'perfil'
+              onClick={() => {
+                setCurrentSection('perfil_negocio');
+                setIsMobileMenuOpen(false);
+              }}
+              title="Perfil del Negocio Milenia"
+              className={`w-full flex items-center ${isSidebarOpen ? 'justify-between px-3.5' : 'justify-center px-0'} py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                currentSection === 'perfil_negocio'
                   ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
               }`}
             >
               <div className="flex items-center gap-3">
-                <User className={`w-4 h-4 ${currentSection === 'perfil' ? 'text-amber-400' : 'text-slate-400'}`} />
-                <span>Perfil</span>
+                <Briefcase className={`w-4 h-4 shrink-0 ${currentSection === 'perfil_negocio' ? 'text-amber-400' : 'text-slate-400'}`} />
+                {isSidebarOpen && <span>Perfil del Negocio</span>}
               </div>
-              <span className="text-[10px] font-mono text-amber-400 font-bold">1085312034</span>
+              {isSidebarOpen && (
+                <span className="text-[9px] font-mono text-purple-300 font-bold bg-purple-500/20 border border-purple-500/30 px-1.5 py-0.5 rounded">
+                  QR/Breve
+                </span>
+              )}
+            </button>
+
+            {/* Perfil de Usuario (Titular / Propietario) */}
+            <button
+              onClick={() => {
+                setCurrentSection('perfil_usuario');
+                setIsMobileMenuOpen(false);
+              }}
+              title="Perfil de Usuario"
+              className={`w-full flex items-center ${isSidebarOpen ? 'justify-between px-3.5' : 'justify-center px-0'} py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                currentSection === 'perfil_usuario'
+                  ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <User className={`w-4 h-4 shrink-0 ${currentSection === 'perfil_usuario' ? 'text-amber-400' : 'text-slate-400'}`} />
+                {isSidebarOpen && <span>Perfil de Usuario</span>}
+              </div>
+              {isSidebarOpen && (
+                <span className="text-[10px] font-mono text-amber-400 font-bold">1085312034</span>
+              )}
             </button>
 
           </nav>
@@ -536,24 +641,31 @@ export const MileniaOwnerDashboard: React.FC = () => {
         </div>
 
         {/* Footer User Info & Logout Button */}
-        <div className="space-y-4 pt-4 border-t border-slate-800">
+        <div className="space-y-3 pt-3 border-t border-slate-800">
           
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-9 h-9 rounded-xl bg-slate-800 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xs shrink-0">
+          {isSidebarOpen ? (
+            <div className="flex items-center gap-3 px-1">
+              <div className="w-8 h-8 rounded-xl bg-slate-800 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xs shrink-0">
+                AC
+              </div>
+              <div className="overflow-hidden">
+                <p className="text-xs font-bold text-white truncate">Andrés Camilo Vidal</p>
+                <p className="text-[10px] text-slate-400 font-mono truncate">camilovidal.1704@gmail.com</p>
+              </div>
+            </div>
+          ) : (
+            <div className="w-8 h-8 mx-auto rounded-xl bg-slate-800 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xs">
               AC
             </div>
-            <div className="overflow-hidden">
-              <p className="text-xs font-bold text-white truncate">Andrés Camilo Vidal</p>
-              <p className="text-[10px] text-slate-400 font-mono truncate">camilovidal.1704@gmail.com</p>
-            </div>
-          </div>
+          )}
 
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition cursor-pointer"
+            title="Cerrar Sesión"
+            className={`w-full flex items-center justify-center gap-2 ${isSidebarOpen ? 'px-3.5 py-2.5' : 'p-2.5'} rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition cursor-pointer`}
           >
-            <LogOut className="w-4 h-4" />
-            <span>Cerrar Sesión</span>
+            <LogOut className="w-4 h-4 shrink-0" />
+            {isSidebarOpen && <span>Cerrar Sesión</span>}
           </button>
 
         </div>
@@ -563,7 +675,21 @@ export const MileniaOwnerDashboard: React.FC = () => {
       {/* ========================================================================= */}
       {/* 2. MAIN CONTENT AREA                                                      */}
       {/* ========================================================================= */}
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto w-full">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto w-full min-w-0">
+        
+        {/* Toggle Bar on top of Main for desktop if closed */}
+        {!isSidebarOpen && (
+          <div className="hidden md:flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-2xl px-4 py-2 text-xs text-slate-400">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="flex items-center gap-2 text-amber-400 hover:text-amber-300 font-bold cursor-pointer"
+            >
+              <PanelLeft className="w-4 h-4" />
+              <span>Abrir Navegación Lateral</span>
+            </button>
+            <span className="font-mono text-[11px] text-slate-500">Milenia Cloud Admin</span>
+          </div>
+        )}
         
         {/* ======================================================================= */}
         {/* SECCIÓN 1: DASHBOARD (RESUMEN EJECUTIVO)                                */}
@@ -1323,17 +1449,24 @@ export const MileniaOwnerDashboard: React.FC = () => {
         )}
 
         {/* ======================================================================= */}
-        {/* SECCIÓN 5: PERFIL DEL PROPIETARIO                                       */}
+        {/* SECCIÓN 5: PERFIL DEL NEGOCIO (MILENIA / QR / BREVE / BANCOS)           */}
         {/* ======================================================================= */}
-        {currentSection === 'perfil' && (
+        {currentSection === 'perfil_negocio' && (
+          <BusinessProfileSection showToast={showToast} />
+        )}
+
+        {/* ======================================================================= */}
+        {/* SECCIÓN 6: PERFIL DE USUARIO (PROPIETARIO / ANDRÉS CAMILO VIDAL)         */}
+        {/* ======================================================================= */}
+        {currentSection === 'perfil_usuario' && (
           <div className="space-y-6 animate-fade-in">
             <div className="pb-2 border-b border-slate-800">
               <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
                 <User className="w-6 h-6 text-amber-500" />
-                <span>Perfil del Propietario & Fundador</span>
+                <span>Perfil de Usuario (Propietario Fundador)</span>
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Datos personales y de facturación del titular de la cuenta Milenia SaaS.
+                Datos personales y de credenciales del titular de la plataforma Milenia SaaS (C.C. 1085312034).
               </p>
             </div>
 
