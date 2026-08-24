@@ -71,12 +71,20 @@ export const MileniaLandingView: React.FC = () => {
           {/* Action CTAs */}
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
             <button
-              onClick={() => setMileniaView('login')}
-              className="px-6 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-500/25 flex items-center gap-2 transition cursor-pointer hover:scale-[1.02]"
+              onClick={() => setMileniaView('propietario')}
+              className="px-6 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-500/25 flex items-center gap-2 transition cursor-pointer hover:scale-[1.02]"
             >
-              <LogIn className="w-4 h-4 text-slate-950 stroke-[2.5]" />
-              <span>Ingreso Aliados</span>
+              <Crown className="w-4 h-4 text-slate-950 stroke-[2.5]" />
+              <span>Dashboard Propietario Milenia</span>
               <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => setMileniaView('login')}
+              className="px-6 py-3.5 bg-slate-900/90 hover:bg-slate-800 text-amber-400 font-bold text-sm rounded-2xl border border-amber-500/30 flex items-center gap-2 transition cursor-pointer"
+            >
+              <LogIn className="w-4 h-4 text-amber-400 stroke-[2.5]" />
+              <span>Ingreso Aliados</span>
             </button>
 
             <button
@@ -84,7 +92,7 @@ export const MileniaLandingView: React.FC = () => {
               className="px-6 py-3.5 bg-slate-800/80 hover:bg-slate-800 text-white font-bold text-sm rounded-2xl border border-slate-700 flex items-center gap-2 transition cursor-pointer"
             >
               <Building2 className="w-4 h-4 text-amber-400" />
-              <span>Ver Restaurantes Aliados</span>
+              <span>Ver Aliados</span>
             </button>
           </div>
 
