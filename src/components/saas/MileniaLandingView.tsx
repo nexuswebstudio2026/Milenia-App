@@ -24,7 +24,8 @@ import {
   Lock,
   Zap,
   TrendingUp,
-  Clock
+  Clock,
+  Crown
 } from 'lucide-react';
 import { formatCop } from '../../utils/currency';
 
