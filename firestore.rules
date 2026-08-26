@@ -120,6 +120,15 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // 12. Resumen Financiero Consolidado (Ingresos, Gastos, Balance Neto)
+    match /resumen_financiero/{docId} {
+      allow read, write: if true;
+    }
+
+    match /resumen_financiero/{document=**} {
+      allow read, write: if true;
+    }
+
     match /tenants/{tenantId} {
       allow read, write: if true;
     }

@@ -154,9 +154,31 @@
         "createdAt": { "type": "string" }
       },
       "required": ["id", "name", "city", "email", "status"]
+    },
+    "FinancialSummary": {
+      "title": "FinancialSummary",
+      "description": "Resumen financiero consolidado con ingresos, gastos y balance neto en Firestore",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "titulo": { "type": "string", "maxLength": 150 },
+        "ingresos": { "type": "number" },
+        "gastos": { "type": "number" },
+        "balanceNeto": { "type": "number" },
+        "margenNeto": { "type": "number" },
+        "descripcion": { "type": "string", "maxLength": 500 },
+        "notas": { "type": "string", "maxLength": 500 },
+        "updatedAt": { "type": "string" },
+        "updatedBy": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "ingresos", "gastos", "balanceNeto"]
     }
   },
   "firestore": {
+    "/resumen_financiero/{id}": {
+      "schema": "FinancialSummary",
+      "description": "Tabla y documento de resumen financiero consolidado con ingresos, gastos y balance neto"
+    },
     "/aliados/{aliadoId}": {
       "schema": "Aliado",
       "description": "Tabla y colección de restaurantes aliados en la plataforma SaaS"

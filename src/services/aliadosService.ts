@@ -95,14 +95,12 @@ export async function getAliadosFromFirestore(): Promise<TenantRestaurant[]> {
     const colRef = collection(db, COLLECTION_NAME);
     const snap = await getDocs(colRef);
     if (snap.empty) {
-      // Auto seed initial tenants if collection is empty
-      await seedAliadosInFirestore(INITIAL_TENANTS);
-      return INITIAL_TENANTS;
+      return [];
     }
     return snap.docs.map(d => parseAliadoDoc(d.data()));
   } catch (error) {
-    console.warn('Error fetching aliados from Firestore, using initial fallback:', error);
-    return INITIAL_TENANTS;
+    console.warn('Error fetching aliados from Firestore:', error);
+    return [];
   }
 }
 
@@ -113,10 +111,8 @@ export function subscribeToAliados(onUpdate: (aliados: TenantRestaurant[]) => vo
   try {
     const colRef = collection(db, COLLECTION_NAME);
     return onSnapshot(colRef, (snap) => {
-      if (!snap.empty) {
-        const list = snap.docs.map(d => parseAliadoDoc(d.data()));
-        onUpdate(list);
-      }
+      const list = snap.docs.map(d => parseAliadoDoc(d.data()));
+      onUpdate(list);
     }, (err) => {
       console.warn('Snapshot listener warning on /aliados:', err);
     });

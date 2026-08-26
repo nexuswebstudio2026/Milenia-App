@@ -264,7 +264,7 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { currentRoute, navigateTo } = useTenantRoute();
 
   // Multi-Tenant Data States
-  const [tenants, setTenants] = useState<TenantRestaurant[]>(INITIAL_TENANTS);
+  const [tenants, setTenants] = useState<TenantRestaurant[]>([]);
   const [employees, setEmployees] = useState<TenantEmployee[]>(INITIAL_EMPLOYEES);
   const [tables, setTables] = useState<RestaurantTable[]>(INITIAL_TABLES);
   const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
@@ -275,16 +275,10 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const initAliados = async () => {
       try {
         const loadedAliados = await getAliadosFromFirestore();
-        if (loadedAliados && loadedAliados.length > 0) {
-          setTenants(loadedAliados);
-        }
+        setTenants(loadedAliados);
         unsubscribe = subscribeToAliados((realtimeAliados) => {
-          if (realtimeAliados && realtimeAliados.length > 0) {
-            setTenants(realtimeAliados);
-          }
+          setTenants(realtimeAliados);
         });
-        // Sincronizar e inicializar tablas de aliados y usuarios en Firestore
-        await seedAllAllyUsersInFirestore();
       } catch (err) {
         console.warn('Could not sync /aliados with Firestore:', err);
       }

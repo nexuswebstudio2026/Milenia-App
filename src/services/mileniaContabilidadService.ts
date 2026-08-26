@@ -152,30 +152,26 @@ export async function getContabilidad(): Promise<MileniaTransaction[]> {
     const colRef = collection(db, 'contabilidad');
     const snap = await getDocs(colRef);
 
-    if (!snap.empty) {
-      const list = snap.docs.map(d => ({
-        ...d.data(),
-        id: d.id
-      })) as MileniaTransaction[];
-      // Ordenar por fecha descendente
-      list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
-      return list;
+    if (snap.empty) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([]));
+      return [];
     }
 
-    // Inicializar con transacciones base si está vacía
-    for (const tx of INITIAL_TRANSACTIONS) {
-      await setDoc(doc(db, 'contabilidad', tx.id), tx, { merge: true });
-    }
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(INITIAL_TRANSACTIONS));
-    return INITIAL_TRANSACTIONS;
+    const list = snap.docs.map(d => ({
+      ...d.data(),
+      id: d.id
+    })) as MileniaTransaction[];
+    // Ordenar por fecha descendente
+    list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
+    return list;
   } catch (e) {
     console.warn('Error en getContabilidad desde Firestore:', e);
     try {
       const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (cached) return JSON.parse(cached);
     } catch (_) {}
-    return INITIAL_TRANSACTIONS;
+    return [];
   }
 }
 
@@ -256,15 +252,13 @@ export function subscribeToContabilidad(onUpdate: (transactions: MileniaTransact
   try {
     const colRef = collection(db, 'contabilidad');
     return onSnapshot(colRef, (snap) => {
-      if (!snap.empty) {
-        const list = snap.docs.map(d => ({
-          ...d.data(),
-          id: d.id
-        })) as MileniaTransaction[];
-        list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
-        onUpdate(list);
-      }
+      const list = snap.docs.map(d => ({
+        ...d.data(),
+        id: d.id
+      })) as MileniaTransaction[];
+      list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
+      onUpdate(list);
     }, (err) => {
       console.warn('Snapshot listener en contabilidad:', err);
     });

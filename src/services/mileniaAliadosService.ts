@@ -118,6 +118,11 @@ export async function getAliados(): Promise<MileniaAlly[]> {
     const colRef = collection(db, 'aliados');
     const snap = await getDocs(colRef);
 
+    if (snap.empty) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([]));
+      return [];
+    }
+
     const list = snap.docs.map(d => ({
       ...d.data(),
       id: d.id

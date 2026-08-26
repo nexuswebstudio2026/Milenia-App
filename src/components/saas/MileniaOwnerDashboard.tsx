@@ -78,9 +78,17 @@ import {
   DEFAULT_SYSTEM_CONFIG,
   DEFAULT_OWNER_PROFILE
 } from '../../services/mileniaSystemService';
+import {
+  MileniaFinancialSummary,
+  DEFAULT_FINANCIAL_SUMMARY,
+  getFinancialSummary,
+  saveFinancialSummary,
+  resetFinancialSummaryToZero,
+  subscribeToFinancialSummary
+} from '../../services/mileniaFinancialSummaryService';
 import { MileniaOwnerAuthScreen } from './MileniaOwnerAuthScreen';
 import { BusinessProfileSection } from './BusinessProfileSection';
-import { Menu, PanelLeftClose, PanelLeft, ChevronLeft } from 'lucide-react';
+import { Menu, PanelLeftClose, PanelLeft, ChevronLeft, Calculator } from 'lucide-react';
 
 type NavigationSection = 'dashboard' | 'aliados' | 'contabilidad' | 'configuracion' | 'perfil_usuario' | 'perfil_negocio';
 
@@ -161,6 +169,18 @@ export const MileniaOwnerDashboard: React.FC = () => {
   const [ownerProfile, setOwnerProfile] = useState<MileniaOwnerProfile>(DEFAULT_OWNER_PROFILE);
   const [savingProfile, setSavingProfile] = useState(false);
 
+  // Financial Summary State (/resumen_financiero Firestore collection)
+  const [financialSummary, setFinancialSummary] = useState<MileniaFinancialSummary>(DEFAULT_FINANCIAL_SUMMARY);
+  const [isFinSummaryModalOpen, setIsFinSummaryModalOpen] = useState(false);
+  const [savingFinSummary, setSavingFinSummary] = useState(false);
+  const [finSummaryFormData, setFinSummaryFormData] = useState({
+    ingresos: 0,
+    gastos: 0,
+    titulo: 'Resumen Financiero Consolidado',
+    descripcion: 'Tabla de ingresos, gastos y balance neto en Firestore (/resumen_financiero)',
+    notas: ''
+  });
+
   // Load Data on Mount & Listeners
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -181,6 +201,19 @@ export const MileniaOwnerDashboard: React.FC = () => {
       setLoadingTransactions(false);
     };
 
+    // Load Financial Summary
+    const loadFinSummary = async () => {
+      const summary = await getFinancialSummary();
+      setFinancialSummary(summary);
+      setFinSummaryFormData({
+        ingresos: summary.ingresos,
+        gastos: summary.gastos,
+        titulo: summary.titulo || 'Resumen Financiero Consolidado',
+        descripcion: summary.descripcion || '',
+        notas: summary.notas || ''
+      });
+    };
+
     // Load System & Profile
     const loadSystemData = async () => {
       const config = await getSystemConfig();
@@ -191,15 +224,27 @@ export const MileniaOwnerDashboard: React.FC = () => {
 
     loadAllAliados();
     loadAllContabilidad();
+    loadFinSummary();
     loadSystemData();
 
     // Realtime Subscriptions
     const unsubAliados = subscribeToAliados((updated) => setAliados(updated));
     const unsubContabilidad = subscribeToContabilidad((updated) => setTransactions(updated));
+    const unsubFinSummary = subscribeToFinancialSummary((updated) => {
+      setFinancialSummary(updated);
+      setFinSummaryFormData({
+        ingresos: updated.ingresos,
+        gastos: updated.gastos,
+        titulo: updated.titulo || 'Resumen Financiero Consolidado',
+        descripcion: updated.descripcion || '',
+        notas: updated.notas || ''
+      });
+    });
 
     return () => {
       unsubAliados();
       unsubContabilidad();
+      unsubFinSummary();
     };
   }, [isAuthenticated]);
 
@@ -216,17 +261,12 @@ export const MileniaOwnerDashboard: React.FC = () => {
 
   // ==========================================
   // FINANCIAL CALCULATIONS & STATS
+  // (Connected to /resumen_financiero Firestore table)
   // ==========================================
-  const totalIngresos = transactions
-    .filter(t => t.type === 'INGRESO')
-    .reduce((acc, t) => acc + (t.amountCop || 0), 0);
-
-  const totalGastos = transactions
-    .filter(t => t.type === 'GASTO')
-    .reduce((acc, t) => acc + (t.amountCop || 0), 0);
-
+  const totalIngresos = financialSummary.ingresos;
+  const totalGastos = financialSummary.gastos;
   const balanceNeto = totalIngresos - totalGastos;
-  const margenNeto = totalIngresos > 0 ? ((balanceNeto / totalIngresos) * 100).toFixed(1) : '0.0';
+  const margenNeto = totalIngresos > 0 ? Number(((balanceNeto / totalIngresos) * 100).toFixed(1)) : 0;
 
   const totalAliadosCount = aliados.length;
   const activeAliadosCount = aliados.filter(a => a.status === 'Activo').length;
@@ -236,7 +276,7 @@ export const MileniaOwnerDashboard: React.FC = () => {
 
   const totalTablesNetwork = aliados.reduce((acc, a) => acc + (a.tablesCount || 0), 0);
 
-  // Latest 3 Aliados
+  // Latest Registered Aliados (Directly connected to Firestore /aliados)
   const recentAliados = [...aliados]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 3);
@@ -337,8 +377,81 @@ export const MileniaOwnerDashboard: React.FC = () => {
   const handleConfirmDeleteAlly = async () => {
     if (!deletingAlly) return;
     await deleteAliado(deletingAlly.id);
-    showToast('Aliado Eliminado', `Se borró el aliado ${deletingAlly.name} de Firestore.`, 'info');
+    showToast('Aliado Eliminado', `Se borró el aliado ${deletingAlly.name} de Firestore permanentemente.`, 'info');
     setDeletingAlly(null);
+  };
+
+  // ==========================================
+  // FINANCIAL SUMMARY CRUD HANDLERS
+  // (Tabla /resumen_financiero en Firebase Firestore)
+  // ==========================================
+  const handleOpenEditFinSummary = () => {
+    setFinSummaryFormData({
+      ingresos: financialSummary.ingresos,
+      gastos: financialSummary.gastos,
+      titulo: financialSummary.titulo || 'Resumen Financiero Consolidado',
+      descripcion: financialSummary.descripcion || 'Tabla de ingresos, gastos y balance neto en Firestore (/resumen_financiero)',
+      notas: financialSummary.notas || ''
+    });
+    setIsFinSummaryModalOpen(true);
+  };
+
+  const handleSaveFinSummary = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingFinSummary(true);
+    try {
+      const updated = await saveFinancialSummary({
+        ingresos: finSummaryFormData.ingresos,
+        gastos: finSummaryFormData.gastos,
+        titulo: finSummaryFormData.titulo,
+        descripcion: finSummaryFormData.descripcion,
+        notas: finSummaryFormData.notas
+      });
+      setFinancialSummary(updated);
+      showToast('Resumen Financiero Guardado', 'Los datos de Ingresos, Gastos y Balance Neto se actualizaron en Firestore.', 'success');
+      setIsFinSummaryModalOpen(false);
+    } catch (err) {
+      showToast('Error al Guardar', 'No se pudo guardar el resumen financiero en Firestore.', 'error');
+    } finally {
+      setSavingFinSummary(false);
+    }
+  };
+
+  const handleResetFinSummaryToZero = async () => {
+    setSavingFinSummary(true);
+    try {
+      const reset = await resetFinancialSummaryToZero();
+      setFinancialSummary(reset);
+      setFinSummaryFormData({
+        ingresos: 0,
+        gastos: 0,
+        titulo: reset.titulo,
+        descripcion: reset.descripcion || '',
+        notas: reset.notas || ''
+      });
+      showToast('Finanzas a Cero ($0 COP)', 'Ingresos ($0), Gastos ($0) y Balance Neto ($0) restablecidos en Firestore.', 'info');
+      setIsFinSummaryModalOpen(false);
+    } catch (err) {
+      showToast('Error', 'No se pudo restablecer a cero.', 'error');
+    } finally {
+      setSavingFinSummary(false);
+    }
+  };
+
+  const handleSyncFinSummaryFromTx = async () => {
+    const txIngresos = transactions
+      .filter(t => t.type === 'INGRESO')
+      .reduce((acc, t) => acc + (t.amountCop || 0), 0);
+    const txGastos = transactions
+      .filter(t => t.type === 'GASTO')
+      .reduce((acc, t) => acc + (t.amountCop || 0), 0);
+
+    setFinSummaryFormData(prev => ({
+      ...prev,
+      ingresos: txIngresos,
+      gastos: txGastos,
+      notas: `Sincronizado desde el libro mayor de contabilidad (${transactions.length} registros).`
+    }));
   };
 
   // ==========================================
@@ -758,7 +871,7 @@ export const MileniaOwnerDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Stat 2: Ingresos del Mes */}
+              {/* Stat 2: Ingresos Totales */}
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-3 shadow-xl hover:border-emerald-500/40 transition">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono font-bold uppercase text-slate-400">Ingresos Totales</span>
@@ -769,16 +882,16 @@ export const MileniaOwnerDashboard: React.FC = () => {
                 <div>
                   <div className="text-2xl sm:text-3xl font-black text-emerald-400">{formatCop(totalIngresos)}</div>
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Suscripciones SaaS & Servicios
+                    Entradas registradas en base de datos
                   </p>
                 </div>
                 <div className="pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-500 flex justify-between">
-                  <span>MRR Base:</span>
-                  <span className="text-emerald-400 font-bold">{formatCop(totalMrrEstimado)}/mes</span>
+                  <span>Tabla Firebase:</span>
+                  <span className="text-emerald-400 font-bold">/resumen_financiero</span>
                 </div>
               </div>
 
-              {/* Stat 3: Gastos del Mes */}
+              {/* Stat 3: Gastos Totales */}
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-3 shadow-xl hover:border-rose-500/40 transition">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono font-bold uppercase text-slate-400">Gastos Totales</span>
@@ -789,12 +902,12 @@ export const MileniaOwnerDashboard: React.FC = () => {
                 <div>
                   <div className="text-2xl sm:text-3xl font-black text-rose-400">{formatCop(totalGastos)}</div>
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Servidores, Timbrado DIAN y Pauta
+                    Costos operativos y servicios
                   </p>
                 </div>
                 <div className="pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-500 flex justify-between">
-                  <span>Operación Cloud:</span>
-                  <span className="text-slate-300">Controlada</span>
+                  <span>Tabla Firebase:</span>
+                  <span className="text-rose-400 font-bold">/resumen_financiero</span>
                 </div>
               </div>
 
@@ -811,12 +924,12 @@ export const MileniaOwnerDashboard: React.FC = () => {
                     {formatCop(balanceNeto)}
                   </div>
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Margen de Ganancia: <strong className="text-amber-400 font-sans">{margenNeto}%</strong>
+                    Resta: Ingresos menos Gastos
                   </p>
                 </div>
                 <div className="pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-500 flex justify-between">
-                  <span>Estado Financiero:</span>
-                  <span className="text-emerald-400 font-bold">Saludable</span>
+                  <span>Cálculo:</span>
+                  <span className="text-amber-400 font-bold">Ingresos - Gastos</span>
                 </div>
               </div>
 
@@ -825,15 +938,15 @@ export const MileniaOwnerDashboard: React.FC = () => {
             {/* Split: Recent Allies & Financial Overview */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
-              {/* Left 7 Cols: Últimos 3 Aliados Registrados */}
+              {/* Left 7 Cols: Últimos Aliados Registrados */}
               <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-5 shadow-xl">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <h3 className="text-base font-bold text-white flex items-center gap-2">
                       <Store className="w-4 h-4 text-amber-400" />
-                      <span>Últimos Aliados Registrados</span>
+                      <span>Últimos Aliados Registrados ({aliados.length})</span>
                     </h3>
-                    <p className="text-xs text-slate-400">Restaurantes incorporados recientemente a la plataforma.</p>
+                    <p className="text-xs text-slate-400">Conectado a la base de datos Firestore <span className="font-mono text-amber-400">/aliados</span>.</p>
                   </div>
 
                   <button
@@ -847,7 +960,22 @@ export const MileniaOwnerDashboard: React.FC = () => {
 
                 <div className="space-y-3">
                   {recentAliados.length === 0 ? (
-                    <p className="text-xs text-slate-500 py-6 text-center">No hay aliados registrados aún.</p>
+                    <div className="text-center py-8 px-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 space-y-3">
+                      <Building2 className="w-10 h-10 text-slate-600 mx-auto" />
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-slate-200">No hay aliados registrados en la base de datos</p>
+                        <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                          La tabla <span className="font-mono text-amber-400">/aliados</span> está vacía. Los aliados eliminados no se volverán a cargar de forma predeterminada.
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleOpenCreateAlly}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 rounded-xl text-xs font-black transition cursor-pointer shadow-lg shadow-amber-500/20"
+                      >
+                        <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>Registrar Primer Aliado</span>
+                      </button>
+                    </div>
                   ) : (
                     recentAliados.map(ally => (
                       <div 
@@ -889,62 +1017,97 @@ export const MileniaOwnerDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Right 5 Cols: Resumen Financiero Rápido */}
+              {/* Right 5 Cols: Resumen Financiero Consolidado */}
               <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-5 shadow-xl flex flex-col justify-between">
                 <div className="space-y-4">
-                  <div className="space-y-0.5">
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <PieChart className="w-4 h-4 text-emerald-400" />
-                      <span>Resumen Financiero Rápido</span>
-                    </h3>
-                    <p className="text-xs text-slate-400">Distribución de flujo de caja y rentabilidad neta.</p>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <h3 className="text-base font-bold text-white flex items-center gap-2">
+                        <PieChart className="w-4 h-4 text-emerald-400" />
+                        <span>Resumen Financiero</span>
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Tabla Firestore: <span className="font-mono text-emerald-400 font-bold">/resumen_financiero</span>
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleOpenEditFinSummary}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1 cursor-pointer"
+                      title="Editar valores de Ingresos y Gastos"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                      <span>Modificar</span>
+                    </button>
+                  </div>
+
+                  {/* Visual Balances */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3.5 bg-slate-950 rounded-2xl border border-emerald-500/20 space-y-1">
+                      <span className="text-[10px] font-mono font-bold uppercase text-slate-400">Ingresos</span>
+                      <div className="text-lg font-black text-emerald-400 font-mono">{formatCop(totalIngresos)}</div>
+                    </div>
+
+                    <div className="p-3.5 bg-slate-950 rounded-2xl border border-rose-500/20 space-y-1">
+                      <span className="text-[10px] font-mono font-bold uppercase text-slate-400">Gastos</span>
+                      <div className="text-lg font-black text-rose-400 font-mono">{formatCop(totalGastos)}</div>
+                    </div>
+                  </div>
+
+                  {/* Net Balance Highlight */}
+                  <div className="p-4 bg-slate-950 rounded-2xl border border-amber-500/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-bold text-amber-300 flex items-center gap-1.5">
+                        <Calculator className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Balance Neto (Resta):</span>
+                      </span>
+                      <span className={`text-base font-black font-mono ${balanceNeto >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>
+                        {formatCop(balanceNeto)}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono flex justify-between pt-1 border-t border-slate-800/80">
+                      <span>Fórmula aplicada:</span>
+                      <span className="text-white">{formatCop(totalIngresos)} - {formatCop(totalGastos)} = {formatCop(balanceNeto)}</span>
+                    </div>
                   </div>
 
                   {/* Progress Bar Visual */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs font-mono">
-                      <span className="text-emerald-400 font-bold">Ingresos: {formatCop(totalIngresos)}</span>
-                      <span className="text-rose-400 font-bold">Gastos: {formatCop(totalGastos)}</span>
-                    </div>
-
-                    <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden flex border border-slate-800">
+                  <div className="space-y-1.5">
+                    <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden flex border border-slate-800">
                       <div 
                         className="bg-emerald-500 h-full transition-all" 
-                        style={{ width: `${totalIngresos > 0 ? (totalIngresos / (totalIngresos + totalGastos)) * 100 : 50}%` }}
+                        style={{ width: `${(totalIngresos + totalGastos) > 0 ? (totalIngresos / (totalIngresos + totalGastos)) * 100 : 50}%` }}
                       ></div>
                       <div 
                         className="bg-rose-500 h-full transition-all" 
-                        style={{ width: `${totalGastos > 0 ? (totalGastos / (totalIngresos + totalGastos)) * 100 : 50}%` }}
+                        style={{ width: `${(totalIngresos + totalGastos) > 0 ? (totalGastos / (totalIngresos + totalGastos)) * 100 : 50}%` }}
                       ></div>
                     </div>
-                  </div>
-
-                  {/* Highlights */}
-                  <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2.5 text-xs font-mono">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Total Transacciones:</span>
-                      <span className="font-bold text-white">{transactions.length} registros</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Suscripción Promedio:</span>
-                      <span className="font-bold text-amber-400">
-                        {formatCop(totalAliadosCount > 0 ? totalMrrEstimado / totalAliadosCount : 289000)}/mes
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Resolución DIAN:</span>
-                      <span className="font-bold text-emerald-400">{systemConfig.dianPrefix} Habilitada</span>
+                    <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                      <span>Ingresos: {totalIngresos > 0 ? `${((totalIngresos / (totalIngresos + totalGastos)) * 100).toFixed(0)}%` : '0%'}</span>
+                      <span>Gastos: {totalGastos > 0 ? `${((totalGastos / (totalIngresos + totalGastos)) * 100).toFixed(0)}%` : '0%'}</span>
                     </div>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setCurrentSection('contabilidad')}
-                  className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer border border-slate-700"
-                >
-                  <Receipt className="w-4 h-4 text-amber-400" />
-                  <span>Ver Libro Mayor de Contabilidad</span>
-                </button>
+                <div className="pt-3 border-t border-slate-800/80 flex items-center gap-2">
+                  <button
+                    onClick={handleOpenEditFinSummary}
+                    className="flex-1 py-2.5 px-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 text-xs font-black rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/20"
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                    <span>Actualizar Finanzas</span>
+                  </button>
+
+                  <button
+                    onClick={handleResetFinSummaryToZero}
+                    className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer border border-slate-700"
+                    title="Restablecer valores en Firestore a $0 COP"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
+                    <span>$0 COP</span>
+                  </button>
+                </div>
               </div>
 
             </div>
@@ -1038,8 +1201,29 @@ export const MileniaOwnerDashboard: React.FC = () => {
                   <tbody className="divide-y divide-slate-800/60 font-sans">
                     {filteredAliados.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-slate-500 text-xs">
-                          No se encontraron aliados que coincidan con la búsqueda.
+                        <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                          <div className="max-w-md mx-auto space-y-3">
+                            <Building2 className="w-8 h-8 text-slate-600 mx-auto" />
+                            <p className="font-bold text-slate-200">
+                              {aliados.length === 0 
+                                ? 'No hay aliados en la base de datos Firestore (/aliados)' 
+                                : 'No se encontraron aliados que coincidan con los filtros de búsqueda.'}
+                            </p>
+                            <p className="text-[11px] text-slate-500">
+                              {aliados.length === 0
+                                ? 'Los aliados eliminados permanecen borrados y no se cargarán registros predeterminados a menos que los registres.'
+                                : 'Prueba cambiando los términos de búsqueda o limpiando los filtros.'}
+                            </p>
+                            {aliados.length === 0 && (
+                              <button
+                                onClick={handleOpenCreateAlly}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-500 text-slate-950 rounded-xl text-xs font-black hover:bg-amber-400 transition cursor-pointer"
+                              >
+                                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                                <span>Registrar Primer Aliado</span>
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ) : (
@@ -1938,6 +2122,160 @@ export const MileniaOwnerDashboard: React.FC = () => {
                 Sí, Eliminar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ACTUALIZAR RESUMEN FINANCIERO (TABLA /resumen_financiero FIRESTORE) */}
+      {/* ========================================================================= */}
+      {isFinSummaryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-amber-500/30 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+            
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-slate-950 flex items-center justify-center font-bold">
+                  <Calculator className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    Modificar Resumen Financiero
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-mono">
+                    Tabla Firestore: <span className="text-amber-400 font-bold">/resumen_financiero/principal</span>
+                  </p>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setIsFinSummaryModalOpen(false)}
+                className="text-slate-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveFinSummary} className="space-y-4 text-xs">
+              
+              <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 space-y-1.5">
+                <p className="text-slate-300 text-[11px] leading-relaxed">
+                  Configura directamente los valores de <strong>Ingresos</strong> y <strong>Gastos</strong> almacenados en Firebase. El <strong>Balance Neto</strong> se calcula automáticamente como la resta de <em>Ingresos menos Gastos</em>.
+                </p>
+                {transactions.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleSyncFinSummaryFromTx}
+                    className="inline-flex items-center gap-1 text-[11px] text-amber-400 hover:text-amber-300 font-bold cursor-pointer underline pt-1"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Calcular a partir de las {transactions.length} transacciones registradas</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-slate-400 font-mono uppercase text-[10px] font-bold mb-1">
+                    Ingresos Totales (COP) *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      value={finSummaryFormData.ingresos}
+                      onChange={(e) => setFinSummaryFormData({ ...finSummaryFormData, ingresos: Math.max(0, Number(e.target.value)) })}
+                      className="w-full bg-slate-950 border border-emerald-500/40 rounded-xl px-3 py-2.5 text-emerald-400 font-mono font-bold text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-mono block mt-1">
+                    {formatCop(finSummaryFormData.ingresos)}
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-mono uppercase text-[10px] font-bold mb-1">
+                    Gastos Totales (COP) *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      value={finSummaryFormData.gastos}
+                      onChange={(e) => setFinSummaryFormData({ ...finSummaryFormData, gastos: Math.max(0, Number(e.target.value)) })}
+                      className="w-full bg-slate-950 border border-rose-500/40 rounded-xl px-3 py-2.5 text-rose-400 font-mono font-bold text-sm focus:outline-none focus:border-rose-500"
+                    />
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-mono block mt-1">
+                    {formatCop(finSummaryFormData.gastos)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Dynamic Calculation Live Box */}
+              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between text-xs font-mono">
+                  <span className="text-slate-400">Balance Neto Calculado (Ingresos - Gastos):</span>
+                  <span className={`text-base font-black ${
+                    (finSummaryFormData.ingresos - finSummaryFormData.gastos) >= 0 ? 'text-amber-400' : 'text-rose-400'
+                  }`}>
+                    {formatCop(finSummaryFormData.ingresos - finSummaryFormData.gastos)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 pt-1 border-t border-slate-800/80">
+                  <span>Margen Operativo:</span>
+                  <span className="text-white font-bold">
+                    {finSummaryFormData.ingresos > 0 
+                      ? `${(((finSummaryFormData.ingresos - finSummaryFormData.gastos) / finSummaryFormData.ingresos) * 100).toFixed(1)}%`
+                      : '0.0%'}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">Notas / Descripción (Opcional)</label>
+                <input
+                  type="text"
+                  placeholder="Ej. Resumen financiero oficial para el periodo fiscal actual"
+                  value={finSummaryFormData.notas}
+                  onChange={(e) => setFinSummaryFormData({ ...finSummaryFormData, notas: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={handleResetFinSummaryToZero}
+                  disabled={savingFinSummary}
+                  className="w-full sm:w-auto px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 border border-slate-700"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Restablecer a $0 COP</span>
+                </button>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsFinSummaryModalOpen(false)}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingFinSummary}
+                    className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black rounded-xl transition shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-50"
+                  >
+                    {savingFinSummary ? 'Guardando...' : 'Guardar en Firestore'}
+                  </button>
+                </div>
+              </div>
+
+            </form>
+
           </div>
         </div>
       )}
