@@ -302,28 +302,35 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [tenantView, setTenantView] = useState<RestaurantNavView>('restaurant-inicio');
 
   const currentTenantId = currentRoute.restaurantId || '1';
-  const currentTenant = useMemo(() => {
-    return tenants.find(t => t.id === currentTenantId || t.slug === currentTenantId) || tenants[0];
+  const currentTenant: TenantRestaurant = useMemo(() => {
+    return (
+      tenants.find(t => t.id === currentTenantId || t.slug === currentTenantId) || 
+      tenants[0] || 
+      INITIAL_TENANTS[0]
+    );
   }, [tenants, currentTenantId]);
 
   const tenantEmployees = useMemo(() => {
+    if (!currentTenant) return [];
     return employees.filter(e => e.restaurantId === currentTenant.id);
-  }, [employees, currentTenant.id]);
+  }, [employees, currentTenant]);
 
   const tenantInventory = useMemo(() => {
+    if (!currentTenant) return [];
     const list = inventory.filter(i => i.restaurantId === currentTenant.id);
     return list.length > 0 ? list : getTenantInventory(currentTenant.id);
-  }, [inventory, currentTenant.id]);
+  }, [inventory, currentTenant]);
 
   const currentEmployeeId = currentRoute.employeeId || (tenantEmployees[0]?.id || 'emp-101');
   const [selectedEmployeeOverride, setSelectedEmployeeOverride] = useState<TenantEmployee | null>(null);
 
   const currentEmployee = useMemo(() => {
+    if (!currentTenant) return null;
     if (selectedEmployeeOverride && selectedEmployeeOverride.restaurantId === currentTenant.id) {
       return selectedEmployeeOverride;
     }
     return tenantEmployees.find(e => e.id === currentEmployeeId) || tenantEmployees[0] || null;
-  }, [tenantEmployees, currentEmployeeId, selectedEmployeeOverride, currentTenant.id]);
+  }, [tenantEmployees, currentEmployeeId, selectedEmployeeOverride, currentTenant]);
 
   const setCurrentEmployee = (emp: TenantEmployee | null) => {
     setSelectedEmployeeOverride(emp);
@@ -337,8 +344,9 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const tenantTables = useMemo(() => {
+    if (!currentTenant) return [];
     return tables.filter(t => t.restaurantId === currentTenant.id);
-  }, [tables, currentTenant.id]);
+  }, [tables, currentTenant]);
 
   const updateTableStatus = (tableId: string, status: TableStatus, currentOrderId?: string) => {
     setTables(prev => prev.map(tbl => tbl.id === tableId ? { ...tbl, status, currentOrderId } : tbl));
@@ -562,17 +570,17 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Dynamic Categories per Tenant
   const categories = useMemo(() => {
-    return getTenantCategories(currentTenant.id);
-  }, [currentTenant.id]);
+    return getTenantCategories(currentTenant?.id || '1');
+  }, [currentTenant?.id]);
 
   // Dynamic Menu Items per Tenant
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
-    return getTenantMenuItems(currentTenant.id);
+    return getTenantMenuItems(currentTenant?.id || '1');
   });
 
   useEffect(() => {
-    setMenuItems(getTenantMenuItems(currentTenant.id));
-  }, [currentTenant.id]);
+    setMenuItems(getTenantMenuItems(currentTenant?.id || '1'));
+  }, [currentTenant?.id]);
 
   // Dynamic View synchronized with Route
   const currentView: AppView = useMemo(() => {

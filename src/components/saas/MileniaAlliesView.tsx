@@ -36,17 +36,22 @@ export const MileniaAlliesView: React.FC = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Extract cities
-  const cities = ['all', ...Array.from(new Set(tenants.map(t => t.city.split(',')[0].trim())))];
+  const cities = ['all', ...Array.from(new Set(tenants.map(t => (t.city || 'Colombia').split(',')[0].trim())))];
 
   // Filtered tenants
   const filteredTenants = tenants.filter(tenant => {
-    const matchesSearch = 
-      tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tenant.id.includes(searchQuery) ||
-      tenant.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tenant.branding.tagline.toLowerCase().includes(searchQuery.toLowerCase());
+    const name = tenant.name || '';
+    const id = tenant.id || '';
+    const city = tenant.city || '';
+    const tagline = tenant.branding?.tagline || '';
 
-    const matchesCity = selectedCity === 'all' || tenant.city.toLowerCase().includes(selectedCity.toLowerCase());
+    const matchesSearch = 
+      name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      id.includes(searchQuery) ||
+      city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tagline.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCity = selectedCity === 'all' || city.toLowerCase().includes(selectedCity.toLowerCase());
 
     return matchesSearch && matchesCity;
   });
