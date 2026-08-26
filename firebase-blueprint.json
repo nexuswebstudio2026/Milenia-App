@@ -214,6 +214,15 @@
     "/restaurant_config/{docId}": {
       "schema": "RestaurantConfig",
       "description": "Configuración general del restaurante"
+    },
+    "/contabilidad/{transactionId}": {
+      "description": "Libro mayor y registro de transacciones de ingresos y gastos de Milenia SaaS"
+    },
+    "/negocio/{docId}": {
+      "description": "Datos comerciales oficiales, llaves Breve, códigos QR de pagos y perfil corporativo"
+    },
+    "/system_config/{configId}": {
+      "description": "Parámetros globales del sistema y soporte técnico de la plataforma"
     }
   }
 }

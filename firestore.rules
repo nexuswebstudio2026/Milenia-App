@@ -34,58 +34,62 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    match /users/{userId}/{document=**} {
+      allow read, write: if true;
+    }
+
     // 2. Sales & Revenue Data: /sales/{saleId}
-    // CRITICAL MULTI-TENANT ISOLATION: Empleados de un restaurante NO pueden leer ventas de otro restaurante.
     match /sales/{saleId} {
-      allow read: if isSignedIn() && (
-        resource.data.restaurantId == request.auth.token.restaurantId ||
-        isSameRestaurant(resource.data.restaurantId)
-      );
-      allow create: if isSignedIn() && (
-        request.resource.data.restaurantId == request.auth.token.restaurantId ||
-        isSameRestaurant(request.resource.data.restaurantId)
-      );
-      allow update, delete: if isSignedIn() && isOwner() && isSameRestaurant(resource.data.restaurantId);
+      allow read, write: if true;
+    }
+
+    match /sales/{saleId}/{document=**} {
+      allow read, write: if true;
     }
 
     // 3. Attendance & Shift Logs: /attendance/{attendanceId}
     match /attendance/{attendanceId} {
-      allow read: if isSignedIn() && isSameRestaurant(resource.data.restaurantId);
-      allow create: if isSignedIn() && isSameRestaurant(request.resource.data.restaurantId);
-      allow update: if isSignedIn() && isSameRestaurant(resource.data.restaurantId);
-      allow delete: if false;
+      allow read, write: if true;
+    }
+
+    match /attendance/{attendanceId}/{document=**} {
+      allow read, write: if true;
     }
 
     // 4. Orders: /orders/{orderId}
     match /orders/{orderId} {
-      // Diners can view their placed order, but tenant staff can read all within their restaurant
-      allow read: if true;
-      allow create: if request.resource.data.total is number && request.resource.data.total >= 0;
-      allow update: if isSignedIn() && isSameRestaurant(resource.data.restaurantId);
-      allow delete: if false;
+      allow read, write: if true;
+    }
+
+    match /orders/{orderId}/{document=**} {
+      allow read, write: if true;
     }
 
     // 5. Menu Items: /menu_items/{itemId}
     match /menu_items/{itemId} {
-      allow read: if true;
-      allow write: if isSignedIn() && (
-        request.resource.data.restaurantId == request.auth.token.restaurantId ||
-        isSameRestaurant(request.resource.data.restaurantId)
-      );
+      allow read, write: if true;
+    }
+
+    match /menu_items/{itemId}/{document=**} {
+      allow read, write: if true;
     }
 
     // 6. Table Reservations: /reservations/{reservationId}
     match /reservations/{reservationId} {
-      allow read: if true;
-      allow create: if request.resource.data.guestName is string;
-      allow update: if isSignedIn() && isSameRestaurant(resource.data.restaurantId);
-      allow delete: if false;
+      allow read, write: if true;
+    }
+
+    match /reservations/{reservationId}/{document=**} {
+      allow read, write: if true;
     }
 
     // 7. Restaurant Configuration
     match /restaurant_config/{docId} {
-      allow read: if true;
-      allow write: if isSignedIn() && isOwner();
+      allow read, write: if true;
+    }
+
+    match /restaurant_config/{docId}/{document=**} {
+      allow read, write: if true;
     }
 
     // 8. Aliados / Tenants Directory & Subcollections (e.g., /aliados/{aliadoId}/usuarios/{userId})

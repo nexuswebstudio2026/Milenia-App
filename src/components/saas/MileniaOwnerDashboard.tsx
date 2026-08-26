@@ -88,9 +88,10 @@ import {
 } from '../../services/mileniaFinancialSummaryService';
 import { MileniaOwnerAuthScreen } from './MileniaOwnerAuthScreen';
 import { BusinessProfileSection } from './BusinessProfileSection';
+import { FirestoreDatabaseManager } from './FirestoreDatabaseManager';
 import { Menu, PanelLeftClose, PanelLeft, ChevronLeft, Calculator } from 'lucide-react';
 
-type NavigationSection = 'dashboard' | 'aliados' | 'contabilidad' | 'configuracion' | 'perfil_usuario' | 'perfil_negocio';
+type NavigationSection = 'dashboard' | 'aliados' | 'contabilidad' | 'database' | 'configuracion' | 'perfil_usuario' | 'perfil_negocio';
 
 export const MileniaOwnerDashboard: React.FC = () => {
   const { setMileniaView, showToast, switchTenant, navigateTo } = useTasty();
@@ -680,6 +681,30 @@ export const MileniaOwnerDashboard: React.FC = () => {
               {isSidebarOpen && (
                 <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   Finanzas
+                </span>
+              )}
+            </button>
+
+            {/* Base de Datos Firestore (CRUD completo de tablas) */}
+            <button
+              onClick={() => {
+                setCurrentSection('database');
+                setIsMobileMenuOpen(false);
+              }}
+              title="Gestor de Base de Datos Firestore (CRUD)"
+              className={`w-full flex items-center ${isSidebarOpen ? 'justify-between px-3.5' : 'justify-center px-0'} py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                currentSection === 'database'
+                  ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Database className={`w-4 h-4 shrink-0 ${currentSection === 'database' ? 'text-amber-400' : 'text-slate-400'}`} />
+                {isSidebarOpen && <span>Base de Datos</span>}
+              </div>
+              {isSidebarOpen && (
+                <span className="px-2 py-0.5 text-[9px] font-mono font-bold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  Firestore
                 </span>
               )}
             </button>
@@ -1760,6 +1785,11 @@ export const MileniaOwnerDashboard: React.FC = () => {
 
             </form>
           </div>
+        )}
+
+        {/* Sección Base de Datos Firestore (CRUD Completo de Tablas) */}
+        {currentSection === 'database' && (
+          <FirestoreDatabaseManager showToast={showToast} />
         )}
 
       </main>
