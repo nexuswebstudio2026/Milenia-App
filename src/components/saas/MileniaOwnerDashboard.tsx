@@ -45,7 +45,8 @@ import {
   Clock,
   Briefcase,
   Layers,
-  FileText
+  FileText,
+  Key
 } from 'lucide-react';
 import { formatCop } from '../../utils/currency';
 import { 
@@ -1307,6 +1308,22 @@ export const MileniaOwnerDashboard: React.FC = () => {
                           {/* Acciones */}
                           <td className="py-4 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => {
+                                  switchTenant(ally.id);
+                                  navigateTo({
+                                    restaurantId: ally.id,
+                                    cargo: 'gerente',
+                                    routeType: 'ally_panel'
+                                  });
+                                }}
+                                className="px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 font-bold text-[11px] rounded-xl transition cursor-pointer flex items-center gap-1 border border-amber-500/30"
+                                title={`Abrir Panel de Gerente (/panel/${ally.id}/gerente)`}
+                              >
+                                <Key className="w-3 h-3" />
+                                <span>Panel</span>
+                              </button>
+
                               <button
                                 onClick={() => handleOpenEditAlly(ally)}
                                 className="p-2 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl transition cursor-pointer"

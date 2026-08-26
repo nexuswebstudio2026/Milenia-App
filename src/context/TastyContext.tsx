@@ -78,8 +78,8 @@ import {
 
 export type AppView = 'menu' | 'reservations' | 'locations' | 'reviews' | 'tracking' | 'admin' | 'superadmin' | 'dashboard';
 export type Language = 'es' | 'en';
-export type MileniaNavView = 'inicio' | 'aliados' | 'login' | 'contactos' | 'propietario' | 'superadmin';
-export type RestaurantNavView = 'restaurant-inicio' | 'restaurant-servicios' | 'restaurant-platos' | 'restaurant-reservas' | 'restaurant-domicilios' | 'restaurant-empleados' | 'restaurant-admin';
+export type MileniaNavView = 'inicio' | 'aliados' | 'login' | 'contactos' | 'propietario' | 'superadmin' | 'panel_gerente';
+export type RestaurantNavView = 'restaurant-inicio' | 'restaurant-servicios' | 'restaurant-platos' | 'restaurant-reservas' | 'restaurant-domicilios' | 'restaurant-empleados' | 'restaurant-admin' | 'restaurant-panel-gerente';
 export type AppMode = 'milenia' | 'restaurant';
 
 export interface ToastMessage {
@@ -98,6 +98,7 @@ interface TastyContextType {
   tenantView: RestaurantNavView;
   setTenantView: (view: RestaurantNavView) => void;
   selectTenantById: (tenantId: string) => void;
+  openAllyManagerPanel: (restaurantId?: string, cargo?: string) => void;
   selectDishForCustomization: (dish: MenuItem) => void;
   isDarkMode: boolean;
 
@@ -143,6 +144,7 @@ interface TastyContextType {
   navigateTo: (options: {
     restaurantId?: string;
     employeeId?: string;
+    cargo?: string;
     routeType?: AppRouteType;
     subView?: string;
   }) => void;
@@ -552,6 +554,18 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       restaurantId: validTenant.id,
       employeeId: firstEmp ? firstEmp.id : 'emp-101',
       routeType: 'customer_menu'
+    });
+  };
+
+  const openAllyManagerPanel = (restaurantId?: string, cargo?: string) => {
+    const targetTenantId = restaurantId || currentTenant?.id || '1';
+    const targetCargo = cargo || 'gerente';
+    setMode('restaurant');
+    setTenantView('restaurant-panel-gerente');
+    navigateTo({
+      restaurantId: targetTenantId,
+      cargo: targetCargo,
+      routeType: 'ally_panel'
     });
   };
 
@@ -1323,6 +1337,7 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         tenantView,
         setTenantView,
         selectTenantById,
+        openAllyManagerPanel,
         selectDishForCustomization: (dish: MenuItem) => setCustomizingItem(dish),
         isDarkMode: theme === 'dark',
 

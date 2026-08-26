@@ -18,6 +18,7 @@ import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { SuperAdminDashboard } from './components/saas/SuperAdminDashboard';
 import { MileniaOwnerDashboard } from './components/saas/MileniaOwnerDashboard';
+import { AllyManagerAccessPanel } from './components/saas/AllyManagerAccessPanel';
 import { EmployeeDashboard } from './components/employee/EmployeeDashboard';
 import { Footer } from './components/layout/Footer';
 import { MobileNav } from './components/layout/MobileNav';
@@ -37,6 +38,7 @@ const AppContent: React.FC = () => {
     mileniaView, 
     tenantView, 
     currentView, 
+    currentRoute,
     setIsCartOpen 
   } = useTasty();
   
@@ -62,12 +64,22 @@ const AppContent: React.FC = () => {
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 overflow-hidden">
         
         {/* PWA Banner when in restaurant mode */}
-        {mode === 'restaurant' && tenantView !== 'restaurant-empleados' && (
+        {mode === 'restaurant' && tenantView !== 'restaurant-empleados' && currentRoute.routeType !== 'ally_panel' && (
           <PwaInstallBanner onOpenModal={() => setIsInstallModalOpen(true)} />
         )}
 
         <AnimatePresence mode="wait">
-          {mode === 'milenia' ? (
+          {currentRoute.routeType === 'ally_panel' || tenantView === 'restaurant-panel-gerente' || mileniaView === 'panel_gerente' ? (
+            <motion.div
+              key={`ally-panel-${currentRoute.restaurantId}-${currentRoute.cargo}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <AllyManagerAccessPanel />
+            </motion.div>
+          ) : mode === 'milenia' ? (
             <motion.div
               key={`milenia-${mileniaView}`}
               initial={{ opacity: 0, y: 10 }}

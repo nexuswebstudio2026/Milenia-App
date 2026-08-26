@@ -17,7 +17,8 @@ import {
   X,
   Store,
   Phone,
-  Cloud
+  Cloud,
+  Key
 } from 'lucide-react';
 import { formatCop } from '../../utils/currency';
 import { useCurrentDomain } from '../../utils/domainHelper';
@@ -33,6 +34,7 @@ export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }
     setTenantView, 
     setMode,
     setMileniaView,
+    openAllyManagerPanel,
     cart, 
     language, 
     setLanguage,
@@ -202,6 +204,19 @@ export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }
               <span>Ingreso Empleados</span>
             </button>
 
+            <button
+              onClick={() => openAllyManagerPanel(currentTenant.id, 'gerente')}
+              className={`px-3 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                tenantView === 'restaurant-panel-gerente'
+                  ? 'bg-amber-500 text-slate-950 shadow-xs'
+                  : 'bg-slate-800 text-amber-400 hover:bg-slate-750 border border-slate-700'
+              }`}
+              title={`Panel Gerencial (/panel/${currentTenant.id}/gerente)`}
+            >
+              <Key className="w-3.5 h-3.5 text-amber-400" />
+              <span>Panel Gerente</span>
+            </button>
+
           </nav>
 
           {/* Right Action Controls */}
@@ -305,6 +320,14 @@ export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }
           >
             <span>Ingreso Empleados (POS / KDS)</span>
             <Users className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => { openAllyManagerPanel(currentTenant.id, 'gerente'); setMobileMenuOpen(false); }}
+            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-black flex items-center justify-between bg-slate-900 text-amber-400 border border-slate-700`}
+          >
+            <span>Panel Gerencial (/panel/{currentTenant.id}/gerente)</span>
+            <Key className="w-4 h-4 text-amber-400" />
           </button>
 
           <div className="pt-2 border-t border-slate-200 dark:border-slate-800">

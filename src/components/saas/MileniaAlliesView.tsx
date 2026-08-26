@@ -15,7 +15,8 @@ import {
   Store,
   Phone,
   ChefHat,
-  Filter
+  Filter,
+  Key
 } from 'lucide-react';
 import { formatCop } from '../../utils/currency';
 import { useCurrentDomain } from '../../utils/domainHelper';
@@ -242,13 +243,30 @@ export const MileniaAlliesView: React.FC = () => {
 
             {/* Bottom Actions */}
             <div className="p-5 pt-0 space-y-2">
-              <button
-                onClick={() => handleEnterRestaurant(tenant.id, 'home')}
-                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 transition cursor-pointer"
-              >
-                <span>Ingresar al Restaurante (Aliado {tenant.id})</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handleEnterRestaurant(tenant.id, 'home')}
+                  className="py-2.5 px-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 transition cursor-pointer"
+                >
+                  <span>Carta & Aliado {tenant.id}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    selectTenantById(tenant.id);
+                    navigateTo({
+                      restaurantId: tenant.id,
+                      cargo: 'gerente',
+                      routeType: 'ally_panel'
+                    });
+                  }}
+                  className="py-2.5 px-3 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 border border-slate-700 transition cursor-pointer"
+                >
+                  <Key className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Panel Gerencial</span>
+                </button>
+              </div>
             </div>
 
           </div>
