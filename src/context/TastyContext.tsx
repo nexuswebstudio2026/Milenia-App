@@ -130,6 +130,7 @@ interface TastyContextType {
 
   // DIAN & Colombia Tax Settings
   updateDianSettings: (tenantId: string, dianInfo: DianResolutionInfo, nit?: string, legalName?: string) => void;
+  updateTenantDetails: (tenantId: string, partial: Partial<TenantRestaurant>) => void;
 
   // Employee Shift Clock-In/Clock-Out & Sales Targets
   clockInEmployee: (employeeId: string) => void;
@@ -475,6 +476,31 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
     }
     showToast('Resolución DIAN Guardada', `Prefijo ${dianInfo.prefix} y rango fiscal habilitados.`, 'success');
+  };
+
+  const updateTenantDetails = (tenantId: string, partial: Partial<TenantRestaurant>) => {
+    let updatedTenant: TenantRestaurant | null = null;
+    setTenants(prev => prev.map(t => {
+      if (t.id === tenantId) {
+        const mod: TenantRestaurant = {
+          ...t,
+          ...partial,
+          branding: {
+            ...t.branding,
+            ...(partial.branding || {})
+          }
+        };
+        updatedTenant = mod;
+        return mod;
+      }
+      return t;
+    }));
+    if (updatedTenant) {
+      saveAliadoToFirestore(updatedTenant).catch(err => {
+        console.warn('Error saving updated tenant details to Firestore:', err);
+      });
+    }
+    showToast('Datos Actualizados', 'Los cambios en la información del restaurante han sido guardados.', 'success');
   };
 
   // Employee Shift Clock-In / Clock-Out
@@ -1388,6 +1414,7 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         restockInventoryItem,
         deductInventoryForOrder,
         updateDianSettings,
+        updateTenantDetails,
         clockInEmployee,
         clockOutEmployee,
         setEmployeeSalesGoal,

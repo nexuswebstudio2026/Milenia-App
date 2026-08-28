@@ -56,30 +56,32 @@ export const MileniaLoginView: React.FC = () => {
     try {
       if (mode === 'signin') {
         const result = await loginUser(email, password);
+        
+        const posLower = String(result.profile.position || '').toLowerCase();
+        const rId = String(result.profile.restaurantId || '1');
+        
+        let targetCargo = 'gerente';
+        if (posLower.includes('chef') || posLower.includes('cocina')) targetCargo = 'chef-ejecutivo';
+        else if (posLower.includes('cajer') || posLower.includes('caja') || posLower.includes('facturacion')) targetCargo = 'cajero-principal';
+        else if (posLower.includes('meser') || posLower.includes('capitan') || posLower.includes('salon')) targetCargo = 'capitan-salon';
+        else if (posLower.includes('supervis')) targetCargo = 'supervisor';
+
+        const directUrl = `/panel/${rId}/${targetCargo}`;
         setSuccessInfo({
           name: result.profile.name,
-          redirectUrl: result.redirectUrl
+          redirectUrl: directUrl
         });
 
-        // Redirección Dinámica Inmediata y Segura
-        const roleUpper = String(result.profile.role).toUpperCase();
-        const rId = String(result.profile.restaurantId || '1');
-        const empId = String(result.profile.employeeId || result.profile.documentId || '101');
-
+        // Redirección Dinámica Inmediata al Panel de Acceso del Restaurante Aliado
+        setAppMode('restaurant');
+        setTenantView('restaurant-panel-gerente');
         setTimeout(() => {
-          setAppMode('restaurant');
-          if (roleUpper === 'OWNER' || roleUpper === 'ADMIN') {
-            setTenantView('restaurant-admin');
-            navigateTo({ routeType: 'tenant_admin', restaurantId: rId });
-          } else {
-            setTenantView('restaurant-empleados');
-            navigateTo({ 
-              routeType: 'employee_dashboard', 
-              restaurantId: rId,
-              employeeId: empId
-            });
-          }
-        }, 500);
+          navigateTo({ 
+            routeType: 'ally_panel', 
+            restaurantId: rId,
+            cargo: targetCargo
+          });
+        }, 200);
       } else {
         if (!signupName.trim()) {
           setError('Por favor ingresa tu nombre completo.');
@@ -95,25 +97,28 @@ export const MileniaLoginView: React.FC = () => {
           position: signupPosition
         });
 
+        const posLower = String(signupPosition || '').toLowerCase();
+        let targetCargo = 'gerente';
+        if (posLower.includes('chef') || posLower.includes('cocina')) targetCargo = 'chef-ejecutivo';
+        else if (posLower.includes('cajer') || posLower.includes('caja')) targetCargo = 'cajero-principal';
+        else if (posLower.includes('meser') || posLower.includes('capitan')) targetCargo = 'capitan-salon';
+        else if (posLower.includes('supervis')) targetCargo = 'supervisor';
+
+        const directUrl = `/panel/${signupRestaurantId}/${targetCargo}`;
         setSuccessInfo({
           name: result.profile.name,
-          redirectUrl: result.redirectUrl
+          redirectUrl: directUrl
         });
 
+        setAppMode('restaurant');
+        setTenantView('restaurant-panel-gerente');
         setTimeout(() => {
-          setAppMode('restaurant');
-          if (signupRole === 'OWNER') {
-            setTenantView('restaurant-admin');
-            navigateTo({ routeType: 'tenant_admin', restaurantId: signupRestaurantId });
-          } else {
-            setTenantView('restaurant-empleados');
-            navigateTo({ 
-              routeType: 'employee_dashboard', 
-              restaurantId: signupRestaurantId,
-              employeeId: signupEmployeeId
-            });
-          }
-        }, 500);
+          navigateTo({ 
+            routeType: 'ally_panel', 
+            restaurantId: signupRestaurantId,
+            cargo: targetCargo
+          });
+        }, 200);
       }
     } catch (err: any) {
       setError(err?.message || 'Error al autenticar. Verifica tus credenciales.');
@@ -121,13 +126,23 @@ export const MileniaLoginView: React.FC = () => {
     }
   };
 
-  // Helper para rellenar cuentas demo
-  const handleSelectDemo = (demoEmail: string, demoPass: string, demoType?: 'miguel_owner' | 'alejandro_staff') => {
+  // Helper para rellenar cuentas demo y autenticar
+  const handleSelectDemo = async (demoEmail: string, demoPass: string, demoType?: 'miguel_owner' | 'alejandro_staff', directRestaurantId?: string) => {
     setEmail(demoEmail);
     setPassword(demoPass);
     setError(null);
+    
     if (demoType) {
-      loginAsDemo(demoType);
+      await loginAsDemo(demoType);
+      const targetRest = demoType === 'miguel_owner' ? '5' : '3';
+      const targetCargo = demoType === 'miguel_owner' ? 'gerente' : 'cajero-principal';
+      setAppMode('restaurant');
+      setTenantView('restaurant-panel-gerente');
+      navigateTo({ routeType: 'ally_panel', restaurantId: targetRest, cargo: targetCargo });
+    } else if (directRestaurantId) {
+      setAppMode('restaurant');
+      setTenantView('restaurant-panel-gerente');
+      navigateTo({ routeType: 'ally_panel', restaurantId: directRestaurantId, cargo: 'gerente' });
     }
   };
 
@@ -162,10 +177,10 @@ export const MileniaLoginView: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           
-          {/* Card Restaurante 1 - Owner (Camilo) */}
+          {/* Card Restaurante 1 - Owner / Gerente (Camilo - Aliado Registrado) */}
           <button
             type="button"
-            onClick={() => handleSelectDemo('camilo.owner@milenia.co', 'Milenia2026!')}
+            onClick={() => handleSelectDemo('camilo.owner@milenia.co', 'Milenia2026!', undefined, '1')}
             className="text-left bg-slate-950/70 hover:bg-slate-800 border border-amber-500/40 hover:border-amber-500 p-3.5 rounded-2xl transition group relative overflow-hidden cursor-pointer"
           >
             <div className="flex items-start justify-between">
@@ -176,10 +191,10 @@ export const MileniaLoginView: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <p className="text-xs font-bold text-white group-hover:text-amber-400 transition">
-                      Rest. ID 1 (Owner)
+                      Rest. ID 1 (Gerente)
                     </p>
                     <span className="text-[8px] bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded font-black uppercase">
-                      Owner
+                      Gerente
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-400 truncate">
@@ -191,7 +206,7 @@ export const MileniaLoginView: React.FC = () => {
             </div>
             <div className="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-300 font-mono">
               <span className="text-slate-500">Destino:</span>
-              <span className="text-amber-400 font-bold">/1/admin</span>
+              <span className="text-amber-400 font-bold">/panel/1/gerente</span>
             </div>
           </button>
 
@@ -209,10 +224,10 @@ export const MileniaLoginView: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <p className="text-xs font-bold text-white group-hover:text-amber-400 transition">
-                      Rest. ID 5 (Owner)
+                      Rest. ID 5 (Gerente)
                     </p>
                     <span className="text-[8px] bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded font-black uppercase">
-                      Owner
+                      Gerente
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-400 truncate">
@@ -224,7 +239,7 @@ export const MileniaLoginView: React.FC = () => {
             </div>
             <div className="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-300 font-mono">
               <span className="text-slate-500">Destino:</span>
-              <span className="text-amber-400 font-bold">/5/admin</span>
+              <span className="text-amber-400 font-bold">/panel/5/gerente</span>
             </div>
           </button>
 
@@ -242,14 +257,14 @@ export const MileniaLoginView: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <p className="text-xs font-bold text-white group-hover:text-teal-400 transition">
-                      Rest. ID 3 (Staff)
+                      Rest. ID 3 (Cajero)
                     </p>
                     <span className="text-[8px] bg-teal-500/20 text-teal-400 px-1 py-0.5 rounded font-black uppercase">
-                      Staff
+                      Cajero
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-400 truncate">
-                    Alejandro &bull; CC: 12345
+                    Cajero Principal
                   </p>
                 </div>
               </div>
@@ -257,7 +272,7 @@ export const MileniaLoginView: React.FC = () => {
             </div>
             <div className="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-300 font-mono">
               <span className="text-slate-500">Destino:</span>
-              <span className="text-teal-400 font-bold">/3/dashboard/12345</span>
+              <span className="text-teal-400 font-bold">/panel/3/cajero-principal</span>
             </div>
           </button>
 
@@ -287,20 +302,25 @@ export const MileniaLoginView: React.FC = () => {
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               onClick={() => {
-                const targetUrl = calculateRedirectUrl(userProfile);
-                if (String(userProfile.role).toUpperCase() === 'OWNER') {
-                  navigateTo({ routeType: 'tenant_admin', restaurantId: String(userProfile.restaurantId) });
-                } else {
-                  navigateTo({ 
-                    routeType: 'employee_dashboard', 
-                    restaurantId: String(userProfile.restaurantId),
-                    employeeId: String(userProfile.documentId || userProfile.employeeId || '101')
-                  });
-                }
+                const rId = String(userProfile.restaurantId || '1');
+                const posLower = String(userProfile.position || '').toLowerCase();
+                let targetCargo = 'gerente';
+                if (posLower.includes('chef') || posLower.includes('cocina')) targetCargo = 'chef-ejecutivo';
+                else if (posLower.includes('cajer') || posLower.includes('caja')) targetCargo = 'cajero-principal';
+                else if (posLower.includes('meser') || posLower.includes('capitan')) targetCargo = 'capitan-salon';
+                else if (posLower.includes('supervis')) targetCargo = 'supervisor';
+
+                setAppMode('restaurant');
+                setTenantView('restaurant-panel-gerente');
+                navigateTo({ 
+                  routeType: 'ally_panel', 
+                  restaurantId: rId,
+                  cargo: targetCargo
+                });
               }}
               className="flex-1 sm:flex-initial px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
             >
-              <span>Ir a {calculateRedirectUrl(userProfile)}</span>
+              <span>Acceder a /panel/{userProfile.restaurantId || '1'}/gerente</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
             <button
@@ -367,10 +387,16 @@ export const MileniaLoginView: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setAppMode('restaurant');
-                  if (successInfo.redirectUrl.includes('/admin')) {
+                  if (successInfo.redirectUrl.includes('/panel/')) {
+                    const parts = successInfo.redirectUrl.split('/');
+                    const rId = parts[2] || '1';
+                    const cargo = parts[3] || 'gerente';
+                    setTenantView('restaurant-panel-gerente');
+                    navigateTo({ routeType: 'ally_panel', restaurantId: rId, cargo });
+                  } else if (successInfo.redirectUrl.includes('/admin')) {
                     const rId = successInfo.redirectUrl.split('/')[1] || '1';
-                    setTenantView('restaurant-admin');
-                    navigateTo({ routeType: 'tenant_admin', restaurantId: rId });
+                    setTenantView('restaurant-panel-gerente');
+                    navigateTo({ routeType: 'ally_panel', restaurantId: rId, cargo: 'gerente' });
                   } else if (successInfo.redirectUrl.includes('/dashboard')) {
                     const parts = successInfo.redirectUrl.split('/');
                     const rId = parts[1] || '1';
@@ -378,8 +404,8 @@ export const MileniaLoginView: React.FC = () => {
                     setTenantView('restaurant-empleados');
                     navigateTo({ routeType: 'employee_dashboard', restaurantId: rId, employeeId: empId });
                   } else {
-                    setTenantView('restaurant-admin');
-                    navigateTo({ routeType: 'tenant_admin', restaurantId: '1' });
+                    setTenantView('restaurant-panel-gerente');
+                    navigateTo({ routeType: 'ally_panel', restaurantId: '1', cargo: 'gerente' });
                   }
                 }}
                 className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-transform active:scale-95 cursor-pointer flex items-center gap-2"

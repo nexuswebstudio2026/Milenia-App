@@ -31,15 +31,15 @@ export interface DemoAccountConfig {
 export const DEMO_USERS: Record<'miguel_owner' | 'alejandro_staff', DemoAccountConfig> = {
   miguel_owner: {
     id: 'miguel_owner',
-    label: 'Miguel Ángel (Owner / Propietario)',
-    sublabel: 'Restaurante 5 (Mar & Fuego Caribe) • Admin Global',
+    label: 'Miguel Ángel (Gerente & Propietario)',
+    sublabel: 'Restaurante 5 (Mar & Fuego Caribe) • Panel Gerencial',
     email: 'miguel.owner@milenia.co',
     role: 'owner',
     restaurantId: '5',
     documentId: '80992314',
     name: 'Miguel Ángel Valderrama',
-    position: 'Propietario & Director General',
-    targetUrl: '/5/admin'
+    position: 'Gerente General & Propietario',
+    targetUrl: '/panel/5/gerente'
   },
   alejandro_staff: {
     id: 'alejandro_staff',
@@ -51,7 +51,7 @@ export const DEMO_USERS: Record<'miguel_owner' | 'alejandro_staff', DemoAccountC
     documentId: '12345',
     name: 'Alejandro Restrepo V.',
     position: 'Cajero Principal & Atención POS',
-    targetUrl: '/3/dashboard/12345'
+    targetUrl: '/panel/3/cajero-principal'
   }
 };
 
@@ -89,22 +89,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Computes dynamic redirection rule based on user role, restaurantId, and documentId
   const getRedirectPath = (profileToEval?: UserProfile | null): string => {
     const profile = profileToEval || userProfile;
-    if (!profile) return '/';
+    if (!profile) return '/panel/1/gerente';
 
-    // CASO 1: Owner (Ej: Miguel en Restaurante 5 -> /5/admin)
-    if (profile.role === 'owner') {
-      const rId = profile.restaurantId || '5';
-      return `/${rId}/admin`;
+    const rId = String(profile.restaurantId || '1');
+    const pos = String(profile.position || '').toLowerCase();
+    const role = String(profile.role || 'owner').toLowerCase();
+
+    if (role === 'owner' || role === 'admin' || pos.includes('gerente') || pos.includes('administrador') || pos.includes('propietario')) {
+      return `/panel/${rId}/gerente`;
     }
 
-    // CASO 2: Staff / Cajero (Ej: Alejandro en Restaurante 3, Cédula 12345 -> /3/dashboard/12345)
-    if (profile.role === 'staff') {
-      const rId = profile.restaurantId || '3';
-      const docId = profile.documentId || '12345';
-      return `/${rId}/dashboard/${docId}`;
+    if (pos.includes('chef') || pos.includes('cocina')) {
+      return `/panel/${rId}/chef-ejecutivo`;
     }
 
-    return '/';
+    if (pos.includes('cajer') || pos.includes('caja')) {
+      return `/panel/${rId}/cajero-principal`;
+    }
+
+    if (pos.includes('meser') || pos.includes('capitan') || pos.includes('salon')) {
+      return `/panel/${rId}/capitan-salon`;
+    }
+
+    return `/panel/${rId}/gerente`;
   };
 
   // Helper to fetch user document from Firestore `/users/{uid}`

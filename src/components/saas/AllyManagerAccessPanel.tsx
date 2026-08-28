@@ -49,11 +49,21 @@ import {
   ChevronRight,
   Flame,
   Award,
-  CircleDot
+  CircleDot,
+  Settings,
+  UtensilsCrossed,
+  Save,
+  Edit3,
+  Trash2,
+  BookOpen,
+  Tag,
+  IdCard,
+  UserPlus
 } from 'lucide-react';
 import { formatCop } from '../../utils/currency';
 import { useCurrentDomain } from '../../utils/domainHelper';
 import { motion, AnimatePresence } from 'motion/react';
+import { AllyUsersManagement } from '../admin/AllyUsersManagement';
 
 export type AllyManagerRoleKey = 
   | 'gerente'
@@ -64,6 +74,17 @@ export type AllyManagerRoleKey =
   | 'capitan_salon'
   | 'cajero_principal'
   | 'supervisor';
+
+export type AllyManagerTab = 
+  | 'resumen' 
+  | 'mesas' 
+  | 'cocina' 
+  | 'menu_platos' 
+  | 'personal' 
+  | 'inventario' 
+  | 'dian_caja' 
+  | 'configuracion' 
+  | 'enlaces';
 
 interface RoleConfig {
   key: AllyManagerRoleKey;
@@ -76,7 +97,7 @@ interface RoleConfig {
   borderColor: string;
   bgColor: string;
   description: string;
-  allowedTabs: ('resumen' | 'mesas' | 'cocina' | 'personal' | 'inventario' | 'dian_caja' | 'enlaces')[];
+  allowedTabs: AllyManagerTab[];
 }
 
 const ROLES_DIRECTORY: RoleConfig[] = [
@@ -90,8 +111,8 @@ const ROLES_DIRECTORY: RoleConfig[] = [
     textColor: 'text-amber-500 dark:text-amber-400',
     borderColor: 'border-amber-500/30',
     bgColor: 'bg-amber-500/10',
-    description: 'Control total de operaciones, ingresos, facturación DIAN, métricas del salón y suscripción SaaS.',
-    allowedTabs: ['resumen', 'mesas', 'cocina', 'personal', 'inventario', 'dian_caja', 'enlaces']
+    description: 'Control total de operaciones, ingresos, facturación DIAN, métricas del salón, carta de platos y personal.',
+    allowedTabs: ['resumen', 'mesas', 'cocina', 'menu_platos', 'personal', 'inventario', 'dian_caja', 'configuracion', 'enlaces']
   },
   {
     key: 'gerente',
@@ -103,8 +124,8 @@ const ROLES_DIRECTORY: RoleConfig[] = [
     textColor: 'text-amber-600 dark:text-amber-400',
     borderColor: 'border-amber-500/30',
     bgColor: 'bg-amber-500/10',
-    description: 'Supervisión diaria del restaurante aliado, metas comerciales y sincronización de equipos.',
-    allowedTabs: ['resumen', 'mesas', 'cocina', 'personal', 'inventario', 'dian_caja', 'enlaces']
+    description: 'Supervisión diaria del restaurante aliado, metas comerciales, carta, mesas, empleados y configuración.',
+    allowedTabs: ['resumen', 'mesas', 'cocina', 'menu_platos', 'personal', 'inventario', 'dian_caja', 'configuracion', 'enlaces']
   },
   {
     key: 'administrador',
@@ -116,8 +137,8 @@ const ROLES_DIRECTORY: RoleConfig[] = [
     textColor: 'text-blue-500 dark:text-blue-400',
     borderColor: 'border-blue-500/30',
     bgColor: 'bg-blue-500/10',
-    description: 'Gestión de mesas en vivo, inventario, arqueos de caja y supervisión de turnos de personal.',
-    allowedTabs: ['resumen', 'mesas', 'cocina', 'personal', 'inventario', 'dian_caja', 'enlaces']
+    description: 'Gestión de mesas en vivo, inventario, arqueos de caja, menú y supervisión de turnos de personal.',
+    allowedTabs: ['resumen', 'mesas', 'cocina', 'menu_platos', 'personal', 'inventario', 'dian_caja', 'configuracion', 'enlaces']
   },
   {
     key: 'director_operaciones',
@@ -130,7 +151,7 @@ const ROLES_DIRECTORY: RoleConfig[] = [
     borderColor: 'border-purple-500/30',
     bgColor: 'bg-purple-500/10',
     description: 'Optimización de tiempos de despacho en cocina, rotación de mesas y desempeño de meseros.',
-    allowedTabs: ['resumen', 'mesas', 'cocina', 'personal', 'inventario', 'enlaces']
+    allowedTabs: ['resumen', 'mesas', 'cocina', 'menu_platos', 'personal', 'inventario', 'enlaces']
   },
   {
     key: 'chef_ejecutivo',
@@ -143,7 +164,7 @@ const ROLES_DIRECTORY: RoleConfig[] = [
     borderColor: 'border-rose-500/30',
     bgColor: 'bg-rose-500/10',
     description: 'Monitor KDS de comandas en tiempo real, tiempos de cocción, recetas y control de mermas.',
-    allowedTabs: ['cocina', 'inventario', 'resumen', 'enlaces']
+    allowedTabs: ['cocina', 'menu_platos', 'inventario', 'resumen', 'enlaces']
   },
   {
     key: 'capitan_salon',
@@ -156,7 +177,7 @@ const ROLES_DIRECTORY: RoleConfig[] = [
     borderColor: 'border-emerald-500/30',
     bgColor: 'bg-emerald-500/10',
     description: 'Asignación de mesas, control de comandas en mesa, atención a clientes y división de cuentas.',
-    allowedTabs: ['mesas', 'personal', 'resumen', 'enlaces']
+    allowedTabs: ['mesas', 'cocina', 'personal', 'menu_platos', 'resumen', 'enlaces']
   },
   {
     key: 'cajero_principal',
@@ -182,7 +203,7 @@ const ROLES_DIRECTORY: RoleConfig[] = [
     borderColor: 'border-amber-600/30',
     bgColor: 'bg-amber-600/10',
     description: 'Control de asistencia biométrica, reloj de turnos, apertura y cierre de jornada laboral.',
-    allowedTabs: ['personal', 'mesas', 'resumen', 'enlaces']
+    allowedTabs: ['personal', 'mesas', 'cocina', 'inventario', 'resumen', 'enlaces']
   }
 ];
 
@@ -203,6 +224,14 @@ export const AllyManagerAccessPanel: React.FC = () => {
     tenantInventory,
     updateInventoryItem,
     restockInventoryItem,
+    menuItems,
+    addMenuItem,
+    updateMenuItem,
+    deleteMenuItem,
+    toggleItemStock,
+    categories,
+    updateTenantDetails,
+    updateDianSettings,
     currentRoute,
     navigateTo,
     showToast,
@@ -230,7 +259,7 @@ export const AllyManagerAccessPanel: React.FC = () => {
   }, [activeCargoSlug]);
 
   // Active sub-tab within the manager panel
-  const [activeTab, setActiveTab] = useState<'resumen' | 'mesas' | 'cocina' | 'personal' | 'inventario' | 'dian_caja' | 'enlaces'>(() => {
+  const [activeTab, setActiveTab] = useState<AllyManagerTab>(() => {
     return activeRoleConfig.allowedTabs[0] || 'resumen';
   });
 
@@ -249,6 +278,53 @@ export const AllyManagerAccessPanel: React.FC = () => {
   const [newGoalInput, setNewGoalInput] = useState<string>('');
   const [restockItemModal, setRestockItemModal] = useState<any | null>(null);
   const [restockQty, setRestockQty] = useState<number>(10);
+
+  // Sub-tabs & states for new features
+  const [personalSubTab, setPersonalSubTab] = useState<'turnos' | 'usuarios_db'>('turnos');
+  
+  // Menu tab state
+  const [menuSearch, setMenuSearch] = useState('');
+  const [menuCatFilter, setMenuCatFilter] = useState('all');
+  const [isNewDishModalOpen, setIsNewDishModalOpen] = useState(false);
+  const [newDish, setNewDish] = useState({
+    name: '',
+    description: '',
+    price: 32000,
+    category: 'Platos Fuertes',
+    prepTime: 18,
+    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
+    available: true
+  });
+
+  // Tenant Config Form State
+  const [configForm, setConfigForm] = useState({
+    name: currentTenant.name || '',
+    tagline: currentTenant.branding?.tagline || '',
+    legalName: currentTenant.branding?.legalBusinessName || currentTenant.name || '',
+    nit: currentTenant.branding?.nit || '',
+    phone: currentTenant.phone || '',
+    email: currentTenant.email || '',
+    address: currentTenant.address || '',
+    city: currentTenant.city || 'Bogotá D.C.',
+    dianResolution: currentTenant.branding?.dianResolution || 'Resolución DIAN No. 18764000001234 de 2026',
+    tipPercent: currentTenant.branding?.tipSuggestedPercentage || 10,
+  });
+
+  // Sync config form when currentTenant changes
+  React.useEffect(() => {
+    setConfigForm({
+      name: currentTenant.name || '',
+      tagline: currentTenant.branding?.tagline || '',
+      legalName: currentTenant.branding?.legalBusinessName || currentTenant.name || '',
+      nit: currentTenant.branding?.nit || '',
+      phone: currentTenant.phone || '',
+      email: currentTenant.email || '',
+      address: currentTenant.address || '',
+      city: currentTenant.city || 'Bogotá D.C.',
+      dianResolution: currentTenant.branding?.dianResolution || 'Resolución DIAN No. 18764000001234 de 2026',
+      tipPercent: currentTenant.branding?.tipSuggestedPercentage || 10,
+    });
+  }, [currentTenant]);
 
   // Direct panel URL
   const currentPanelUrl = `${origin}/panel/${currentTenant.id}/${activeRoleConfig.urlSlug}`;
@@ -560,6 +636,23 @@ export const AllyManagerAccessPanel: React.FC = () => {
           </button>
         )}
 
+        {activeRoleConfig.allowedTabs.includes('menu_platos') && (
+          <button
+            onClick={() => setActiveTab('menu_platos')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              activeTab === 'menu_platos'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            <UtensilsCrossed className="w-4 h-4" />
+            <span>Carta & Menú</span>
+            <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 font-mono">
+              {menuItems.length} platos
+            </span>
+          </button>
+        )}
+
         {activeRoleConfig.allowedTabs.includes('personal') && (
           <button
             onClick={() => setActiveTab('personal')}
@@ -570,7 +663,7 @@ export const AllyManagerAccessPanel: React.FC = () => {
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>Personal & Turnos</span>
+            <span>Personal & Accesos</span>
             <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-mono">
               {metrics.activeStaff} activos
             </span>
@@ -607,6 +700,20 @@ export const AllyManagerAccessPanel: React.FC = () => {
           >
             <Receipt className="w-4 h-4" />
             <span>Facturación DIAN & Caja</span>
+          </button>
+        )}
+
+        {activeRoleConfig.allowedTabs.includes('configuracion') && (
+          <button
+            onClick={() => setActiveTab('configuracion')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              activeTab === 'configuracion'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            <span>Configuración Sede</span>
           </button>
         )}
 
@@ -1087,7 +1194,162 @@ export const AllyManagerAccessPanel: React.FC = () => {
       )}
 
       {/* ------------------------------------------------------------------------- */}
-      {/* TAB: 4. PERSONAL & TURNOS (Staff & Shift Management)                      */}
+      {/* TAB: 4. CARTA & MENÚ (Dishes, Categories & COP Pricing)                   */}
+      {/* ------------------------------------------------------------------------- */}
+      {activeTab === 'menu_platos' && (
+        <div className="space-y-5">
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <UtensilsCrossed className="w-5 h-5 text-amber-500" />
+                <span>Gestión de Carta, Platos & Precios COP</span>
+              </h3>
+              <p className="text-xs text-slate-500">
+                Administra disponibilidad, precios en pesos colombianos y nuevos platos para {currentTenant.name}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => setIsNewDishModalOpen(true)}
+                className="w-full sm:w-auto px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Agregar Nuevo Plato</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Search & Category Filter */}
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="relative flex-1 w-full">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input 
+                type="text"
+                value={menuSearch}
+                onChange={(e) => setMenuSearch(e.target.value)}
+                placeholder="Buscar plato por nombre o descripción..."
+                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs text-slate-900 dark:text-white outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+              <button
+                onClick={() => setMenuCatFilter('all')}
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
+                  menuCatFilter === 'all'
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                Todas
+              </button>
+              {categories.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => setMenuCatFilter(c.name)}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
+                    menuCatFilter === c.name
+                      ? 'bg-amber-500 text-slate-950'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800'
+                  }`}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Dishes Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {menuItems
+              .filter(d => {
+                if (menuCatFilter === 'all') return true;
+                const cat = categories.find(c => c.id === d.categoryId);
+                return cat?.name === menuCatFilter || d.categoryId === menuCatFilter;
+              })
+              .filter(d => !menuSearch || d.name.toLowerCase().includes(menuSearch.toLowerCase()) || d.description?.toLowerCase().includes(menuSearch.toLowerCase()))
+              .map(dish => {
+                const isAvailable = dish.inStock !== false;
+                const categoryName = categories.find(c => c.id === dish.categoryId)?.name || dish.categoryId;
+
+                return (
+                  <div
+                    key={dish.id}
+                    className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between space-y-3"
+                  >
+                    <div className="flex gap-3">
+                      <img 
+                        src={dish.image || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=400&q=80'} 
+                        alt={dish.name}
+                        className="w-20 h-20 rounded-2xl object-cover border border-slate-200 dark:border-slate-800 shrink-0"
+                      />
+                      <div className="space-y-1 flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-1">
+                          <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                            {dish.name}
+                          </h4>
+                          <span className={`px-2 py-0.5 text-[9px] font-bold rounded-full uppercase shrink-0 ${
+                            isAvailable ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/20 text-rose-600 dark:text-rose-400'
+                          }`}>
+                            {isAvailable ? 'Disponible' : 'Agotado'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                          {dish.description}
+                        </p>
+                        <div className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                          {categoryName} • {dish.prepTimeMinutes || 15} min
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                      <div>
+                        <span className="text-[9px] uppercase font-bold text-slate-400">Precio COP</span>
+                        <div className="font-mono font-black text-sm text-slate-900 dark:text-white">
+                          {formatCop(dish.price)}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => {
+                            toggleItemStock(dish.id);
+                            showToast(isAvailable ? 'Marcado Agotado' : 'Plato Disponible', `${dish.name} ha sido actualizado en la carta.`, 'info');
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                            isAvailable
+                              ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                              : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                          }`}
+                        >
+                          {isAvailable ? 'Desactivar' : 'Activar'}
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            const newPriceStr = prompt(`Ingrese nuevo precio en COP para ${dish.name}:`, dish.price.toString());
+                            if (newPriceStr && !isNaN(Number(newPriceStr))) {
+                              updateMenuItem(dish.id, { price: Number(newPriceStr) });
+                              showToast('Precio Actualizado', `${dish.name}: ${formatCop(Number(newPriceStr))}`, 'success');
+                            }
+                          }}
+                          className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-600 dark:text-slate-400 transition cursor-pointer"
+                          title="Editar Precio"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* TAB: 5. PERSONAL & ACCESOS (Staff, Shifts & Firestore Auth Accounts)      */}
       {/* ------------------------------------------------------------------------- */}
       {activeTab === 'personal' && (
         <div className="space-y-5">
@@ -1095,86 +1357,112 @@ export const AllyManagerAccessPanel: React.FC = () => {
             <div>
               <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
                 <Users className="w-5 h-5 text-blue-500" />
-                <span>Gestión de Personal & Control de Turnos</span>
+                <span>Gestión de Personal & Cuentas de Acceso</span>
               </h3>
               <p className="text-xs text-slate-500">
-                Equipo de trabajo asignado a {currentTenant.name}
+                Equipo de trabajo y credenciales de acceso para <strong>{currentTenant.name}</strong>
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1.5 rounded-xl bg-blue-500/10 text-blue-500 text-xs font-bold">
-                {tenantEmployees.length} Empleados en nómina
-              </span>
+            
+            {/* Sub-tab switcher */}
+            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setPersonalSubTab('turnos')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  personalSubTab === 'turnos'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-white'
+                }`}
+              >
+                Turnos & Propinas
+              </button>
+              <button
+                onClick={() => setPersonalSubTab('usuarios_db')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                  personalSubTab === 'usuarios_db'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-white'
+                }`}
+              >
+                <IdCard className="w-3.5 h-3.5" />
+                <span>Cuentas & Firestore</span>
+              </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tenantEmployees.map(emp => {
-              const isActive = emp.shiftStatus === 'active';
+          {personalSubTab === 'turnos' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {tenantEmployees.map(emp => {
+                const isActive = emp.shiftStatus === 'active';
 
-              return (
-                <div
-                  key={emp.id}
-                  className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <img 
-                      src={emp.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'} 
-                      alt={emp.name}
-                      className="w-12 h-12 rounded-2xl object-cover border border-slate-200 dark:border-slate-700"
-                    />
-                    <div className="space-y-0.5">
-                      <div className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
-                        <span>{emp.name}</span>
-                        {isActive && <CircleDot className="w-2.5 h-2.5 text-emerald-500 animate-pulse" />}
-                      </div>
-                      <div className="text-xs text-slate-400 capitalize">
-                        {emp.position || emp.role} • ID: {emp.id}
+                return (
+                  <div
+                    key={emp.id}
+                    className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <img 
+                        src={emp.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'} 
+                        alt={emp.name}
+                        className="w-12 h-12 rounded-2xl object-cover border border-slate-200 dark:border-slate-700"
+                      />
+                      <div className="space-y-0.5">
+                        <div className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <span>{emp.name}</span>
+                          {isActive && <CircleDot className="w-2.5 h-2.5 text-emerald-500 animate-pulse" />}
+                        </div>
+                        <div className="text-xs text-slate-400 capitalize">
+                          {emp.position || emp.role} • ID: {emp.id}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                      <span className="text-[10px] text-slate-400 font-medium">Estado Turno</span>
-                      <div className="font-bold capitalize">
-                        {isActive ? (
-                          <span className="text-emerald-500">En Turno Activo</span>
-                        ) : (
-                          <span className="text-slate-400">Fuera de Turno</span>
-                        )}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                        <span className="text-[10px] text-slate-400 font-medium">Estado Turno</span>
+                        <div className="font-bold capitalize">
+                          {isActive ? (
+                            <span className="text-emerald-500">En Turno Activo</span>
+                          ) : (
+                            <span className="text-slate-400">Fuera de Turno</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                        <span className="text-[10px] text-slate-400 font-medium">Propinas Acum.</span>
+                        <div className="font-mono font-bold text-amber-500">
+                          {formatCop(emp.accumulatedTipsCop || 65000)}
+                        </div>
                       </div>
                     </div>
-                    <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                      <span className="text-[10px] text-slate-400 font-medium">Propinas Acum.</span>
-                      <div className="font-mono font-bold text-amber-500">
-                        {formatCop(emp.accumulatedTipsCop || 65000)}
-                      </div>
+
+                    {/* Clock in / Clock out buttons */}
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                      {isActive ? (
+                        <button
+                          onClick={() => clockOutEmployee(emp.id)}
+                          className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+                        >
+                          Registrar Salida (Clock-Out)
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => clockInEmployee(emp.id)}
+                          className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+                        >
+                          Registrar Entrada (Clock-In)
+                        </button>
+                      )}
                     </div>
                   </div>
-
-                  {/* Clock in / Clock out buttons */}
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                    {isActive ? (
-                      <button
-                        onClick={() => clockOutEmployee(emp.id)}
-                        className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition cursor-pointer"
-                      >
-                        Registrar Salida (Clock-Out)
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => clockInEmployee(emp.id)}
-                        className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition cursor-pointer"
-                      >
-                        Registrar Entrada (Clock-In)
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs">
+              <AllyUsersManagement />
+            </div>
+          )}
         </div>
       )}
 
@@ -1326,7 +1614,177 @@ export const AllyManagerAccessPanel: React.FC = () => {
       )}
 
       {/* ------------------------------------------------------------------------- */}
-      {/* TAB: 7. DIRECTORIO DE ENLACES POR CARGO & QR MATRIX                      */}
+      {/* TAB: 7. CONFIGURACIÓN DE LA SEDE & RESTAURANTE                           */}
+      {/* ------------------------------------------------------------------------- */}
+      {activeTab === 'configuracion' && (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
+            <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+              <Settings className="w-5 h-5 text-amber-500" />
+              <span>Configuración del Restaurante Aliado</span>
+            </h3>
+            <p className="text-xs text-slate-500">
+              Datos comerciales, resolución DIAN, porcentajes sugeridos y canales de contacto directo para <strong>{currentTenant.name}</strong>.
+            </p>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              updateTenantDetails(currentTenant.id, {
+                name: configForm.name,
+                city: configForm.city,
+                address: configForm.address,
+                phone: configForm.phone,
+                email: configForm.email,
+                branding: {
+                  ...currentTenant.branding,
+                  tagline: configForm.tagline,
+                  nit: configForm.nit,
+                  legalBusinessName: configForm.legalName,
+                  dianResolution: configForm.dianResolution,
+                  tipSuggestedPercentage: Number(configForm.tipPercent),
+                }
+              });
+              showToast('Cambios Guardados', 'La configuración del restaurante ha sido actualizada exitosamente.', 'success');
+            }}
+            className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-6"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Store className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Nombre Comercial del Restaurante</span>
+                </label>
+                <input 
+                  type="text"
+                  value={configForm.name}
+                  onChange={e => setConfigForm({ ...configForm, name: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-amber-500"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Eslogan / Tagline</span>
+                </label>
+                <input 
+                  type="text"
+                  value={configForm.tagline}
+                  onChange={e => setConfigForm({ ...configForm, tagline: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Razón Social Legal</span>
+                </label>
+                <input 
+                  type="text"
+                  value={configForm.legalName}
+                  onChange={e => setConfigForm({ ...configForm, legalName: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <CreditCard className="w-3.5 h-3.5 text-amber-500" />
+                  <span>NIT / Identificación Tributaria</span>
+                </label>
+                <input 
+                  type="text"
+                  value={configForm.nit}
+                  onChange={e => setConfigForm({ ...configForm, nit: e.target.value })}
+                  placeholder="901.458.789-2"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-amber-500 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Teléfono Fijo / Móvil</span>
+                </label>
+                <input 
+                  type="text"
+                  value={configForm.phone}
+                  onChange={e => setConfigForm({ ...configForm, phone: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-amber-500 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>WhatsApp de Pedidos y Reservas</span>
+                </label>
+                <input 
+                  type="text"
+                  value={configForm.whatsapp}
+                  onChange={e => setConfigForm({ ...configForm, whatsapp: e.target.value })}
+                  placeholder="+573001234567"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-amber-500 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Dirección Física</span>
+                </label>
+                <input 
+                  type="text"
+                  value={configForm.address}
+                  onChange={e => setConfigForm({ ...configForm, address: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Percent className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Propina Voluntaria Sugerida (%)</span>
+                </label>
+                <input 
+                  type="number"
+                  min={0}
+                  max={25}
+                  value={configForm.tipPercent}
+                  onChange={e => setConfigForm({ ...configForm, tipPercent: Number(e.target.value) })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-amber-500 font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
+              <div>
+                <h4 className="font-bold text-xs text-slate-900 dark:text-white">
+                  Sincronización en Tiempo Real
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Las actualizaciones se reflejan al instante en el menú digital y el panel de comandas.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md shadow-amber-500/20 flex items-center gap-2 transition cursor-pointer shrink-0"
+              >
+                <Save className="w-4 h-4" />
+                <span>Guardar Ajustes</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* TAB: 8. DIRECTORIO DE ENLACES POR CARGO & QR MATRIX                      */}
       {/* ------------------------------------------------------------------------- */}
       {activeTab === 'enlaces' && (
         <div className="space-y-6">
@@ -1495,6 +1953,159 @@ export const AllyManagerAccessPanel: React.FC = () => {
                   Cerrar
                 </button>
               </div>
+
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ========================================================================= */}
+      {/* 5. MODAL: AGREGAR NUEVO PLATO AL MENÚ                                     */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {isNewDishModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <UtensilsCrossed className="w-5 h-5 text-amber-500" />
+                  <h4 className="font-bold text-base text-slate-900 dark:text-white">
+                    Nuevo Plato / Producto
+                  </h4>
+                </div>
+                <button
+                  onClick={() => setIsNewDishModalOpen(false)}
+                  className="p-1 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!newDish.name.trim()) return;
+                  const matchedCat = categories.find(c => c.name === newDish.category);
+                  addMenuItem({
+                    name: newDish.name,
+                    description: newDish.description,
+                    price: Number(newDish.price),
+                    categoryId: matchedCat ? matchedCat.id : (categories[0]?.id || 'cat-1'),
+                    prepTimeMinutes: Number(newDish.prepTime),
+                    image: newDish.image,
+                    inStock: true,
+                    dietary: ['chef_special'],
+                    restaurantId: currentTenant.id
+                  });
+                  showToast('Plato Creado', `${newDish.name} agregado a la carta exitosamente.`, 'success');
+                  setIsNewDishModalOpen(false);
+                  setNewDish({
+                    name: '',
+                    description: '',
+                    price: 32000,
+                    category: 'Platos Fuertes',
+                    prepTime: 18,
+                    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
+                    available: true
+                  });
+                }}
+                className="space-y-3.5 text-xs"
+              >
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 dark:text-slate-300">Nombre del Plato</label>
+                  <input 
+                    type="text"
+                    required
+                    placeholder="Ej. Bandeja Paisa Especial"
+                    value={newDish.name}
+                    onChange={e => setNewDish({ ...newDish, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 dark:text-slate-300">Descripción e Ingredientes</label>
+                  <textarea 
+                    rows={2}
+                    placeholder="Detalles, acompañamientos y preparación..."
+                    value={newDish.description}
+                    onChange={e => setNewDish({ ...newDish, description: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:border-amber-500 resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 dark:text-slate-300">Precio (COP)</label>
+                    <input 
+                      type="number"
+                      min={0}
+                      step={500}
+                      required
+                      value={newDish.price}
+                      onChange={e => setNewDish({ ...newDish, price: Number(e.target.value) })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:border-amber-500 font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 dark:text-slate-300">Categoría</label>
+                    <select
+                      value={newDish.category}
+                      onChange={e => setNewDish({ ...newDish, category: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:border-amber-500"
+                    >
+                      {categories.map(c => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 dark:text-slate-300">Tiempo Prep. (min)</label>
+                    <input 
+                      type="number"
+                      min={1}
+                      value={newDish.prepTime}
+                      onChange={e => setNewDish({ ...newDish, prepTime: Number(e.target.value) })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:border-amber-500 font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 dark:text-slate-300">URL Imagen (Unsplash)</label>
+                    <input 
+                      type="url"
+                      value={newDish.image}
+                      onChange={e => setNewDish({ ...newDish, image: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 flex gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl transition cursor-pointer shadow-md shadow-amber-500/20"
+                  >
+                    Guardar Plato
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsNewDishModalOpen(false)}
+                    className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
 
             </motion.div>
           </div>

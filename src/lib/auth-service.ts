@@ -67,20 +67,44 @@ export function getFriendlyAuthErrorMessage(errorCode: string): string {
 
 /**
  * Calcula la URL de redirección basada en el rol del usuario y sus identificadores:
- * - Si role == 'OWNER' / 'owner' -> /[restaurantId]/admin (Ej: /1/admin)
- * - Si role == 'STAFF' / 'staff' -> /[restaurantId]/dashboard/[employeeId] (Ej: /1/dashboard/101 o /3/dashboard/12345)
+ * - Si role == 'OWNER' / 'ADMIN' / 'GERENTE' o position contiene 'gerente' / 'administrador' -> /panel/[restaurantId]/gerente
+ * - Para otros cargos específicos -> /panel/[restaurantId]/[cargoSlug]
  */
 export function calculateRedirectUrl(profile: Partial<UserFirestoreData>): string {
   const normalizedRole = String(profile.role || 'STAFF').toUpperCase();
+  const normalizedPosition = String(profile.position || '').toLowerCase();
   const restaurantId = String(profile.restaurantId ?? '1');
-  const employeeId = String(profile.employeeId || profile.documentId || '101');
 
-  if (normalizedRole === 'OWNER' || normalizedRole === 'ADMIN') {
-    return `/${restaurantId}/admin`;
+  if (
+    normalizedRole === 'OWNER' ||
+    normalizedRole === 'ADMIN' ||
+    normalizedRole === 'GERENTE' ||
+    normalizedPosition.includes('gerente') ||
+    normalizedPosition.includes('administrador') ||
+    normalizedPosition.includes('propietario') ||
+    normalizedPosition.includes('operaciones')
+  ) {
+    return `/panel/${restaurantId}/gerente`;
   }
 
-  // Por defecto STAFF / Operativo / Cajero
-  return `/${restaurantId}/dashboard/${employeeId}`;
+  if (normalizedPosition.includes('chef') || normalizedPosition.includes('cocina')) {
+    return `/panel/${restaurantId}/chef-ejecutivo`;
+  }
+
+  if (normalizedPosition.includes('cajer') || normalizedPosition.includes('caja') || normalizedPosition.includes('facturacion')) {
+    return `/panel/${restaurantId}/cajero-principal`;
+  }
+
+  if (normalizedPosition.includes('meser') || normalizedPosition.includes('capitan') || normalizedPosition.includes('salon')) {
+    return `/panel/${restaurantId}/capitan-salon`;
+  }
+
+  if (normalizedPosition.includes('supervis') || normalizedPosition.includes('turno')) {
+    return `/panel/${restaurantId}/supervisor`;
+  }
+
+  // Por defecto panel de acceso gerencial para este restaurante aliado
+  return `/panel/${restaurantId}/gerente`;
 }
 
 /**

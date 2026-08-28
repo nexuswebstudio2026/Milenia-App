@@ -14,13 +14,16 @@ import {
   Sparkles, 
   Star, 
   CheckCircle2,
-  Store
+  Store,
+  Key,
+  Receipt,
+  LayoutDashboard
 } from 'lucide-react';
 import { formatCop } from '../../utils/currency';
 import { useCurrentDomain } from '../../utils/domainHelper';
 
 export const RestaurantHomeView: React.FC = () => {
-  const { currentTenant, setTenantView, menuItems, selectDishForCustomization } = useTasty();
+  const { currentTenant, setTenantView, openAllyManagerPanel, menuItems, selectDishForCustomization } = useTasty();
   const { getTenantDisplayUrl } = useCurrentDomain();
 
   const featuredItems = menuItems.slice(0, 3);
@@ -81,11 +84,19 @@ export const RestaurantHomeView: React.FC = () => {
             </button>
 
             <button
+              onClick={() => openAllyManagerPanel(currentTenant.id, 'gerente')}
+              className="px-4 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm rounded-2xl shadow-md flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <Key className="w-4 h-4" />
+              <span>Panel Gerencial</span>
+            </button>
+
+            <button
               onClick={() => setTenantView('restaurant-empleados')}
               className="px-4 py-3 bg-slate-900/80 hover:bg-slate-800 text-amber-300 font-bold text-xs sm:text-sm rounded-2xl border border-amber-500/30 flex items-center gap-1.5 transition cursor-pointer"
             >
               <Users className="w-4 h-4" />
-              <span>Ingreso Personal</span>
+              <span>Turnos & Empleados</span>
             </button>
           </div>
 
@@ -155,6 +166,36 @@ export const RestaurantHomeView: React.FC = () => {
           </p>
         </button>
 
+      </div>
+
+      {/* Banner de Acceso Gerencial & Administración del Aliado */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-amber-950/70 border border-amber-500/30 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow-lg shrink-0">
+            <Key className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-black text-white">
+                Panel de Acceso Gerencial • {currentTenant.name}
+              </h3>
+              <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-black uppercase">
+                Gerente & Admin
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Control total del restaurante aliado: métricas financieras en COP, carta de platos, comandas en vivo, mesas, inventario, personal y facturación DIAN.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => openAllyManagerPanel(currentTenant.id, 'gerente')}
+          className="w-full md:w-auto px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+        >
+          <span>Ingresar al Panel Gerencial</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Featured Dishes Section */}

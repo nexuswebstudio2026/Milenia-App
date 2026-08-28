@@ -33,18 +33,24 @@ export const MileniaLandingView: React.FC = () => {
   const { setMileniaView, tenants, selectTenantById, navigateTo, setMode, setTenantView } = useTasty();
   const { loginAsDemo, userProfile } = useAuth();
 
+  const handleQuickLoginCamilo = () => {
+    setMode('restaurant');
+    setTenantView('restaurant-panel-gerente');
+    navigateTo({ routeType: 'ally_panel', restaurantId: '1', cargo: 'gerente' });
+  };
+
   const handleQuickLoginMiguel = async () => {
     await loginAsDemo('miguel_owner');
     setMode('restaurant');
-    setTenantView('restaurant-admin');
-    navigateTo({ routeType: 'tenant_admin', restaurantId: '5' });
+    setTenantView('restaurant-panel-gerente');
+    navigateTo({ routeType: 'ally_panel', restaurantId: '5', cargo: 'gerente' });
   };
 
   const handleQuickLoginAlejandro = async () => {
     await loginAsDemo('alejandro_staff');
     setMode('restaurant');
-    setTenantView('restaurant-empleados');
-    navigateTo({ routeType: 'employee_dashboard', restaurantId: '3', employeeId: '12345' });
+    setTenantView('restaurant-panel-gerente');
+    navigateTo({ routeType: 'ally_panel', restaurantId: '3', cargo: 'cajero-principal' });
   };
 
   return (
@@ -171,12 +177,12 @@ export const MileniaLandingView: React.FC = () => {
                 </div>
                 <div className="text-slate-500 pt-1 border-t border-slate-800 flex items-center justify-between text-[11px]">
                   <span>Ruta destino calculada:</span>
-                  <span className="text-amber-400 font-black">/5/admin</span>
+                  <span className="text-amber-400 font-black">/panel/5/gerente</span>
                 </div>
               </div>
 
               <p className="text-xs text-slate-600 dark:text-slate-400">
-                <strong>Vista Propietario:</strong> Métricas globales de facturación, desglose DIAN Impoconsumo 8%, control de inventario crítico y gestión de personal.
+                <strong>Panel Gerencial Integral:</strong> Ventas en vivo, carta de platos, estado de mesas, KDS de cocina, personal, inventario y facturación DIAN.
               </p>
             </div>
 
@@ -184,7 +190,7 @@ export const MileniaLandingView: React.FC = () => {
               onClick={handleQuickLoginMiguel}
               className="mt-6 w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-md transition cursor-pointer"
             >
-              <span>Acceder como Miguel (/5/admin)</span>
+              <span>Acceder al Panel Gerencial (/panel/5/gerente)</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -220,12 +226,12 @@ export const MileniaLandingView: React.FC = () => {
                 </div>
                 <div className="text-slate-500 pt-1 border-t border-slate-800 flex items-center justify-between text-[11px]">
                   <span>Ruta destino calculada:</span>
-                  <span className="text-teal-400 font-black">/3/dashboard/12345</span>
+                  <span className="text-teal-400 font-black">/panel/3/cajero-principal</span>
                 </div>
               </div>
 
               <p className="text-xs text-slate-600 dark:text-slate-400">
-                <strong>Vista Operativa:</strong> Interfaz simplificada para toma de pedidos express (POS), registro de asistencia (Clock-In / Clock-Out) y cobro en COP.
+                <strong>Acceso Operativo de Caja:</strong> Monitor de cobros, comandas de mesas, arqueos de caja y control de pagos DIAN en COP.
               </p>
             </div>
 
@@ -233,7 +239,7 @@ export const MileniaLandingView: React.FC = () => {
               onClick={handleQuickLoginAlejandro}
               className="mt-6 w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-md transition cursor-pointer"
             >
-              <span>Acceder como Alejandro (/3/dashboard/12345)</span>
+              <span>Acceder al Panel de Caja (/panel/3/cajero-principal)</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
