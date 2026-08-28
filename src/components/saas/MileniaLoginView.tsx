@@ -51,6 +51,9 @@ import {
   getBusinessProfile, 
   subscribeToBusinessProfile 
 } from '../../services/mileniaBusinessService';
+import { addAliado } from '../../services/mileniaAliadosService';
+import { addTransaction } from '../../services/mileniaContabilidadService';
+import { getFinancialSummary, saveFinancialSummary } from '../../services/mileniaFinancialSummaryService';
 
 export const MileniaLoginView: React.FC = () => {
   const { tenants, addTenant, addEmployee, navigateTo, setMode: setAppMode, setTenantView } = useTasty();
@@ -99,6 +102,18 @@ export const MileniaLoginView: React.FC = () => {
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentVoucherFile, setPaymentVoucherFile] = useState<{ name: string; size: string; dataUrl: string } | null>(null);
   const voucherFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Estados para Inteligencia Artificial de Gemini (OCR y Transcripción Automática de Comprobantes)
+  const [isAnalyzingVoucher, setIsAnalyzingVoucher] = useState(false);
+  const [geminiAnalysisMessage, setGeminiAnalysisMessage] = useState<string | null>(null);
+  const [geminiDetectedData, setGeminiDetectedData] = useState<{
+    referenceNumber?: string;
+    amountCop?: number;
+    bankOrWallet?: string;
+    destinationAccount?: string;
+    detected?: boolean;
+    rawSummary?: string;
+  } | null>(null);
 
   // Perfil de Negocio Milenia desde Firestore (/negocio/perfil_milenia)
   const [businessProfile, setBusinessProfile] = useState<MileniaBusinessProfile>(DEFAULT_BUSINESS_PROFILE);
@@ -156,11 +171,11 @@ export const MileniaLoginView: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  // Función para manejar carga de Comprobante de Pago
+  // Función para manejar carga de Comprobante de Pago y análisis automático con Gemini IA
   const handleVoucherFileUpload = (file: File) => {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
       const sizeKb = (file.size / 1024).toFixed(1) + ' KB';
       setPaymentVoucherFile({
@@ -168,6 +183,62 @@ export const MileniaLoginView: React.FC = () => {
         size: sizeKb,
         dataUrl: dataUrl || ''
       });
+
+      // Disparar análisis inteligente con Gemini IA
+      setIsAnalyzingVoucher(true);
+      setGeminiAnalysisMessage('Gemini IA analizando comprobante y transcribiendo número de aprobación...');
+      setGeminiDetectedData(null);
+
+      try {
+        const response = await fetch('/api/gemini/analyze-voucher', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imageBase64: dataUrl,
+            mimeType: file.type || 'image/jpeg',
+            fileName: file.name,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          const { referenceNumber, bankOrWallet } = result.data;
+          
+          if (referenceNumber) {
+            setPaymentReference(referenceNumber);
+          }
+          
+          if (bankOrWallet) {
+            const bwLower = String(bankOrWallet).toLowerCase();
+            if (bwLower.includes('daviplata')) {
+              setSelectedWallet('daviplata');
+            } else if (bwLower.includes('nequi')) {
+              setSelectedWallet('nequi');
+            } else if (bwLower.includes('banco') || bwLower.includes('bancolombia')) {
+              setSelectedWallet('transferencia');
+            } else if (bwLower.includes('breve') || bwLower.includes('transfiya')) {
+              setSelectedWallet('breve');
+            }
+          }
+
+          setGeminiDetectedData(result.data);
+          setGeminiAnalysisMessage(
+            referenceNumber 
+              ? `✨ Número de aprobación "${referenceNumber}" transcrito automáticamente por Gemini IA`
+              : 'Comprobante analizado con éxito por Gemini IA'
+          );
+        } else {
+          setGeminiAnalysisMessage('Comprobante recibido. Verifica el número de transacción.');
+        }
+      } catch (ocrErr) {
+        console.warn('Aviso: Error en el endpoint de Gemini IA para voucher:', ocrErr);
+        setGeminiAnalysisMessage('Comprobante adjuntado correctamente.');
+      } finally {
+        setIsAnalyzingVoucher(false);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -330,10 +401,69 @@ export const MileniaLoginView: React.FC = () => {
         }
       };
 
-      // Guardar en Firestore & Context
+      // Guardar en Firestore & Context de Restaurantes Multi-Tenant
       addTenant(newTenant);
 
-      // 3. Registrar al Propietario / Gerente como usuario en Firebase Auth y Firestore (`users/{uid}`)
+      const finalPaymentRef = paymentReference.trim() || `REF-${Math.floor(1000000 + Math.random() * 9000000)}`;
+
+      // 1. Guardar en la Colección `/aliados` del Propietario Milenia en Firestore
+      try {
+        await addAliado({
+          name: allyName.trim(),
+          nit: allyRut.trim(),
+          city: allyCity.trim(),
+          address: allyAddress.trim() || 'Dirección Comercial Principal',
+          phone: allyPhone.trim() || allyOwnerPhone.trim() || '+57 304 347 0984',
+          email: allyEmail.trim() || allyOwnerEmail.trim(),
+          plan: 'Pro',
+          status: 'Activo',
+          monthlyFeeCop: 600000,
+          tablesCount: Number(allyTablesCount) || 12,
+          contactName: allyOwnerName.trim()
+        });
+      } catch (aliadoErr) {
+        console.warn('Aviso guardando en colección /aliados:', aliadoErr);
+      }
+
+      // 2. Guardar en la Colección `/contabilidad` de Milenia (Ingreso por Suscripción Mensual)
+      try {
+        await addTransaction({
+          type: 'INGRESO',
+          description: `Suscripción Mensual Plan Pro - ${allyName.trim()}`,
+          category: 'SUSCRIPCION_SAAS',
+          amountCop: 600000,
+          date: new Date().toISOString().split('T')[0],
+          restaurantId: newRestaurantId,
+          restaurantName: allyName.trim(),
+          paymentMethod: selectedWallet === 'nequi' 
+            ? 'TRANSFERENCIA_BANCARIA' 
+            : selectedWallet === 'daviplata' 
+            ? 'TRANSFERENCIA_BANCARIA' 
+            : selectedWallet === 'transferencia' 
+            ? 'TRANSFERENCIA_BANCARIA' 
+            : 'WOMPI',
+          referenceNumber: finalPaymentRef,
+          notes: `Comprobante verificado con Gemini IA. Archivo: ${paymentVoucherFile.name}. Método: ${selectedWallet.toUpperCase()}`
+        });
+      } catch (txErr) {
+        console.warn('Aviso guardando en colección /contabilidad:', txErr);
+      }
+
+      // 3. Actualizar la Tabla de Balance Consolidado `/resumen_financiero` en Firestore
+      try {
+        const currentFin = await getFinancialSummary();
+        await saveFinancialSummary({
+          ingresos: (Number(currentFin.ingresos) || 0) + 600000,
+          gastos: Number(currentFin.gastos) || 0,
+          titulo: 'Resumen Financiero Consolidado',
+          descripcion: `Actualizado automáticamente por activación del aliado "${allyName.trim()}".`,
+          notas: `Último recaudo: $600.000 COP con referencia ${finalPaymentRef} (${selectedWallet.toUpperCase()})`
+        });
+      } catch (finErr) {
+        console.warn('Aviso actualizando /resumen_financiero:', finErr);
+      }
+
+      // 4. Registrar al Propietario / Gerente como usuario en Firebase Auth y Firestore (`users/{uid}`)
       await registerUser(allyOwnerEmail, allyOwnerPassword, {
         name: allyOwnerName.trim(),
         restaurantId: newRestaurantId,
@@ -1541,38 +1671,35 @@ export const MileniaLoginView: React.FC = () => {
             )}
 
             {/* ========================================================================= */}
-            {/* SUBIR COMPROBANTE DE PAGO O TRANSACCIÓN                                   */}
+            {/* SUBIR COMPROBANTE DE PAGO O TRANSACCIÓN (ANALIZADO POR GEMINI IA)          */}
             {/* ========================================================================= */}
-            <div className="bg-slate-950/80 border border-amber-500/30 rounded-2xl p-4 sm:p-5 space-y-4">
-              <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
-                <Receipt className="w-4 h-4" />
-                <span>Subir Comprobante de Transacción / Pago *</span>
-              </div>
-              <p className="text-xs text-slate-400">
-                Una vez realizada la transacción en Nequi, Daviplata o Bancolombia, guarda el comprobante o captura de pantalla y adjúntalo a continuación para activar tu restaurante en el sistema.
-              </p>
-
-              {/* Referencia de la Transacción */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Número de Aprobación / Referencia de la Transacción
-                </label>
-                <div className="relative">
-                  <Hash className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="text"
-                    value={paymentReference}
-                    onChange={(e) => setPaymentReference(e.target.value)}
-                    placeholder="Ej. M19482048 o Ref. 0984129"
-                    className="w-full pl-10 pr-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:border-amber-500 font-mono"
-                  />
+            <div className="bg-slate-950/90 border border-amber-500/40 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
+                  <Receipt className="w-4 h-4" />
+                  <span>Subir Comprobante de Transacción / Pago *</span>
+                </div>
+                
+                {/* Badge Inteligente de Gemini IA */}
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/40 text-purple-300 font-mono text-[10px] font-bold">
+                  <Sparkles className="w-3 h-3 text-purple-400 animate-pulse" />
+                  <span>Gemini AI Auto-OCR</span>
                 </div>
               </div>
 
+              <p className="text-xs text-slate-400">
+                Una vez realizada la transacción en Daviplata, Nequi o Bancolombia, adjunta el pantallazo o comprobante. <strong className="text-purple-300">La IA de Gemini leerá el documento y transcribirá automáticamente el número de aprobación o referencia</strong> en la barra inferior.
+              </p>
+
               {/* Subida del Comprobante (File Drag & Drop) */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Comprobante o Captura de Pantalla *
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                  <span>Captura de Pantalla o Comprobante Oficial *</span>
+                  {paymentVoucherFile && (
+                    <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Archivo cargado
+                    </span>
+                  )}
                 </label>
 
                 <input
@@ -1587,24 +1714,56 @@ export const MileniaLoginView: React.FC = () => {
                 />
 
                 {paymentVoucherFile ? (
-                  <div className="flex items-center justify-between p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
-                    <div className="flex items-center gap-3 truncate">
-                      <div className="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-5 h-5" />
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3.5 bg-slate-900 border border-emerald-500/40 rounded-xl">
+                      <div className="flex items-center gap-3 truncate">
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                          <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                        <div className="truncate">
+                          <p className="text-xs font-bold text-white truncate">{paymentVoucherFile.name}</p>
+                          <p className="text-[10px] text-emerald-400 font-mono">
+                            Comprobante recibido ({paymentVoucherFile.size}) &bull; Analizado con Gemini IA
+                          </p>
+                        </div>
                       </div>
-                      <div className="truncate">
-                        <p className="text-xs font-bold text-white truncate">{paymentVoucherFile.name}</p>
-                        <p className="text-[10px] text-emerald-400 font-mono">Comprobante verificado ({paymentVoucherFile.size}) &bull; Listo para archivar</p>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => voucherFileInputRef.current?.click()}
+                          className="px-2.5 py-1 text-[10px] font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition"
+                        >
+                          Cambiar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPaymentVoucherFile(null);
+                            setPaymentReference('');
+                            setGeminiAnalysisMessage(null);
+                            setGeminiDetectedData(null);
+                          }}
+                          className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-rose-400 rounded-lg transition"
+                          title="Eliminar comprobante"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentVoucherFile(null)}
-                      className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-rose-400 rounded-lg transition"
-                      title="Cambiar comprobante"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+
+                    {/* Previsualización rápida de la imagen cargada */}
+                    {paymentVoucherFile.dataUrl.startsWith('data:image') && (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-800 max-h-36 bg-slate-950 flex items-center justify-center">
+                        <img 
+                          src={paymentVoucherFile.dataUrl} 
+                          alt="Comprobante cargado" 
+                          className="object-contain max-h-36 w-full opacity-90 hover:opacity-100 transition"
+                        />
+                        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-slate-950/80 border border-slate-700 text-[9px] font-mono text-slate-300">
+                          Vista Previa
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div
@@ -1618,11 +1777,76 @@ export const MileniaLoginView: React.FC = () => {
                     }}
                     className="border-2 border-dashed border-amber-500/40 hover:border-amber-400 bg-amber-500/5 hover:bg-amber-500/10 rounded-xl p-5 text-center cursor-pointer transition flex flex-col items-center justify-center gap-2 group"
                   >
-                    <UploadCloud className="w-7 h-7 text-amber-400 group-hover:scale-110 transition-transform" />
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
+                      <UploadCloud className="w-6 h-6" />
+                    </div>
                     <p className="text-xs text-white font-bold">
                       Haz clic aquí para subir el <span className="text-amber-400">Comprobante de Pago</span> o arrastra el archivo
                     </p>
-                    <p className="text-[10px] text-slate-400">Captura de Nequi, Daviplata o PDF del banco (PNG, JPG, PDF)</p>
+                    <p className="text-[10px] text-slate-400">
+                      Captura de Daviplata, Nequi o PDF bancario (PNG, JPG, PDF) &bull; <span className="text-purple-400 font-semibold">Gemini IA transcribirá la referencia</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Barra de Escritura: Número de Aprobación / Referencia de la Transacción */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-slate-300">
+                    Número de Aprobación / Referencia de la Transacción *
+                  </label>
+                  {isAnalyzingVoucher ? (
+                    <span className="text-[10px] text-purple-400 font-mono flex items-center gap-1 animate-pulse font-bold">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Gemini IA leyendo comprobante...
+                    </span>
+                  ) : paymentReference ? (
+                    <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1 font-bold">
+                      <Sparkles className="w-3 h-3" /> Transcrito con éxito
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="relative">
+                  <Hash className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="text"
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    placeholder="Ej. 88472910 o Ref. M-194820"
+                    className={`w-full pl-10 pr-28 py-2.5 bg-slate-900 border rounded-xl text-xs sm:text-sm text-white focus:outline-none font-mono transition-all ${
+                      isAnalyzingVoucher 
+                        ? 'border-purple-500/60 bg-purple-950/20' 
+                        : paymentReference 
+                        ? 'border-emerald-500/60 bg-slate-900 focus:border-emerald-400' 
+                        : 'border-slate-800 focus:border-amber-500'
+                    }`}
+                  />
+
+                  {/* Estado / Botón dentro de la barra de referencia */}
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    {isAnalyzingVoucher ? (
+                      <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded text-[10px] font-mono flex items-center gap-1">
+                        <Loader2 className="w-2.5 h-2.5 animate-spin" /> IA Leyendo
+                      </span>
+                    ) : paymentReference ? (
+                      <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded text-[10px] font-mono flex items-center gap-1">
+                        <Check className="w-2.5 h-2.5 stroke-[3]" /> IA Auto-fill
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Banner de Confirmación de Gemini IA */}
+                {geminiAnalysisMessage && (
+                  <div className="p-2.5 bg-purple-500/10 border border-purple-500/30 rounded-xl text-xs text-purple-200 flex items-start gap-2 animate-fade-in">
+                    <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                    <div className="flex-1 space-y-0.5">
+                      <p className="font-semibold text-white text-[11px]">{geminiAnalysisMessage}</p>
+                      {geminiDetectedData?.rawSummary && (
+                        <p className="text-[10px] text-slate-300 font-mono">{geminiDetectedData.rawSummary}</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

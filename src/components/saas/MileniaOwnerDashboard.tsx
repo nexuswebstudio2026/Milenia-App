@@ -263,10 +263,19 @@ export const MileniaOwnerDashboard: React.FC = () => {
 
   // ==========================================
   // FINANCIAL CALCULATIONS & STATS
-  // (Connected to /resumen_financiero Firestore table)
+  // (Connected to /resumen_financiero & /contabilidad Firestore tables)
   // ==========================================
-  const totalIngresos = financialSummary.ingresos;
-  const totalGastos = financialSummary.gastos;
+  const sumIngresosTransactions = transactions
+    .filter(t => t.type === 'INGRESO')
+    .reduce((sum, t) => sum + (Number(t.amountCop) || 0), 0);
+
+  const sumGastosTransactions = transactions
+    .filter(t => t.type === 'GASTO')
+    .reduce((sum, t) => sum + (Number(t.amountCop) || 0), 0);
+
+  // If financialSummary is provided, use the higher figure between summary and the calculated ledger
+  const totalIngresos = Math.max(Number(financialSummary.ingresos) || 0, sumIngresosTransactions);
+  const totalGastos = Math.max(Number(financialSummary.gastos) || 0, sumGastosTransactions);
   const balanceNeto = totalIngresos - totalGastos;
   const margenNeto = totalIngresos > 0 ? Number(((balanceNeto / totalIngresos) * 100).toFixed(1)) : 0;
 
