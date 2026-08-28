@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTasty } from '../../context/TastyContext';
+import { useAuth } from '../../context/AuthContext';
 import { TenantRestaurant, TenantEmployee, TableStatus, OrderStatus } from '../../types';
 import { 
   Building2, 
@@ -239,7 +240,19 @@ export const AllyManagerAccessPanel: React.FC = () => {
     setMileniaView
   } = useTasty();
 
+  const { logout, userProfile } = useAuth();
   const { origin } = useCurrentDomain();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (e) {
+      console.warn('Logout error:', e);
+    }
+    setMode('milenia');
+    setMileniaView('login');
+    showToast('Sesión Cerrada', 'Has salido del sistema exitosamente.', 'info');
+  };
 
   // Normalize cargo from URL route: /panel/:idaliado/:cargo
   const activeCargoSlug = useMemo(() => {
@@ -513,6 +526,20 @@ export const AllyManagerAccessPanel: React.FC = () => {
               </select>
             </div>
 
+            {/* Logout / Exit System Action Button */}
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={handleLogout}
+                id="btn-logout-ally-header"
+                className="w-full sm:w-auto px-4 py-2.5 bg-red-500/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/40 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 shadow-md cursor-pointer group"
+                title="Cerrar sesión actual y salir del sistema"
+              >
+                <LogOut className="w-4 h-4 text-red-400 group-hover:text-white transition-colors" />
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
+
           </div>
 
         </div>
@@ -536,7 +563,7 @@ export const AllyManagerAccessPanel: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
             <button
               onClick={() => handleCopyUrl()}
               title="Copiar URL completa"
@@ -574,6 +601,15 @@ export const AllyManagerAccessPanel: React.FC = () => {
             >
               <QrCode className="w-3.5 h-3.5" />
               <span>Código QR</span>
+            </button>
+
+            <button
+              onClick={handleLogout}
+              title="Cerrar sesión y volver al login"
+              className="px-3.5 py-2 rounded-xl bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white text-xs font-bold transition flex items-center justify-center gap-1.5 border border-red-500/40 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Salir</span>
             </button>
           </div>
 

@@ -29,9 +29,11 @@ import {
   Coins,
   ShieldCheck,
   Building2,
-  PhoneCall
+  PhoneCall,
+  LogOut
 } from 'lucide-react';
 import { RestaurantTable, MenuItem, Order, CartItem } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 export const EmployeeDashboard: React.FC = () => {
   const { 
@@ -48,8 +50,23 @@ export const EmployeeDashboard: React.FC = () => {
     updateOrderStatus,
     clockInEmployee,
     clockOutEmployee,
-    showToast 
+    showToast,
+    setMode,
+    setMileniaView
   } = useTasty();
+
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (e) {
+      console.warn('Logout error in EmployeeDashboard:', e);
+    }
+    setMode('milenia');
+    setMileniaView('login');
+    showToast('Sesión Cerrada', 'Has salido del sistema exitosamente.', 'info');
+  };
 
   // POS Order Taking State (Waiter)
   const [selectedTable, setSelectedTable] = useState<RestaurantTable>(() => tenantTables[0] || null);
@@ -278,6 +295,17 @@ export const EmployeeDashboard: React.FC = () => {
                 </button>
               ))}
             </div>
+
+            {/* Logout / Salir del Sistema button */}
+            <button
+              onClick={handleLogout}
+              id="btn-logout-employee-dashboard"
+              className="px-3.5 py-2 rounded-2xl bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white border border-red-500/40 text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+              title="Cerrar Sesión y Salir del Sistema"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Salir</span>
+            </button>
           </div>
 
         </div>

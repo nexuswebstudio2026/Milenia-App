@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTasty } from '../../context/TastyContext';
+import { useAuth } from '../../context/AuthContext';
 import { 
   Building2, 
   UserCheck, 
@@ -12,7 +13,8 @@ import {
   ChevronDown, 
   Globe, 
   ExternalLink,
-  Code2
+  Code2,
+  LogOut
 } from 'lucide-react';
 import { useCurrentDomain } from '../../utils/domainHelper';
 
@@ -26,10 +28,25 @@ export const SaaSTopBar: React.FC = () => {
     switchEmployee, 
     currentRoute, 
     navigateTo,
-    theme
+    theme,
+    setMode,
+    setMileniaView,
+    showToast
   } = useTasty();
 
+  const { userProfile, logout } = useAuth();
   const { domain } = useCurrentDomain();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (e) {
+      console.warn('Logout error:', e);
+    }
+    setMode('milenia');
+    setMileniaView('login');
+    showToast('Sesión Cerrada', 'Has salido del sistema exitosamente.', 'info');
+  };
 
   const isSuperAdmin = currentRoute.routeType === 'superadmin';
   const isAdmin = currentRoute.routeType === 'tenant_admin';
@@ -176,6 +193,19 @@ export const SaaSTopBar: React.FC = () => {
             <span className="text-slate-400 font-semibold">{domain}</span>
             <span className="text-amber-300 font-bold">{currentRoute.path}</span>
           </div>
+
+          {/* Logout / Exit button */}
+          {userProfile && (
+            <button
+              onClick={handleLogout}
+              id="saas-topbar-logout-btn"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white font-bold text-[11px] border border-red-500/30 transition cursor-pointer"
+              title="Cerrar sesión y salir a Milenia Login"
+            >
+              <LogOut className="w-3 h-3" />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
+          )}
 
         </div>
 

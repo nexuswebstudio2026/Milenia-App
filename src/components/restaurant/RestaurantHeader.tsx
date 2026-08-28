@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTasty } from '../../context/TastyContext';
+import { useAuth } from '../../context/AuthContext';
 import { GoogleWorkspaceModal } from '../google/GoogleWorkspaceModal';
 import { 
   Building2, 
@@ -18,7 +19,9 @@ import {
   Store,
   Phone,
   Cloud,
-  Key
+  Key,
+  LogOut,
+  UserCheck
 } from 'lucide-react';
 import { formatCop } from '../../utils/currency';
 import { useCurrentDomain } from '../../utils/domainHelper';
@@ -38,14 +41,27 @@ export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }
     cart, 
     language, 
     setLanguage,
-    setIsRewardsOpen
+    setIsRewardsOpen,
+    showToast
   } = useTasty();
 
+  const { userProfile, logout } = useAuth();
   const { getTenantDisplayUrl } = useCurrentDomain();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (e) {
+      console.warn('Logout error in RestaurantHeader:', e);
+    }
+    setMode('milenia');
+    setMileniaView('login');
+    showToast('Sesión Cerrada', 'Has salido del sistema exitosamente.', 'info');
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-xs transition-colors">
@@ -233,6 +249,32 @@ export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             </button>
 
+            {/* Logged in User & Logout button */}
+            {userProfile ? (
+              <div className="flex items-center gap-1.5 bg-slate-900 border border-amber-500/30 p-1 rounded-2xl">
+                <div className="flex items-center gap-1.5 px-2 py-1 text-left hidden sm:flex">
+                  <div className="w-5 h-5 rounded-md bg-amber-500 text-slate-950 flex items-center justify-center font-black text-[10px]">
+                    <UserCheck className="w-3 h-3" />
+                  </div>
+                  <div className="truncate max-w-[100px]">
+                    <p className="text-[10px] font-bold text-white leading-tight truncate">{userProfile.name.split(' ')[0]}</p>
+                    <p className="text-[8px] text-amber-400 font-mono uppercase">{userProfile.role}</p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  id="btn-restaurant-header-logout"
+                  className="px-2.5 py-1.5 bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  title="Cerrar Sesión y Salir del Sistema"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">Salir</span>
+                </button>
+              </div>
+            ) : null}
+
             {/* Cart Drawer Trigger */}
             <button
               onClick={onOpenCart}
@@ -330,7 +372,19 @@ export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }
             <Key className="w-4 h-4 text-amber-400" />
           </button>
 
-          <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-2">
+            {userProfile && (
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-center py-2.5 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Cerrar Sesión Activa ({userProfile.name.split(' ')[0]})</span>
+              </button>
+            )}
             <button
               onClick={() => {
                 setMode('milenia');

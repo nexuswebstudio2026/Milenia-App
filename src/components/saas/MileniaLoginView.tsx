@@ -381,8 +381,7 @@ export const MileniaLoginView: React.FC = () => {
                 Bienvenido, <strong className="text-white">{successInfo.name}</strong>. Accediendo a <span className="text-amber-400 font-mono font-bold">{successInfo.redirectUrl}</span>...
               </p>
             </div>
-            <div className="flex flex-col items-center justify-center gap-3 pt-2">
-              <div className="w-7 h-7 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => {
@@ -408,10 +407,26 @@ export const MileniaLoginView: React.FC = () => {
                     navigateTo({ routeType: 'ally_panel', restaurantId: '1', cargo: 'gerente' });
                   }
                 }}
-                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-transform active:scale-95 cursor-pointer flex items-center gap-2"
+                className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-transform active:scale-95 cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>Entrar al Panel Inmediatamente</span>
                 <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  setSuccessInfo(null);
+                  try {
+                    await logout();
+                  } catch (e) {
+                    console.warn(e);
+                  }
+                }}
+                className="w-full sm:w-auto px-4 py-2.5 bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white font-bold text-xs rounded-xl border border-red-500/40 transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Cerrar Sesión / Cancelar</span>
               </button>
             </div>
           </div>
