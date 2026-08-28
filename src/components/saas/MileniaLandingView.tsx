@@ -30,16 +30,20 @@ import {
 import { formatCop } from '../../utils/currency';
 
 export const MileniaLandingView: React.FC = () => {
-  const { setMileniaView, tenants, selectTenantById, navigateTo } = useTasty();
+  const { setMileniaView, tenants, selectTenantById, navigateTo, setMode, setTenantView } = useTasty();
   const { loginAsDemo, userProfile } = useAuth();
 
   const handleQuickLoginMiguel = async () => {
     await loginAsDemo('miguel_owner');
+    setMode('restaurant');
+    setTenantView('restaurant-admin');
     navigateTo({ routeType: 'tenant_admin', restaurantId: '5' });
   };
 
   const handleQuickLoginAlejandro = async () => {
     await loginAsDemo('alejandro_staff');
+    setMode('restaurant');
+    setTenantView('restaurant-empleados');
     navigateTo({ routeType: 'employee_dashboard', restaurantId: '3', employeeId: '12345' });
   };
 

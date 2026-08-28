@@ -25,7 +25,7 @@ import {
 import { loginUser, registerUser, UserRole, calculateRedirectUrl } from '../../lib/auth-service';
 
 export const MileniaLoginView: React.FC = () => {
-  const { tenants, navigateTo } = useTasty();
+  const { tenants, navigateTo, setMode: setAppMode, setTenantView } = useTasty();
   const { 
     userProfile, 
     logout, 
@@ -61,22 +61,25 @@ export const MileniaLoginView: React.FC = () => {
           redirectUrl: result.redirectUrl
         });
 
-        // Redirección Dinámica
-        setTimeout(() => {
-          const roleUpper = String(result.profile.role).toUpperCase();
-          const rId = String(result.profile.restaurantId || '1');
-          const empId = String(result.profile.employeeId || result.profile.documentId || '101');
+        // Redirección Dinámica Inmediata y Segura
+        const roleUpper = String(result.profile.role).toUpperCase();
+        const rId = String(result.profile.restaurantId || '1');
+        const empId = String(result.profile.employeeId || result.profile.documentId || '101');
 
+        setTimeout(() => {
+          setAppMode('restaurant');
           if (roleUpper === 'OWNER' || roleUpper === 'ADMIN') {
+            setTenantView('restaurant-admin');
             navigateTo({ routeType: 'tenant_admin', restaurantId: rId });
           } else {
+            setTenantView('restaurant-empleados');
             navigateTo({ 
               routeType: 'employee_dashboard', 
               restaurantId: rId,
               employeeId: empId
             });
           }
-        }, 800);
+        }, 500);
       } else {
         if (!signupName.trim()) {
           setError('Por favor ingresa tu nombre completo.');
@@ -98,16 +101,19 @@ export const MileniaLoginView: React.FC = () => {
         });
 
         setTimeout(() => {
+          setAppMode('restaurant');
           if (signupRole === 'OWNER') {
+            setTenantView('restaurant-admin');
             navigateTo({ routeType: 'tenant_admin', restaurantId: signupRestaurantId });
           } else {
+            setTenantView('restaurant-empleados');
             navigateTo({ 
               routeType: 'employee_dashboard', 
               restaurantId: signupRestaurantId,
               employeeId: signupEmployeeId
             });
           }
-        }, 800);
+        }, 500);
       }
     } catch (err: any) {
       setError(err?.message || 'Error al autenticar. Verifica tus credenciales.');
@@ -355,7 +361,33 @@ export const MileniaLoginView: React.FC = () => {
                 Bienvenido, <strong className="text-white">{successInfo.name}</strong>. Accediendo a <span className="text-amber-400 font-mono font-bold">{successInfo.redirectUrl}</span>...
               </p>
             </div>
-            <div className="w-8 h-8 mx-auto border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            <div className="flex flex-col items-center justify-center gap-3 pt-2">
+              <div className="w-7 h-7 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+              <button
+                type="button"
+                onClick={() => {
+                  setAppMode('restaurant');
+                  if (successInfo.redirectUrl.includes('/admin')) {
+                    const rId = successInfo.redirectUrl.split('/')[1] || '1';
+                    setTenantView('restaurant-admin');
+                    navigateTo({ routeType: 'tenant_admin', restaurantId: rId });
+                  } else if (successInfo.redirectUrl.includes('/dashboard')) {
+                    const parts = successInfo.redirectUrl.split('/');
+                    const rId = parts[1] || '1';
+                    const empId = parts[3] || '101';
+                    setTenantView('restaurant-empleados');
+                    navigateTo({ routeType: 'employee_dashboard', restaurantId: rId, employeeId: empId });
+                  } else {
+                    setTenantView('restaurant-admin');
+                    navigateTo({ routeType: 'tenant_admin', restaurantId: '1' });
+                  }
+                }}
+                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-transform active:scale-95 cursor-pointer flex items-center gap-2"
+              >
+                <span>Entrar al Panel Inmediatamente</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleEmailSubmit} className="space-y-4">

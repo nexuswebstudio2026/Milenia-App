@@ -293,7 +293,11 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // App Mode & Views (Milenia SaaS vs Specific Restaurant Tenant)
   const [mode, setMode] = useState<AppMode>(() => {
-    // If URL has specific restaurant/dashboard route, default to restaurant mode
+    // If URL has specific restaurant/admin/panel route, default to restaurant mode
+    const path = window.location.pathname;
+    if (path.includes('/admin') || path.includes('/dashboard') || path.includes('/panel') || path.includes('/reservations') || path.includes('/tracking')) {
+      return 'restaurant';
+    }
     if (window.location.hash.length > 2 && !window.location.hash.includes('superadmin')) {
       return 'restaurant';
     }
@@ -302,6 +306,29 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [mileniaView, setMileniaView] = useState<MileniaNavView>('inicio');
   const [tenantView, setTenantView] = useState<RestaurantNavView>('restaurant-inicio');
+
+  // Automatically synchronize view and mode whenever currentRoute changes
+  useEffect(() => {
+    if (currentRoute.routeType === 'tenant_admin') {
+      setMode('restaurant');
+      setTenantView('restaurant-admin');
+    } else if (currentRoute.routeType === 'employee_dashboard') {
+      setMode('restaurant');
+      setTenantView('restaurant-empleados');
+    } else if (currentRoute.routeType === 'ally_panel') {
+      setMode('restaurant');
+      setTenantView('restaurant-panel-gerente');
+    } else if (currentRoute.routeType === 'customer_reservations') {
+      setMode('restaurant');
+      setTenantView('restaurant-reservas');
+    } else if (currentRoute.routeType === 'customer_tracking') {
+      setMode('restaurant');
+      setTenantView('restaurant-domicilios');
+    } else if (currentRoute.routeType === 'superadmin') {
+      setMode('milenia');
+      setMileniaView('propietario');
+    }
+  }, [currentRoute.routeType, currentRoute.restaurantId, currentRoute.employeeId, currentRoute.cargo]);
 
   const currentTenantId = currentRoute.restaurantId || '1';
   const currentTenant: TenantRestaurant = useMemo(() => {

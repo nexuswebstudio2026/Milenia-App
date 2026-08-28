@@ -39,6 +39,8 @@ const AppContent: React.FC = () => {
     tenantView, 
     currentView, 
     currentRoute,
+    currentTenant,
+    currentEmployeeId,
     setIsCartOpen 
   } = useTasty();
   
@@ -78,6 +80,26 @@ const AppContent: React.FC = () => {
               transition={{ duration: 0.2 }}
             >
               <AllyManagerAccessPanel />
+            </motion.div>
+          ) : currentRoute.routeType === 'tenant_admin' || (mode === 'restaurant' && tenantView === 'restaurant-admin') ? (
+            <motion.div
+              key={`tenant-admin-${currentTenant.id}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <AdminLayout />
+            </motion.div>
+          ) : currentRoute.routeType === 'employee_dashboard' || (mode === 'restaurant' && tenantView === 'restaurant-empleados') ? (
+            <motion.div
+              key={`tenant-emp-${currentTenant.id}-${currentEmployeeId}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <EmployeeDashboard />
             </motion.div>
           ) : mode === 'milenia' ? (
             <motion.div
