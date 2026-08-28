@@ -151,9 +151,34 @@
         "bannerImage": { "type": "string", "maxLength": 1000 },
         "primaryColor": { "type": "string", "maxLength": 20 },
         "tagline": { "type": "string", "maxLength": 250 },
+        "rutDocumentUrl": { "type": "string" },
+        "rutDocumentFileName": { "type": "string", "maxLength": 200 },
+        "rutUploadedAt": { "type": "string" },
+        "subscriptionPayment": { "type": "object" },
         "createdAt": { "type": "string" }
       },
       "required": ["id", "name", "city", "email", "status"]
+    },
+    "Employee": {
+      "title": "Employee",
+      "description": "Colaborador o empleado operativo del restaurante aliado con cargo, cédula, turno y PIN",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "restaurantId": { "type": "string", "maxLength": 50 },
+        "name": { "type": "string", "maxLength": 150 },
+        "role": { "type": "string", "enum": ["owner", "administrador", "gerente", "cajero", "mesero", "cocina", "staff"] },
+        "position": { "type": "string", "maxLength": 100 },
+        "documentId": { "type": "string", "maxLength": 50 },
+        "email": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "pinCode": { "type": "string", "maxLength": 10 },
+        "shiftStatus": { "type": "string", "enum": ["active", "off_duty", "on_break"] },
+        "avatar": { "type": "string", "maxLength": 1000 },
+        "currentClockInTime": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "restaurantId", "name", "role", "documentId"]
     },
     "FinancialSummary": {
       "title": "FinancialSummary",
@@ -190,6 +215,10 @@
     "/users/{userId}": {
       "schema": "User",
       "description": "Perfiles de usuarios con roles y restaurantId asignado"
+    },
+    "/employees/{employeeId}": {
+      "schema": "Employee",
+      "description": "Tabla y colección de colaboradores y empleados registrados"
     },
     "/sales/{saleId}": {
       "schema": "SaleRecord",

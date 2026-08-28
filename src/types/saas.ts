@@ -75,6 +75,16 @@ export interface InventoryItem {
   deductionPerPortion?: number;
 }
 
+export interface AllySubscriptionPayment {
+  amountCop: number;
+  method: 'nequi' | 'daviplata' | 'transferencia';
+  voucherUrl: string;
+  voucherFileName?: string;
+  referenceNumber?: string;
+  paidAt: string;
+  status: 'pending_verification' | 'confirmed';
+}
+
 export interface TenantRestaurant {
   id: string; // Unique_ID e.g. 'rest-milenia-bogota'
   slug: string; // 'milenia-bogota', 'camilo-medellin', 'parrilla-valle'
@@ -89,6 +99,10 @@ export interface TenantRestaurant {
   tablesCount: number;
   activeOrdersCount: number;
   totalMonthlySalesCop: number;
+  rutDocumentUrl?: string;
+  rutDocumentFileName?: string;
+  rutUploadedAt?: string;
+  subscriptionPayment?: AllySubscriptionPayment;
 }
 
 export type EmployeeRole = 'mesero' | 'cocina' | 'cajero' | 'administrador' | 'owner';

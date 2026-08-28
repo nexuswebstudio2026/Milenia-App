@@ -40,6 +40,10 @@ export function formatAliadoDoc(tenant: TenantRestaurant) {
     tagline: tenant.branding?.tagline || '',
     currency: tenant.branding?.currency || 'COP',
     currencySymbol: tenant.branding?.currencySymbol || '$',
+    rutDocumentUrl: tenant.rutDocumentUrl || null,
+    rutDocumentFileName: tenant.rutDocumentFileName || null,
+    rutUploadedAt: tenant.rutUploadedAt || null,
+    subscriptionPayment: tenant.subscriptionPayment || null,
     branding: tenant.branding,
     subscription: tenant.subscription,
     createdAt: tenant.createdAt || new Date().toISOString()
@@ -62,6 +66,10 @@ export function parseAliadoDoc(data: any): TenantRestaurant {
     tablesCount: Number(data.tablesCount) || 8,
     activeOrdersCount: Number(data.activeOrdersCount) || 0,
     totalMonthlySalesCop: Number(data.totalMonthlySalesCop) || 0,
+    rutDocumentUrl: data.rutDocumentUrl || undefined,
+    rutDocumentFileName: data.rutDocumentFileName || undefined,
+    rutUploadedAt: data.rutUploadedAt || undefined,
+    subscriptionPayment: data.subscriptionPayment || undefined,
     branding: data.branding || {
       logoUrl: data.logoUrl || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=200&q=80',
       primaryColor: data.primaryColor || '#ea580c',
@@ -76,13 +84,13 @@ export function parseAliadoDoc(data: any): TenantRestaurant {
       tipSuggestedPercentage: 10
     },
     subscription: data.subscription || {
-      plan: data.plan || 'pro',
+      plan: 'pro',
       status: data.status || 'active',
-      mrrCop: 289000,
+      mrrCop: 600000,
       renewsAt: '2026-09-01',
-      maxTables: 20,
-      maxEmployees: 10,
-      features: ['POS Meseros', 'KDS Cocina', 'Facturación DIAN', 'Menú QR']
+      maxTables: 30,
+      maxEmployees: 20,
+      features: ['POS Meseros', 'KDS Cocina', 'Facturación DIAN', 'Menú QR', 'Control de Inventario', 'Gestión de Personal']
     }
   };
 }
