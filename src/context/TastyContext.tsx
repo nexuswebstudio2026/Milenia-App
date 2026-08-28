@@ -111,6 +111,7 @@ interface TastyContextType {
   
   // Staff & Employees (Tenant-isolated)
   employees: TenantEmployee[];
+  addEmployee: (emp: TenantEmployee) => void;
   currentEmployeeId: string;
   currentEmployee: TenantEmployee | null;
   setCurrentEmployee: (emp: TenantEmployee | null) => void;
@@ -632,6 +633,18 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setTenants(prev => [...prev, newTenant]);
     saveAliadoToFirestore(newTenant).catch(err => {
       console.warn('Error saving aliado to Firestore:', err);
+    });
+  };
+
+  const addEmployee = (newEmployee: TenantEmployee) => {
+    setEmployees(prev => {
+      const idx = prev.findIndex(e => e.id === newEmployee.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = newEmployee;
+        return copy;
+      }
+      return [newEmployee, ...prev];
     });
   };
 
@@ -1397,6 +1410,7 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // Multi-Tenant SaaS
         tenants,
         employees,
+        addEmployee,
         currentTenantId,
         currentTenant,
         switchTenant,
