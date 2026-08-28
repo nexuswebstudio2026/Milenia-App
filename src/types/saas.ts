@@ -77,7 +77,7 @@ export interface InventoryItem {
 
 export interface AllySubscriptionPayment {
   amountCop: number;
-  method: 'nequi' | 'daviplata' | 'transferencia';
+  method: 'nequi' | 'daviplata' | 'transferencia' | 'breve' | string;
   voucherUrl: string;
   voucherFileName?: string;
   referenceNumber?: string;

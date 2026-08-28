@@ -45,6 +45,12 @@ import {
 import { loginUser, registerUser, UserRole, calculateRedirectUrl } from '../../lib/auth-service';
 import { TenantRestaurant, TenantEmployee, EmployeeRole } from '../../types';
 import { ColombiaCityCombobox } from '../common/ColombiaCityCombobox';
+import { 
+  MileniaBusinessProfile, 
+  DEFAULT_BUSINESS_PROFILE, 
+  getBusinessProfile, 
+  subscribeToBusinessProfile 
+} from '../../services/mileniaBusinessService';
 
 export const MileniaLoginView: React.FC = () => {
   const { tenants, addTenant, addEmployee, navigateTo, setMode: setAppMode, setTenantView } = useTasty();
@@ -88,11 +94,40 @@ export const MileniaLoginView: React.FC = () => {
 
   // Paso de Pago / Billeteras Digitales para Registro de Aliado
   const [showPaymentStep, setShowPaymentStep] = useState(false);
-  const [selectedWallet, setSelectedWallet] = useState<'nequi' | 'daviplata' | 'transferencia'>('nequi');
+  const [selectedWallet, setSelectedWallet] = useState<'nequi' | 'daviplata' | 'transferencia' | 'breve'>('nequi');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentVoucherFile, setPaymentVoucherFile] = useState<{ name: string; size: string; dataUrl: string } | null>(null);
   const voucherFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Perfil de Negocio Milenia desde Firestore (/negocio/perfil_milenia)
+  const [businessProfile, setBusinessProfile] = useState<MileniaBusinessProfile>(DEFAULT_BUSINESS_PROFILE);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [zoomedQrUrl, setZoomedQrUrl] = useState<string | null>(null);
+
+  // Cargar Perfil de Negocio y QRs de Firestore
+  React.useEffect(() => {
+    let unsubscribe = () => {};
+    const initProfile = async () => {
+      try {
+        const data = await getBusinessProfile();
+        if (data) {
+          setBusinessProfile(data);
+        }
+      } catch (err) {
+        console.warn('Error cargando perfil de negocio en login:', err);
+      }
+
+      unsubscribe = subscribeToBusinessProfile((updated) => {
+        if (updated) {
+          setBusinessProfile(updated);
+        }
+      });
+    };
+
+    initProfile();
+    return () => unsubscribe();
+  }, []);
 
   // 3. Campos Registrar Empleado
   const [empFullName, setEmpFullName] = useState('');
@@ -1195,27 +1230,36 @@ export const MileniaLoginView: React.FC = () => {
               </div>
             </div>
 
-            {/* Selector de Billetera Digital */}
+            {/* Selector de Billetera Digital & Métodos de Recaudo Milenia */}
             <div className="space-y-3">
-              <label className="block text-xs font-bold text-slate-200">
-                Selecciona la Billetera Digital o Método de Pago:
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-200">
+                  Selecciona la Billetera Digital o Método de Pago:
+                </label>
+                <span className="text-[10px] font-mono text-amber-400/90 flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                  <ShieldCheck className="w-3 h-3 text-amber-400" />
+                  <span>Sincronizado con Firestore (/negocio)</span>
+                </span>
+              </div>
 
-              <div className="grid grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {/* Nequi */}
                 <button
                   type="button"
                   onClick={() => setSelectedWallet('nequi')}
                   className={`p-3 rounded-2xl border text-center transition cursor-pointer flex flex-col items-center gap-1.5 ${
                     selectedWallet === 'nequi'
-                      ? 'bg-purple-950/40 border-purple-500 text-white shadow-lg shadow-purple-500/20'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                      ? 'bg-purple-950/40 border-purple-500 text-white shadow-lg shadow-purple-500/20 ring-1 ring-purple-500'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black text-xs">
+                  <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black text-xs shadow-md">
                     N
                   </div>
                   <span className="text-xs font-bold">Nequi</span>
+                  {businessProfile.qrNequiUrl && (
+                    <span className="text-[9px] px-1.5 py-0.2 bg-purple-500/20 text-purple-300 rounded font-mono">QR Activo</span>
+                  )}
                 </button>
 
                 {/* Daviplata */}
@@ -1224,146 +1268,277 @@ export const MileniaLoginView: React.FC = () => {
                   onClick={() => setSelectedWallet('daviplata')}
                   className={`p-3 rounded-2xl border text-center transition cursor-pointer flex flex-col items-center gap-1.5 ${
                     selectedWallet === 'daviplata'
-                      ? 'bg-red-950/40 border-red-500 text-white shadow-lg shadow-red-500/20'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                      ? 'bg-red-950/40 border-red-500 text-white shadow-lg shadow-red-500/20 ring-1 ring-red-500'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center font-black text-xs">
+                  <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center font-black text-xs shadow-md">
                     D
                   </div>
                   <span className="text-xs font-bold">Daviplata</span>
+                  {businessProfile.qrDaviplataUrl && (
+                    <span className="text-[9px] px-1.5 py-0.2 bg-red-500/20 text-red-300 rounded font-mono">QR Activo</span>
+                  )}
                 </button>
 
-                {/* Transferencia Directa */}
+                {/* Bancolombia / Transferencia */}
                 <button
                   type="button"
                   onClick={() => setSelectedWallet('transferencia')}
                   className={`p-3 rounded-2xl border text-center transition cursor-pointer flex flex-col items-center gap-1.5 ${
                     selectedWallet === 'transferencia'
-                      ? 'bg-amber-950/40 border-amber-500 text-white shadow-lg shadow-amber-500/20'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                      ? 'bg-amber-950/40 border-amber-500 text-white shadow-lg shadow-amber-500/20 ring-1 ring-amber-500'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs shadow-md">
                     <Building2 className="w-4 h-4" />
                   </div>
                   <span className="text-xs font-bold">Bancolombia</span>
+                  {businessProfile.qrBancolombiaUrl && (
+                    <span className="text-[9px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded font-mono">QR Activo</span>
+                  )}
+                </button>
+
+                {/* Breve / Transfiya */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedWallet('breve')}
+                  className={`p-3 rounded-2xl border text-center transition cursor-pointer flex flex-col items-center gap-1.5 ${
+                    selectedWallet === 'breve'
+                      ? 'bg-cyan-950/40 border-cyan-500 text-white shadow-lg shadow-cyan-500/20 ring-1 ring-cyan-500'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-xl bg-cyan-600 text-white flex items-center justify-center font-black text-xs shadow-md">
+                    ⚡
+                  </div>
+                  <span className="text-xs font-bold">Breve / Transfiya</span>
+                  {businessProfile.qrBreveUrl && (
+                    <span className="text-[9px] px-1.5 py-0.2 bg-cyan-500/20 text-cyan-300 rounded font-mono">QR Activo</span>
+                  )}
                 </button>
               </div>
             </div>
 
-            {/* Código QR & Datos de Transferencia */}
-            <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4">
-              <div className="flex flex-col sm:flex-row items-center gap-6">
-                
-                {/* Visualizador de QR Generado */}
-                <div className="bg-white p-4 rounded-2xl shadow-xl flex flex-col items-center justify-center shrink-0 w-48 h-48 border-4 border-amber-500/40">
-                  {selectedWallet === 'nequi' && (
-                    <div className="flex flex-col items-center justify-center space-y-1">
-                      {/* SVG Simulado QR Nequi */}
-                      <svg className="w-32 h-32 text-slate-900" viewBox="0 0 100 100" fill="currentColor">
-                        <path d="M0,0 h30 v30 h-30 z M10,10 h10 v10 h-10 z" />
-                        <path d="M70,0 h30 v30 h-30 z M80,10 h10 v10 h-10 z" />
-                        <path d="M0,70 h30 v30 h-30 z M10,80 h10 v10 h-10 z" />
-                        <rect x="35" y="5" width="8" height="8" />
-                        <rect x="50" y="15" width="10" height="10" />
-                        <rect x="40" y="35" width="20" height="20" fill="#7839ee" />
-                        <rect x="5" y="40" width="8" height="15" />
-                        <rect x="20" y="45" width="12" height="8" />
-                        <rect x="65" y="40" width="15" height="10" />
-                        <rect x="40" y="70" width="10" height="20" />
-                        <rect x="60" y="65" width="15" height="15" />
-                        <rect x="80" y="55" width="15" height="10" />
-                        <rect x="85" y="75" width="10" height="15" />
-                      </svg>
-                      <span className="text-[10px] font-black text-purple-700 uppercase tracking-wider">QR NEQUI OFICIAL</span>
-                    </div>
-                  )}
+            {/* Código QR Real de Firestore & Datos de Transferencia */}
+            {(() => {
+              // Buscar QR específico o primer QR disponible cargado por el propietario en Firestore
+              const anyUploadedQr = 
+                businessProfile.qrNequiUrl || 
+                businessProfile.qrDaviplataUrl || 
+                businessProfile.qrBancolombiaUrl || 
+                businessProfile.qrBreveUrl || 
+                '';
 
-                  {selectedWallet === 'daviplata' && (
-                    <div className="flex flex-col items-center justify-center space-y-1">
-                      {/* SVG Simulado QR Daviplata */}
-                      <svg className="w-32 h-32 text-slate-900" viewBox="0 0 100 100" fill="currentColor">
-                        <path d="M0,0 h30 v30 h-30 z M10,10 h10 v10 h-10 z" />
-                        <path d="M70,0 h30 v30 h-30 z M80,10 h10 v10 h-10 z" />
-                        <path d="M0,70 h30 v30 h-30 z M10,80 h10 v10 h-10 z" />
-                        <rect x="35" y="8" width="12" height="10" />
-                        <rect x="40" y="35" width="20" height="20" fill="#dc2626" />
-                        <rect x="15" y="40" width="10" height="15" />
-                        <rect x="65" y="35" width="12" height="15" />
-                        <rect x="35" y="65" width="15" height="15" />
-                        <rect x="60" y="60" width="15" height="10" />
-                        <rect x="80" y="70" width="15" height="15" />
-                      </svg>
-                      <span className="text-[10px] font-black text-red-600 uppercase tracking-wider">QR DAVIPLATA</span>
-                    </div>
-                  )}
+              let currentQr = '';
+              let currentMethodName = 'Nequi';
+              let currentKeyNumber = businessProfile.digitalKeys?.nequiKey || businessProfile.phone || '3043470984';
+              let currentKeyLabel = 'Número Nequi / Celular';
+              let currentHolder = businessProfile.bankAccount?.accountHolder || businessProfile.legalName || 'Milenia Gastronomía SAS';
+              let currentDoc = businessProfile.bankAccount?.holderDocument || businessProfile.nit || '901.450.888-1';
+              let isSpecificQr = false;
 
-                  {selectedWallet === 'transferencia' && (
-                    <div className="flex flex-col items-center justify-center space-y-1">
-                      <svg className="w-32 h-32 text-slate-900" viewBox="0 0 100 100" fill="currentColor">
-                        <path d="M0,0 h30 v30 h-30 z M10,10 h10 v10 h-10 z" />
-                        <path d="M70,0 h30 v30 h-30 z M80,10 h10 v10 h-10 z" />
-                        <path d="M0,70 h30 v30 h-30 z M10,80 h10 v10 h-10 z" />
-                        <rect x="38" y="10" width="10" height="10" />
-                        <rect x="40" y="35" width="20" height="20" fill="#ea580c" />
-                        <rect x="65" y="45" width="15" height="10" />
-                        <rect x="40" y="70" width="10" height="15" />
-                        <rect x="75" y="65" width="15" height="15" />
-                      </svg>
-                      <span className="text-[10px] font-black text-amber-600 uppercase tracking-wider">BANCOLOMBIA QR</span>
-                    </div>
-                  )}
-                </div>
+              if (selectedWallet === 'nequi') {
+                currentMethodName = 'Billetera Nequi';
+                currentQr = businessProfile.qrNequiUrl || anyUploadedQr;
+                isSpecificQr = Boolean(businessProfile.qrNequiUrl);
+                currentKeyNumber = businessProfile.digitalKeys?.nequiKey || businessProfile.phone || '3043470984';
+                currentKeyLabel = 'Número de Celular / Nequi';
+              } else if (selectedWallet === 'daviplata') {
+                currentMethodName = 'Billetera Daviplata';
+                currentQr = businessProfile.qrDaviplataUrl || anyUploadedQr;
+                isSpecificQr = Boolean(businessProfile.qrDaviplataUrl);
+                currentKeyNumber = businessProfile.digitalKeys?.daviplataKey || businessProfile.phone || '3043470984';
+                currentKeyLabel = 'Número Daviplata / Celular';
+              } else if (selectedWallet === 'breve') {
+                currentMethodName = 'Llave Breve / Transfiya (Banco de la República)';
+                currentQr = businessProfile.qrBreveUrl || anyUploadedQr;
+                isSpecificQr = Boolean(businessProfile.qrBreveUrl);
+                currentKeyNumber = businessProfile.digitalKeys?.qrBreveInteroperableKey || businessProfile.digitalKeys?.transfiyaKey || 'BREVE-MILENIA-901450888-COL';
+                currentKeyLabel = 'Llave Breve Interoperable';
+              } else {
+                currentMethodName = `${businessProfile.bankAccount?.bankName || 'Bancolombia'} (${businessProfile.bankAccount?.accountType || 'Ahorros'})`;
+                currentQr = businessProfile.qrBancolombiaUrl || anyUploadedQr;
+                isSpecificQr = Boolean(businessProfile.qrBancolombiaUrl);
+                currentKeyNumber = businessProfile.bankAccount?.accountNumber || businessProfile.digitalKeys?.bancolombiaKey || '488432227616';
+                currentKeyLabel = `Número de Cuenta ${businessProfile.bankAccount?.accountType || 'Ahorros'}`;
+              }
 
-                {/* Detalles de la Cuenta y Llave */}
-                <div className="space-y-3 flex-1">
-                  <div>
-                    <h3 className="text-base font-black text-white flex items-center gap-2">
-                      {selectedWallet === 'nequi' && <span className="text-purple-400">Paga con Billetera Nequi</span>}
-                      {selectedWallet === 'daviplata' && <span className="text-red-400">Paga con Billetera Daviplata</span>}
-                      {selectedWallet === 'transferencia' && <span className="text-amber-400">Transferencia Bancolombia / Transfiya</span>}
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Escanea el código QR desde tu app o transfiere directamente al número registrado:
-                    </p>
-                  </div>
+              return (
+                <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    
+                    {/* Visualizador de QR Real de Firestore */}
+                    <div className="flex flex-col items-center shrink-0">
+                      <div 
+                        onClick={() => {
+                          if (currentQr) {
+                            setZoomedQrUrl(currentQr);
+                            setIsQrModalOpen(true);
+                          }
+                        }}
+                        className={`bg-white p-3 rounded-2xl shadow-xl flex flex-col items-center justify-center w-48 h-48 border-4 border-amber-500/40 relative group ${
+                          currentQr ? 'cursor-pointer hover:border-amber-400 transition-all' : ''
+                        }`}
+                      >
+                        {currentQr ? (
+                          <div className="w-full h-full flex flex-col items-center justify-center relative">
+                            <img
+                              src={currentQr}
+                              alt={`Código QR Oficial ${currentMethodName}`}
+                              className="w-full h-full object-contain rounded-lg group-hover:scale-105 transition-transform"
+                            />
+                            <div className="absolute inset-0 bg-slate-950/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1 text-center p-2 backdrop-blur-xs">
+                              <Eye className="w-5 h-5 text-amber-400" />
+                              <span>Clic para Ampliar QR</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center space-y-2 text-center p-2">
+                            <QrCode className="w-16 h-16 text-slate-400 stroke-[1.5]" />
+                            <span className="text-[10px] font-bold text-slate-600">Escanea desde tu App Bancaria</span>
+                          </div>
+                        )}
+                      </div>
 
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">Número de Cuenta / Teléfono:</span>
-                      <div className="flex items-center gap-2 font-mono font-black text-white">
-                        <span>304 347 0984</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy('3043470984', 'phone')}
-                          className="p-1 text-slate-400 hover:text-amber-400 transition"
-                          title="Copiar número"
-                        >
-                          {copiedKey === 'phone' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
+                      {/* Subtítulo bajo el QR */}
+                      <div className="mt-2 text-center">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30 inline-flex items-center gap-1">
+                          <QrCode className="w-3 h-3" />
+                          {isSpecificQr ? `QR OFICIAL ${selectedWallet.toUpperCase()}` : 'QR OFICIAL MILENIA'}
+                        </span>
+                        {currentQr && (
+                          <p className="text-[10px] text-slate-400 mt-1 cursor-pointer hover:text-amber-300" onClick={() => { setZoomedQrUrl(currentQr); setIsQrModalOpen(true); }}>
+                            🔍 Toca para ampliar
+                          </p>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">Titular de la Cuenta:</span>
-                      <span className="font-bold text-white">Milenia Gastronomía SAS</span>
+                    {/* Detalles de la Cuenta y Llave */}
+                    <div className="space-y-3 flex-1 w-full">
+                      <div>
+                        <h3 className="text-base font-black text-white flex items-center gap-2">
+                          {selectedWallet === 'nequi' && <span className="text-purple-400">Paga con Billetera Nequi</span>}
+                          {selectedWallet === 'daviplata' && <span className="text-red-400">Paga con Billetera Daviplata</span>}
+                          {selectedWallet === 'transferencia' && <span className="text-amber-400">Transferencia Bancolombia</span>}
+                          {selectedWallet === 'breve' && <span className="text-cyan-400">Llave Breve / Red Interoperable</span>}
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Escanea el código QR desde tu app bancaria o transfiere directamente con los siguientes datos oficiales registrados:
+                        </p>
+                      </div>
+
+                      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
+                        
+                        {/* Número o Llave Copiable */}
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-400">{currentKeyLabel}:</span>
+                          <div className="flex items-center gap-2 font-mono font-black text-white bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
+                            <span>{currentKeyNumber}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopy(currentKeyNumber.replace(/\s+/g, ''), 'walletKey')}
+                              className="p-1 text-slate-400 hover:text-amber-400 transition cursor-pointer"
+                              title="Copiar número"
+                            >
+                              {copiedKey === 'walletKey' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Titular */}
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-400">Titular de la Cuenta:</span>
+                          <span className="font-bold text-white text-right">{currentHolder}</span>
+                        </div>
+
+                        {/* NIT o Documento */}
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-400">NIT / Identificación:</span>
+                          <div className="flex items-center gap-2 font-mono text-slate-300">
+                            <span>{currentDoc}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopy(currentDoc.replace(/[^0-9-]/g, ''), 'docId')}
+                              className="p-1 text-slate-400 hover:text-amber-400 transition cursor-pointer"
+                              title="Copiar documento"
+                            >
+                              {copiedKey === 'docId' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Valor Exacto */}
+                        <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800">
+                          <span className="text-amber-400 font-bold">Valor Exacto a Transferir:</span>
+                          <span className="font-black text-white text-sm font-mono">$600.000 COP</span>
+                        </div>
+                      </div>
+
+                      {/* Tip para el aliado */}
+                      <div className="text-[11px] text-slate-400 bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/80 flex items-start gap-2">
+                        <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <span>
+                          Al finalizar la transferencia, toma una captura de pantalla del comprobante y adjúntala abajo con el número de aprobación o referencia.
+                        </span>
+                      </div>
+
                     </div>
 
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">NIT de la Empresa:</span>
-                      <span className="font-mono text-slate-300">901.884.231-9</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-800">
-                      <span className="text-amber-400 font-bold">Valor Exacto a Transferir:</span>
-                      <span className="font-black text-white text-sm font-mono">$600.000 COP</span>
-                    </div>
                   </div>
                 </div>
+              );
+            })()}
 
+            {/* Modal para Ampliar Código QR en Pantalla Completa */}
+            {isQrModalOpen && zoomedQrUrl && (
+              <div 
+                className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4"
+                onClick={() => setIsQrModalOpen(false)}
+              >
+                <div 
+                  className="bg-slate-900 border border-amber-500/40 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl animate-fade-in relative"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setIsQrModalOpen(false)}
+                    className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800 hover:bg-slate-700 transition cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+
+                  <div className="text-center space-y-1">
+                    <span className="text-[10px] font-mono text-amber-400 uppercase tracking-widest font-bold">Milenia Cloud POS</span>
+                    <h3 className="text-lg font-black text-white">Código QR Oficial de Recaudo</h3>
+                    <p className="text-xs text-slate-400">Escanea directamente con la cámara de tu celular o app bancaria</p>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl border-4 border-amber-500 shadow-2xl flex items-center justify-center">
+                    <img 
+                      src={zoomedQrUrl} 
+                      alt="Código QR Ampliado" 
+                      className="w-full max-h-72 object-contain rounded-lg"
+                    />
+                  </div>
+
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-center space-y-1">
+                    <p className="text-xs font-bold text-white">Monto de Activación: $600.000 COP</p>
+                    <p className="text-[11px] font-mono text-slate-400">Titular: {businessProfile.bankAccount?.accountHolder || businessProfile.legalName}</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsQrModalOpen(false)}
+                    className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition cursor-pointer"
+                  >
+                    Entendido / Cerrar Vista
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* ========================================================================= */}
             {/* SUBIR COMPROBANTE DE PAGO O TRANSACCIÓN                                   */}
