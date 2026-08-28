@@ -22,6 +22,7 @@ import {
   Search
 } from 'lucide-react';
 import { TenantRestaurant, SubscriptionPlan } from '../../types';
+import { ColombiaCityCombobox } from '../common/ColombiaCityCombobox';
 
 export const SuperAdminDashboard: React.FC = () => {
   const { 
@@ -647,23 +648,13 @@ export function middleware(request: NextRequest) {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Ciudad (Colombia) *
-                  </label>
-                  <select
-                    value={newTenantCity}
-                    onChange={(e) => setNewTenantCity(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
-                  >
-                    <option value="Medellín, Antioquia">Medellín, Antioquia</option>
-                    <option value="Bogotá D.C., Cundinamarca">Bogotá D.C.</option>
-                    <option value="Cali, Valle del Cauca">Cali, Valle</option>
-                    <option value="Barranquilla, Atlántico">Barranquilla</option>
-                    <option value="Cartagena, Bolívar">Cartagena</option>
-                    <option value="Bucaramanga, Santander">Bucaramanga</option>
-                  </select>
-                </div>
+              <div>
+                <ColombiaCityCombobox
+                  value={newTenantCity}
+                  onChange={(c) => setNewTenantCity(c)}
+                  label="Ciudad o Municipio de Colombia *"
+                />
+              </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

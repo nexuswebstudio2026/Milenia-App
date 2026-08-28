@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { loginUser, registerUser, UserRole, calculateRedirectUrl } from '../../lib/auth-service';
 import { TenantRestaurant, TenantEmployee, EmployeeRole } from '../../types';
+import { ColombiaCityCombobox } from '../common/ColombiaCityCombobox';
 
 export const MileniaLoginView: React.FC = () => {
   const { tenants, addTenant, addEmployee, navigateTo, setMode: setAppMode, setTenantView } = useTasty();
@@ -964,9 +965,9 @@ export const MileniaLoginView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Dirección */}
-                <div className="sm:col-span-2">
+                <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
                     Dirección Comercial de la Sede *
                   </label>
@@ -978,31 +979,19 @@ export const MileniaLoginView: React.FC = () => {
                       value={allyAddress}
                       onChange={(e) => setAllyAddress(e.target.value)}
                       placeholder="Ej. Calle 72 # 11-45, Barrio Chapinero"
-                      className="w-full pl-10 pr-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 font-sans"
+                      className="w-full pl-10 pr-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:border-amber-500 font-sans"
                     />
                   </div>
                 </div>
 
-                {/* Ciudad */}
+                {/* Ciudad o Municipio de Colombia con Filtro y Buscador */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Ciudad / Municipio
-                  </label>
-                  <select
+                  <ColombiaCityCombobox
                     value={allyCity}
-                    onChange={(e) => setAllyCity(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 cursor-pointer"
-                  >
-                    <option value="Bogotá D.C.">Bogotá D.C.</option>
-                    <option value="Medellín">Medellín</option>
-                    <option value="Cali">Cali</option>
-                    <option value="Bucaramanga">Bucaramanga</option>
-                    <option value="Barranquilla">Barranquilla</option>
-                    <option value="Cartagena">Cartagena</option>
-                    <option value="Pereira">Pereira</option>
-                    <option value="Manizales">Manizales</option>
-                    <option value="Santa Marta">Santa Marta</option>
-                  </select>
+                    onChange={(selectedCity) => setAllyCity(selectedCity)}
+                    required
+                    label="Ciudad o Municipio de Colombia *"
+                  />
                 </div>
               </div>
 
