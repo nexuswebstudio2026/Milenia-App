@@ -119,30 +119,14 @@ export const MileniaContactView: React.FC = () => {
       console.error('Error guardando solicitud de demostración en Firestore:', err);
     }
 
-    // 2. Guardar en sessionStorage para que la IA auto-diligencie el formulario de Registrar Aliado
-    const leadData = {
-      name: formData.name,
-      restaurantName: formData.restaurantName,
-      city: formData.city,
-      phone: formData.phone,
-      email: formData.email,
-      tablesCount: formData.tablesCount,
-      systemType: 'Sistema Plus',
-      planInterest: 'Plan Máximo Integral Milenia',
-      message: formData.message,
-      createdAt: new Date().toISOString()
-    };
-    sessionStorage.setItem('milenia_auto_fill_lead', JSON.stringify(leadData));
-    sessionStorage.setItem('milenia_auto_tab', 'register_ally');
-
     setFormSent(true);
     setIsSaving(false);
 
-    // 3. Abrir WhatsApp de Milenia con el mensaje personalizado
+    // 2. Abrir WhatsApp de Milenia con el mensaje personalizado
     const waUrl = generateWhatsAppUrl();
     window.open(waUrl, '_blank', 'noopener,noreferrer');
 
-    // 4. Redirigir de inmediato a la opción Registrar Aliado
+    // 3. Redirigir de inmediato a la opción Registrar Aliado
     setTimeout(() => {
       setMileniaView('registrar_aliado');
     }, 450);
