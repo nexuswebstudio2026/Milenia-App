@@ -22,6 +22,7 @@ import { useCurrentDomain } from '../../utils/domainHelper';
 
 export const MileniaContactView: React.FC = () => {
   const { domain, getTenantDisplayUrl } = useCurrentDomain();
+  const { setMileniaView } = useTasty();
   const [formSent, setFormSent] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -31,17 +32,16 @@ export const MileniaContactView: React.FC = () => {
     email: '',
     tablesCount: '10-20',
     systemType: 'Suite Integral Milenia (POS + KDS + Reservas + Domicilios)',
-    planInterest: 'pro',
+    planInterest: 'plan_maximo',
     message: ''
   });
 
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const planOptions = [
-    { id: 'basic', name: 'Plan Básico ($149.000 COP/mes)', detail: 'Hasta 12 mesas + POS' },
-    { id: 'pro', name: 'Plan Pro ($289.000 COP/mes)', detail: 'Mesas + KDS Cocina + Domicilios' },
-    { id: 'enterprise', name: 'Plan Enterprise ($499.000 COP/mes)', detail: 'Múltiples salones + Facturación DIAN' },
-    { id: 'custom', name: 'Plan Personalizado / Multi-Sede', detail: 'Cadena de restaurantes' }
+    { id: 'plan_maximo', name: 'Plan Máximo Integral Milenia ($600.000 COP/mes)', detail: 'Acceso Total: Mesas ilimitadas + KDS Cocina + POS Táctil + Facturación DIAN + Menú QR + Domicilios' },
+    { id: 'plan_pro', name: 'Plan Pro Gastronómico ($389.000 COP/mes)', detail: 'Hasta 20 mesas + POS + KDS Cocina + Domicilios' },
+    { id: 'plan_basico', name: 'Plan Básico ($199.000 COP/mes)', detail: 'Hasta 12 mesas + Terminal POS' }
   ];
 
   const systemOptions = [
@@ -56,7 +56,7 @@ export const MileniaContactView: React.FC = () => {
   const generateWhatsAppUrl = () => {
     const phone = '573043470984';
     const planObj = planOptions.find(p => p.id === formData.planInterest);
-    const planLabel = planObj ? planObj.name : 'Plan Pro ($289.000 COP/mes)';
+    const planLabel = planObj ? planObj.name : 'Plan Máximo Integral Milenia ($600.000 COP/mes)';
     const restaurant = formData.restaurantName.trim() || 'Mi Restaurante';
     const contactName = formData.name.trim() || 'Aliado Gastronómico';
     const city = formData.city || 'Pasto';
@@ -66,16 +66,16 @@ export const MileniaContactView: React.FC = () => {
     const userMessage = formData.message.trim();
 
     let messageText = `¡Hola Milenia! 👋\n\n` +
-      `Solicito información y demostración para afiliar mi restaurante:\n\n` +
+      `Solicito información y demostración para afiliar mi restaurante con el Plan Máximo ($600.000 COP):\n\n` +
       `👤 *Nombre:* ${contactName}\n` +
       `🏪 *Restaurante:* ${restaurant}\n` +
       `📍 *Ciudad:* ${city}\n` +
       (userPhone ? `📱 *WhatsApp/Celular:* ${userPhone}\n` : '') +
       (email ? `✉️ *Correo Electrónico:* ${email}\n` : '') +
       `\n⚙️ *SISTEMA REQUERIDO:*\n👉 ${system}\n\n` +
-      `⭐ *PLAN DE INTERÉS:*\n👉 ${planLabel}\n\n` +
+      `⭐ *PLAN SELECCIONADO:*\n👉 ${planLabel}\n\n` +
       (userMessage ? `📝 *Requerimientos / Mensaje:* ${userMessage}\n\n` : '') +
-      `Quedo atento a su respuesta para coordinar la afiliación y demostración. ¡Muchas gracias!`;
+      `He sido redirigido al módulo de registro y activación de aliados para completar el formulario. ¡Muchas gracias!`;
 
     return `https://wa.me/${phone}?text=${encodeURIComponent(messageText)}`;
   };
@@ -83,27 +83,53 @@ export const MileniaContactView: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormSent(true);
-    // Enviar automáticamente a WhatsApp de Milenia con todos los datos diligenciados
+    // 1. Enviar automáticamente a WhatsApp de Milenia con todos los datos diligenciados
     const waUrl = generateWhatsAppUrl();
     window.open(waUrl, '_blank', 'noopener,noreferrer');
+
+    // 2. Redirigir automáticamente a la opción de Ingreso de Aliados -> Registrar Aliado
+    sessionStorage.setItem('milenia_auto_tab', 'register_ally');
+    setTimeout(() => {
+      setMileniaView('login');
+    }, 400);
   };
 
   const faqs = [
     {
-      q: '¿Cómo obtiene mi restaurante su propia URL e ID?',
-      a: `Al afiliarte, se te asigna inmediatamente un identificador único (ej. ID #5) y tu enlace ${domain}/5 con carta digital, módulo de domicilios, reservas y terminal de meseros.`
+      q: '¿Qué incluye el Plan Máximo de $600.000 COP/mes?',
+      a: 'El Plan Máximo es la solución integral más completa de Milenia: incluye terminal POS táctil ilimitado, pantallas KDS en cocina en tiempo real, menú interactivo con código QR, módulo de pedidos y domicilios en línea, sistema de reservas digitales, facturación electrónica con 8% de Impoconsumo DIAN, control de stock con deducción automática de ingredientes, multi-usuario para todo el equipo (gerente, cajeros, meseros y cocineros) y soporte prioritario 24/7.'
+    },
+    {
+      q: '¿Cómo obtiene mi restaurante su propia URL e ID independiente?',
+      a: `Al registrar y activar tu restaurante aliado, la plataforma le asigna automáticamente un ID único en la nube (ejemplo: ID #5) y su subdominio o enlace web ${domain}/5 para que tus comensales exploren la carta digital, pidan a domicilio o reserven mesas en línea.`
     },
     {
       q: '¿Milenia cumple con la Facturación Electrónica y el Impoconsumo de la DIAN?',
-      a: 'Sí, Milenia está 100% adaptado a la normativa colombiana con cálculo automático del 8% de Impoconsumo, 10% de propina sugerida voluntaria y generación de comprobantes fiscales.'
+      a: 'Sí, Milenia está 100% adaptado a la legislación fiscal colombiana. Aplica automáticamente el 8% de Impoconsumo, la propina voluntaria sugerida del 10%, control de consecutivos de resolución DIAN, prefijos autorizados y discriminación de impuestos en tickets de 58mm y 80mm.'
     },
     {
-      q: '¿Qué hardware necesito para el POS y KDS?',
-      a: 'Milenia funciona en cualquier dispositivo con navegador web: celulares de meseros (Android / iOS), tablets en barra, pantallas táctiles en cocina para KDS e impresoras térmicas de 58mm y 80mm.'
+      q: '¿Qué dispositivos o hardware necesito para que el restaurante funcione?',
+      a: 'Milenia es una plataforma Cloud que funciona en cualquier dispositivo moderno con navegador web: celulares de meseros (Android / iOS), tablets en la barra o recepción, pantallas táctiles o monitores en cocina para el KDS e impresoras térmicas ESC/POS estándar de 58mm o 80mm.'
     },
     {
-      q: '¿Hay cobro de comisiones por cada pedido o reserva?',
-      a: 'No cobramos comisión porcentual por venta. Operamos bajo suscripción fija mensual en Pesos Colombianos (COP) para que mantengas el 100% de tu margen.'
+      q: '¿Hay cobro de comisiones por cada pedido, plato o reserva vendida?',
+      a: 'No cobramos ninguna comisión porcentual por venta ni intermediación. Pagas una suscripción fija mensual en Pesos Colombianos (COP) para que mantengas el 100% de tu margen de ganancia operativa.'
+    },
+    {
+      q: '¿Cómo funciona la activación de un nuevo restaurante aliado con comprobante?',
+      a: 'El proceso es 100% digital: subes el RUT de tu empresa, realizas el pago a través de Daviplata, Nequi o Bancolombia, y adjuntas el comprobante. Nuestro motor de Inteligencia Artificial Gemini analiza el documento, transcribe la referencia y activa tu cuenta de forma instantánea.'
+    },
+    {
+      q: '¿Puedo crear usuarios con diferentes permisos (Cajeros, Cocina, Meseros, Gerente)?',
+      a: 'Sí. Milenia cuenta con control de accesos basado en roles (RBAC). Puedes registrar a tus meseros con acceso exclusivo a comandas, cajeros con arqueos y cobros DIAN, cocineros en la pantalla KDS y gerentes con acceso a métricas completas e inventario.'
+    },
+    {
+      q: '¿El inventario se descuenta automáticamente con cada orden despachada?',
+      a: 'Sí. Cada plato configurado descuenta automáticamente las porciones e ingredientes asociados del inventario del restaurante en tiempo real cuando se confirma o factura el pedido en cocina.'
+    },
+    {
+      q: '¿Qué métodos de pago pueden usar mis comensales?',
+      a: 'Milenia soporta múltiples métodos de pago integrados: efectivo, datáfono / tarjetas, transferencias Nequi, Daviplata, Bancolombia y pagos en línea mediante pasarela segura Wompi (Bancolombia).'
     }
   ];
 
@@ -304,96 +330,75 @@ export const MileniaContactView: React.FC = () => {
           )}
         </div>
 
-        {/* Right Column: Physical Offices & Direct Channels */}
+        {/* Right Column: Beneficios de Afiliación & Soporte Directo */}
         <div className="lg:col-span-5 space-y-6">
 
-          {/* Contacto Directo Telefónico y Email */}
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-3xl p-5 space-y-3">
+          {/* Tarjeta de Soporte Oficial */}
+          <div className="bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-950 border border-amber-500/30 rounded-3xl p-6 space-y-4 shadow-xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black">
-                <Phone className="w-5 h-5" />
+              <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xl shrink-0 shadow-md shadow-amber-500/20">
+                ⭐
               </div>
               <div>
-                <h3 className="font-black text-sm text-slate-900 dark:text-white">
-                  Línea Directa de Llamadas
+                <h3 className="font-black text-base text-white">
+                  Afiliación Inmediata Milenia
                 </h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Atención comercial y soporte telefónico
+                <p className="text-xs text-amber-400 font-medium">
+                  Plan Máximo Integral &bull; $600.000 COP / mes
                 </p>
               </div>
             </div>
-            <div className="space-y-2 pt-1">
-              <a
-                href="tel:+573043470984"
-                className="block text-center py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl transition cursor-pointer"
-              >
-                Llamar a Línea Comercial: 304-347-0984
-              </a>
-              <div className="flex items-center justify-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
-                <Mail className="w-3.5 h-3.5 text-amber-500" />
-                <a href="mailto:nexuswebstudio2026@gmail.com" className="hover:text-amber-500 transition font-medium">
-                  nexuswebstudio2026@gmail.com
-                </a>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Al enviar tu requerimiento por WhatsApp serás redirigido instantáneamente al formulario de registro y activación de aliados para configurar tu menú, salones y métodos de pago.
+            </p>
+
+            <div className="space-y-2.5 pt-2 text-xs border-t border-slate-800">
+              <div className="flex items-center gap-2 text-slate-200">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Sin contratos de permanencia obligatoria</span>
               </div>
+              <div className="flex items-center gap-2 text-slate-200">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>0% de comisiones por pedidos o reservas</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-200">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Activación con IA Gemini y comprobante digital</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-200">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Atención técnica y comercial los 7 días de la semana</span>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  sessionStorage.setItem('milenia_auto_tab', 'register_ally');
+                  setMileniaView('login');
+                }}
+                className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm rounded-2xl transition cursor-pointer shadow-lg shadow-amber-500/20 text-center flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Ir Directo a Registrar Aliado</span>
+              </button>
             </div>
           </div>
 
-          {/* Sedes Colombia */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
-            <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-amber-500" />
-              <span>Sedes & Oficinas en Colombia</span>
-            </h3>
-
-            <div className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
-              
-              {/* Sede Pasto - Nariño */}
-              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1">
-                <div className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
-                  <span>Pasto - Nariño</span>
-                  <span className="text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded font-black uppercase font-mono">
-                    Sede Comercial
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-600 dark:text-slate-300">
-                  Pasto, Nariño - Colombia
-                </div>
-                <div className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold">
-                  Tel: +57 304-347-0984 &bull; nexuswebstudio2026@gmail.com
-                </div>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1">
-                <div className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
-                  <span>Bogotá D.C. (Sede Principal)</span>
-                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono">Zona Financiera</span>
-                </div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Cra. 7 # 71-21, Torre B, Piso 14
-                </div>
-                <div className="text-[10px] text-slate-400">PBX: +57 304-347-0984</div>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1">
-                <div className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
-                  <span>Medellín</span>
-                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono">El Poblado</span>
-                </div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Cl. 10 # 43E-12, Hub Gastronómico
-                </div>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1">
-                <div className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
-                  <span>Cali</span>
-                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono">Granada</span>
-                </div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Av. 9N # 14-30, Piso 3
-                </div>
-              </div>
-
+          {/* Resumen de Canales Digitales */}
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3">
+            <h4 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span>Garantía & Seguridad Milenia Cloud</span>
+            </h4>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Toda la información operativa de tu restaurante, comandas, comensales e inventarios está protegida en tiempo real con alta disponibilidad y respaldos automatizados.
+            </p>
+            <div className="pt-1 flex items-center gap-2 text-[11px] font-mono text-slate-500 dark:text-slate-400">
+              <Clock className="w-3.5 h-3.5 text-amber-500" />
+              <span>Soporte Digital Activo: Lun a Dom 7:00 AM - 11:00 PM</span>
             </div>
           </div>
 

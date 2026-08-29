@@ -60,7 +60,14 @@ export const MileniaLoginView: React.FC = () => {
   const { userProfile, logout, loginAsDemo } = useAuth();
 
   // Tab de Modo: Iniciar Sesión, Registrar Aliado (Nuevo Restaurante), Registrar Empleado
-  const [activeTab, setActiveTab] = useState<'signin' | 'register_ally' | 'register_employee'>('signin');
+  const [activeTab, setActiveTab] = useState<'signin' | 'register_ally' | 'register_employee'>(() => {
+    const autoTab = sessionStorage.getItem('milenia_auto_tab');
+    if (autoTab === 'register_ally' || autoTab === 'register_employee') {
+      sessionStorage.removeItem('milenia_auto_tab');
+      return autoTab;
+    }
+    return 'signin';
+  });
   
   // Estado común
   const [loading, setLoading] = useState(false);
