@@ -58,18 +58,24 @@ export const MileniaContactView: React.FC = () => {
     const planObj = planOptions.find(p => p.id === formData.planInterest);
     const planLabel = planObj ? planObj.name : 'Plan Pro ($289.000 COP/mes)';
     const restaurant = formData.restaurantName.trim() || 'Mi Restaurante';
-    const contactName = formData.name.trim() || 'un Aliado Gastronómico';
+    const contactName = formData.name.trim() || 'Aliado Gastronómico';
     const city = formData.city || 'Pasto';
     const system = formData.systemType || 'Suite Integral Milenia (POS + KDS + Reservas + Domicilios)';
+    const userPhone = formData.phone.trim();
+    const email = formData.email.trim();
+    const userMessage = formData.message.trim();
 
     let messageText = `¡Hola Milenia! 👋\n\n` +
-      `Mi nombre es *${contactName}* del restaurante *${restaurant}* en *${city}*.\n\n` +
-      `📌 *SISTEMA QUE NECESITO:* \n👉 ${system}\n\n` +
-      `⭐ *PLAN QUE NECESITO:* \n👉 ${planLabel}\n\n` +
-      (formData.tablesCount ? `🪑 *Capacidad:* ${formData.tablesCount} mesas\n` : '') +
-      (formData.phone ? `📱 *Teléfono:* ${formData.phone}\n` : '') +
-      (formData.message.trim() ? `📝 *Requerimientos:* ${formData.message.trim()}\n\n` : '\n') +
-      `Solicito asesoría comercial y demostración en vivo. ¡Muchas gracias!`;
+      `Solicito información y demostración para afiliar mi restaurante:\n\n` +
+      `👤 *Nombre:* ${contactName}\n` +
+      `🏪 *Restaurante:* ${restaurant}\n` +
+      `📍 *Ciudad:* ${city}\n` +
+      (userPhone ? `📱 *WhatsApp/Celular:* ${userPhone}\n` : '') +
+      (email ? `✉️ *Correo Electrónico:* ${email}\n` : '') +
+      `\n⚙️ *SISTEMA REQUERIDO:*\n👉 ${system}\n\n` +
+      `⭐ *PLAN DE INTERÉS:*\n👉 ${planLabel}\n\n` +
+      (userMessage ? `📝 *Requerimientos / Mensaje:* ${userMessage}\n\n` : '') +
+      `Quedo atento a su respuesta para coordinar la afiliación y demostración. ¡Muchas gracias!`;
 
     return `https://wa.me/${phone}?text=${encodeURIComponent(messageText)}`;
   };
@@ -77,7 +83,7 @@ export const MileniaContactView: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormSent(true);
-    // Enviar automáticamente a WhatsApp con todos los datos seleccionados
+    // Enviar automáticamente a WhatsApp de Milenia con todos los datos diligenciados
     const waUrl = generateWhatsAppUrl();
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
@@ -285,23 +291,14 @@ export const MileniaContactView: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs sm:text-sm rounded-2xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-900/30 transition cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
                 >
-                  <Send className="w-4 h-4" />
-                  <span>Enviar Formulario</span>
+                  <span className="text-base">💬</span>
+                  <span>Enviar por WhatsApp (+57 304-347-0984)</span>
                 </button>
-
-                <a
-                  href={generateWhatsAppUrl()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm rounded-2xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <span>💬 Enviar por WhatsApp</span>
-                </a>
               </div>
             </form>
           )}
@@ -309,84 +306,6 @@ export const MileniaContactView: React.FC = () => {
 
         {/* Right Column: Physical Offices & Direct Channels */}
         <div className="lg:col-span-5 space-y-6">
-          
-          {/* Direct WhatsApp Box with Automatic System & Plan message */}
-          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-xl font-black shrink-0">
-                💬
-              </div>
-              <div>
-                <h3 className="font-black text-sm text-emerald-950 dark:text-emerald-300">
-                  Línea WhatsApp de Ventas
-                </h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Respuesta inmediata de lunes a domingo de 7:00 AM a 11:00 PM
-                </p>
-              </div>
-            </div>
-
-            {/* Quick config for instant WhatsApp click */}
-            <div className="p-3.5 rounded-2xl bg-slate-950/40 dark:bg-slate-950/70 border border-emerald-500/20 space-y-2.5 text-xs">
-              <div className="flex items-center justify-between text-emerald-400 font-bold text-[11px]">
-                <span className="flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Mensaje Automático Pre-Cargado
-                </span>
-                <span className="font-mono text-[10px] text-slate-400">Auto-Generado</span>
-              </div>
-
-              {/* Mini Selector Sistema */}
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                  Sistema Seleccionado:
-                </span>
-                <select
-                  value={formData.systemType}
-                  onChange={(e) => setFormData({ ...formData, systemType: e.target.value })}
-                  className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-emerald-500 font-medium"
-                >
-                  {systemOptions.map((opt, i) => (
-                    <option key={i} value={opt}>{opt}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Mini Selector Plan */}
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                  Plan Requerido:
-                </span>
-                <select
-                  value={formData.planInterest}
-                  onChange={(e) => setFormData({ ...formData, planInterest: e.target.value })}
-                  className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-emerald-500 font-medium"
-                >
-                  {planOptions.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Vista previa del mensaje */}
-              <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300 font-mono space-y-1 leading-tight">
-                <div className="text-[10px] text-emerald-400 font-bold">Vista previa de tu mensaje:</div>
-                <div className="text-slate-400 truncate">
-                  "¡Hola! Solicito: *{formData.systemType.split('(')[0].trim()}* + *{planOptions.find(p=>p.id===formData.planInterest)?.name.split('(')[0].trim()}* en Pasto..."
-                </div>
-              </div>
-            </div>
-
-            {/* Direct Send to WhatsApp Link Button */}
-            <a
-              href={generateWhatsAppUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block text-center py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm rounded-2xl transition cursor-pointer shadow-lg shadow-emerald-900/20 active:scale-[0.99]"
-            >
-              Contactar por WhatsApp (+57 304-347-0984)
-            </a>
-          </div>
 
           {/* Contacto Directo Telefónico y Email */}
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-3xl p-5 space-y-3">
