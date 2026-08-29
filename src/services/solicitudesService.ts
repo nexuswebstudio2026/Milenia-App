@@ -37,7 +37,49 @@ export interface SolicitudAfiliacion {
   };
 }
 
-const COLLECTION_NAME = 'solicitudes_afiliacion';
+const PRIMARY_COLLECTION = 'solicitudes_afiliados';
+const SECONDARY_COLLECTION = 'solicitudes_afiliacion';
+
+/**
+ * Inicializa la tabla solicitudes_afiliados en Firebase si aún no existe
+ */
+export async function ensureSolicitudesAfiliadosTableInitialized(): Promise<void> {
+  try {
+    const colRef = collection(db, PRIMARY_COLLECTION);
+    const snap = await getDocs(colRef);
+    if (snap.empty) {
+      const demoId = 'solicitud_demo_inicial';
+      const initialDoc: SolicitudAfiliacion = {
+        id: demoId,
+        name: 'Carlos Mendoza (Demo)',
+        restaurantName: 'Asador Campestre San Juan',
+        city: 'Pasto (Nariño)',
+        phone: '+57 304 347 0984',
+        email: 'nexuswebstudio2026@gmail.com',
+        tablesCount: '10-20',
+        systemType: 'Sistema Plus',
+        planInterest: 'Plan Máximo Integral Milenia ($600.000 COP/mes)',
+        message: 'Solicitud de demostración y activación para restaurante campestre',
+        status: 'pendiente_registro',
+        source: 'web_formulario_afiliacion',
+        createdAt: new Date().toISOString(),
+        aiSuggestedData: {
+          legalName: 'Asador Campestre San Juan S.A.S.',
+          cuisine: 'Parrilla & Carnes Finas',
+          estimatedTables: 16,
+          ownerName: 'Carlos Mendoza',
+          ownerEmail: 'nexuswebstudio2026@gmail.com',
+          ownerPhone: '+57 304 347 0984'
+        }
+      };
+      await setDoc(doc(db, PRIMARY_COLLECTION, demoId), initialDoc, { merge: true });
+      await setDoc(doc(db, SECONDARY_COLLECTION, demoId), initialDoc, { merge: true });
+      console.log('✅ Tabla solicitudes_afiliados inicializada exitosamente en Firestore');
+    }
+  } catch (err) {
+    console.warn('Advertencia inicializando tabla solicitudes_afiliados:', err);
+  }
+}
 
 /**
  * Guarda una nueva solicitud de demostración o afiliación en Firestore
@@ -61,8 +103,8 @@ export async function saveSolicitudAfiliacionToFirestore(data: Omit<SolicitudAfi
     source: 'web_formulario_afiliacion',
     createdAt: now,
     aiSuggestedData: {
-      legalName: data.restaurantName.trim(),
-      cuisine: 'Parrilla & Gastronomía Tradicional',
+      legalName: data.restaurantName.trim().includes('S.A.S') ? data.restaurantName.trim() : `${data.restaurantName.trim()} S.A.S.`,
+      cuisine: 'Gastronomía & Restaurante Aliado',
       estimatedTables: parseInt(data.tablesCount) || 12,
       ownerName: data.name.trim(),
       ownerEmail: data.email.trim(),
@@ -71,13 +113,18 @@ export async function saveSolicitudAfiliacionToFirestore(data: Omit<SolicitudAfi
   };
 
   try {
-    const docRef = doc(db, COLLECTION_NAME, docId);
+    // Escribir en la tabla principal solicitudes_afiliados
+    const docRef = doc(db, PRIMARY_COLLECTION, docId);
     await setDoc(docRef, payload, { merge: true });
-    console.log('✅ Solicitud de demostración y afiliación guardada en Firestore:', docId);
+
+    // También sincronizar en solicitudes_afiliacion
+    const secRef = doc(db, SECONDARY_COLLECTION, docId);
+    await setDoc(secRef, payload, { merge: true });
+
+    console.log('✅ Solicitud guardada en Firestore en la tabla solicitudes_afiliados:', docId);
     return docId;
   } catch (error) {
     console.error('⚠️ Error al guardar solicitud de afiliación en Firestore:', error);
-    // Fallback local persistence si Firestore está temporalmente inaccesible
     try {
       const localKey = 'milenia_solicitudes_backup';
       const existing = JSON.parse(localStorage.getItem(localKey) || '[]');
@@ -95,8 +142,12 @@ export async function saveSolicitudAfiliacionToFirestore(data: Omit<SolicitudAfi
  */
 export async function getSolicitudesAfiliacionFromFirestore(): Promise<SolicitudAfiliacion[]> {
   try {
-    const colRef = collection(db, COLLECTION_NAME);
-    const snap = await getDocs(colRef);
+    let colRef = collection(db, PRIMARY_COLLECTION);
+    let snap = await getDocs(colRef);
+    if (snap.empty) {
+      colRef = collection(db, SECONDARY_COLLECTION);
+      snap = await getDocs(colRef);
+    }
     const results: SolicitudAfiliacion[] = [];
     snap.forEach((d) => {
       results.push(d.data() as SolicitudAfiliacion);
@@ -122,7 +173,7 @@ export function subscribeToSolicitudesAfiliacion(
   callback: (solicitudes: SolicitudAfiliacion[]) => void
 ): () => void {
   try {
-    const colRef = collection(db, COLLECTION_NAME);
+    const colRef = collection(db, PRIMARY_COLLECTION);
     const unsubscribe = onSnapshot(
       colRef,
       (snap) => {
@@ -134,12 +185,12 @@ export function subscribeToSolicitudesAfiliacion(
         callback(results);
       },
       (err) => {
-        console.warn('Snapshot error on solicitudes_afiliacion:', err);
+        console.warn('Snapshot error on solicitudes_afiliados, falling back:', err);
       }
     );
     return unsubscribe;
   } catch (error) {
-    console.error('Error suscribiendo a solicitudes_afiliacion:', error);
+    console.error('Error suscribiendo a solicitudes_afiliados:', error);
     return () => {};
   }
 }

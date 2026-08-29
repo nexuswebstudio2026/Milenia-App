@@ -221,6 +221,10 @@
     }
   },
   "firestore": {
+    "/solicitudes_afiliados/{solicitudId}": {
+      "schema": "SolicitudAfiliacion",
+      "description": "Tabla y colección principal de solicitudes de demostración y afiliación de restaurantes"
+    },
     "/solicitudes_afiliacion/{solicitudId}": {
       "schema": "SolicitudAfiliacion",
       "description": "Tabla y colección de solicitudes de demostración y afiliación de restaurantes"

@@ -5,6 +5,7 @@ import { MileniaHeader } from './components/saas/MileniaHeader';
 import { MileniaLandingView } from './components/saas/MileniaLandingView';
 import { MileniaAlliesView } from './components/saas/MileniaAlliesView';
 import { MileniaLoginView } from './components/saas/MileniaLoginView';
+import { MileniaRegisterAllyView } from './components/saas/MileniaRegisterAllyView';
 import { MileniaContactView } from './components/saas/MileniaContactView';
 import { RestaurantHeader } from './components/restaurant/RestaurantHeader';
 import { RestaurantHomeView } from './components/restaurant/RestaurantHomeView';
@@ -31,6 +32,7 @@ import { PwaInstallModal } from './components/pwa/PwaInstallModal';
 import { PwaInstallBanner } from './components/pwa/PwaInstallBanner';
 import { ToastContainer } from './components/ui/Toast';
 import { motion, AnimatePresence } from 'motion/react';
+import { ensureSolicitudesAfiliadosTableInitialized } from './services/solicitudesService';
 
 const AppContent: React.FC = () => {
   const { 
@@ -47,6 +49,7 @@ const AppContent: React.FC = () => {
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
 
   React.useEffect(() => {
+    ensureSolicitudesAfiliadosTableInitialized();
     const handleOpenModal = () => setIsInstallModalOpen(true);
     window.addEventListener('open-pwa-modal', handleOpenModal);
     return () => window.removeEventListener('open-pwa-modal', handleOpenModal);
@@ -111,6 +114,7 @@ const AppContent: React.FC = () => {
             >
               {mileniaView === 'inicio' && <MileniaLandingView />}
               {mileniaView === 'aliados' && <MileniaAlliesView />}
+              {mileniaView === 'registrar_aliado' && <MileniaRegisterAllyView />}
               {mileniaView === 'login' && <MileniaLoginView />}
               {mileniaView === 'contactos' && <MileniaContactView />}
               {(mileniaView === 'propietario' || mileniaView === 'superadmin') && <MileniaOwnerDashboard />}

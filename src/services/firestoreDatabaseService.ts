@@ -21,8 +21,8 @@ export interface FirestoreTableMeta {
 
 export const FIRESTORE_TABLES: FirestoreTableMeta[] = [
   {
-    id: 'solicitudes_afiliacion',
-    name: 'Solicitudes de Afiliación & Demo',
+    id: 'solicitudes_afiliados',
+    name: 'Solicitudes de Afiliados & Demo',
     description: 'Registros de contactos, restaurantes interesados, demos solicitadas y prospectos',
     category: 'saas',
     icon: 'Sparkles',
@@ -31,7 +31,7 @@ export const FIRESTORE_TABLES: FirestoreTableMeta[] = [
       restaurantName: 'Asador Campestre San Juan',
       city: 'Pasto (Nariño)',
       phone: '+57 304 347 0984',
-      email: 'carlos@asadorcampestre.com',
+      email: 'nexuswebstudio2026@gmail.com',
       tablesCount: '10-20',
       systemType: 'Sistema Plus',
       planInterest: 'Plan Máximo Integral Milenia ($600.000 COP/mes)',

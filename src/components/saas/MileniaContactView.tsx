@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useCurrentDomain } from '../../utils/domainHelper';
 import { COLOMBIAN_CITIES } from '../../data/colombianCities';
-import { saveSolicitudAfiliacionToFirestore } from '../../services/solicitudesService';
+import { saveSolicitudAfiliacionToFirestore, ensureSolicitudesAfiliadosTableInitialized } from '../../services/solicitudesService';
 
 export const MileniaContactView: React.FC = () => {
   const { domain, getTenantDisplayUrl } = useCurrentDomain();
@@ -42,6 +42,11 @@ export const MileniaContactView: React.FC = () => {
     planInterest: 'Plan Máximo Integral Milenia',
     message: ''
   });
+
+  // Asegurar que la colección solicitudes_afiliados exista en Firebase Firestore
+  useEffect(() => {
+    ensureSolicitudesAfiliadosTableInitialized();
+  }, []);
 
   // Estado y control para el buscador interactivo de ciudades y municipios
   const [citySearchTerm, setCitySearchTerm] = useState('');
@@ -139,7 +144,7 @@ export const MileniaContactView: React.FC = () => {
 
     // 4. Redirigir de inmediato a la opción Registrar Aliado
     setTimeout(() => {
-      setMileniaView('login');
+      setMileniaView('registrar_aliado');
     }, 450);
   };
 
@@ -510,8 +515,7 @@ export const MileniaContactView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
-                  sessionStorage.setItem('milenia_auto_tab', 'register_ally');
-                  setMileniaView('login');
+                  setMileniaView('registrar_aliado');
                 }}
                 className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm rounded-2xl transition cursor-pointer shadow-lg shadow-amber-500/20 text-center flex items-center justify-center gap-2"
               >

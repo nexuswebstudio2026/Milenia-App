@@ -143,6 +143,14 @@ service cloud.firestore {
     }
 
     // 13. Solicitudes de Demostración y Afiliación Milenia
+    match /solicitudes_afiliados/{solicitudId} {
+      allow read, write: if true;
+    }
+
+    match /solicitudes_afiliados/{solicitudId}/{document=**} {
+      allow read, write: if true;
+    }
+
     match /solicitudes_afiliacion/{solicitudId} {
       allow read, write: if true;
     }

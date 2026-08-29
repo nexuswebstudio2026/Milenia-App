@@ -48,19 +48,19 @@ export const MileniaLandingView: React.FC = () => {
         {/* Accesos Rápidos */}
         <div className="relative z-10 pt-4 flex flex-wrap items-center justify-center gap-3">
           <button
-            onClick={() => setMileniaView('login')}
+            onClick={() => setMileniaView('registrar_aliado')}
             className="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-amber-500/20 flex items-center gap-2 transition cursor-pointer"
           >
-            <LogIn className="w-4 h-4 text-slate-950 stroke-[2.5]" />
-            <span>Ingreso de Aliados</span>
+            <Sparkles className="w-4 h-4 text-slate-950 stroke-[2.5]" />
+            <span>Registrar Aliado</span>
           </button>
 
           <button
-            onClick={() => setMileniaView('contactos')}
+            onClick={() => setMileniaView('login')}
             className="px-5 py-3 bg-slate-800/90 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-xl border border-slate-700 flex items-center gap-2 transition cursor-pointer"
           >
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>Solicitar Demostración / Afiliación</span>
+            <LogIn className="w-4 h-4 text-amber-400" />
+            <span>Ingreso de Aliados</span>
           </button>
         </div>
 

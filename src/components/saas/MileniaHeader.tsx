@@ -16,7 +16,8 @@ import {
   ShieldCheck,
   LogOut,
   ChevronRight,
-  Crown
+  Crown,
+  Store
 } from 'lucide-react';
 
 export const MileniaHeader: React.FC = () => {
@@ -106,7 +107,7 @@ export const MileniaHeader: React.FC = () => {
             </div>
           </button>
 
-          {/* Center Navigation Links (Desktop): Inicio, Aliados, Contactos */}
+          {/* Center Navigation Links (Desktop): Inicio, Aliados, Registrar aliado, Propietario milenia */}
           <nav className="hidden md:flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
             
             <button
@@ -136,15 +137,15 @@ export const MileniaHeader: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setMileniaView('contactos')}
+              onClick={() => setMileniaView('registrar_aliado')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                mileniaView === 'contactos'
+                mileniaView === 'registrar_aliado'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Solicitar demostración y/o afiliación</span>
+              <Store className="w-3.5 h-3.5 text-amber-500" />
+              <span>Registrar aliado</span>
             </button>
 
             <button
@@ -157,7 +158,7 @@ export const MileniaHeader: React.FC = () => {
               title="Panel Maestro de Control del Propietario de Milenia SaaS"
             >
               <Crown className="w-3.5 h-3.5" />
-              <span>Propietario Milenia</span>
+              <span>Propietario milenia</span>
             </button>
 
           </nav>
@@ -256,13 +257,13 @@ export const MileniaHeader: React.FC = () => {
           </button>
 
           <button
-            onClick={() => { setMileniaView('contactos'); setMobileMenuOpen(false); }}
+            onClick={() => { setMileniaView('registrar_aliado'); setMobileMenuOpen(false); }}
             className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-between ${
-              mileniaView === 'contactos' ? 'bg-amber-500 text-slate-950' : 'text-slate-700 dark:text-slate-300'
+              mileniaView === 'registrar_aliado' ? 'bg-amber-500 text-slate-950' : 'text-slate-700 dark:text-slate-300'
             }`}
           >
-            <span>Solicitar demostración y/o afiliación</span>
-            <Sparkles className="w-4 h-4" />
+            <span>Registrar aliado</span>
+            <Store className="w-4 h-4" />
           </button>
 
           <button
@@ -275,7 +276,7 @@ export const MileniaHeader: React.FC = () => {
           >
             <span className="flex items-center gap-2">
               <Crown className="w-4 h-4 text-amber-400" />
-              <span>Dashboard Propietario Milenia</span>
+              <span>Propietario milenia</span>
             </span>
             <ChevronRight className="w-4 h-4" />
           </button>
