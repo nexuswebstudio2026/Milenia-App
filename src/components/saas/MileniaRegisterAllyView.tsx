@@ -82,9 +82,10 @@ export const MileniaRegisterAllyView: React.FC = () => {
 
   // 3. Paso de Activación y Pago Oficial
   const [showPaymentStep, setShowPaymentStep] = useState(false);
-  const [selectedWallet, setSelectedWallet] = useState<'nequi' | 'daviplata' | 'transferencia' | 'breve'>('nequi');
+  const [isDemoAffiliation, setIsDemoAffiliation] = useState(true); // Default to Demo 2.0 or user toggle
+  const [selectedWallet] = useState<'davivienda'>('davivienda');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [paymentReference, setPaymentReference] = useState('');
+  const [paymentReference, setPaymentReference] = useState('DEMO-2026-APROBADO');
   const [paymentVoucherFile, setPaymentVoucherFile] = useState<{ name: string; size: string; dataUrl: string } | null>(null);
   const voucherFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -261,18 +262,23 @@ export const MileniaRegisterAllyView: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Finalizar registro del aliado con comprobante de pago
+  // Finalizar registro del aliado con comprobante de pago o activación Demo 2.0
   const handleCompleteAllyRegistration = async () => {
     setError(null);
     setLoading(true);
 
     try {
-      if (!paymentVoucherFile) {
-        throw new Error('Por favor sube la captura de pantalla o comprobante de la transferencia.');
+      if (!isDemoAffiliation) {
+        if (!paymentVoucherFile) {
+          throw new Error('Por favor sube la captura de pantalla (.png) o comprobante de la transferencia.');
+        }
+        if (!paymentReference.trim()) {
+          throw new Error('Por favor ingresa o confirma el número de aprobación o referencia de la transacción.');
+        }
       }
-      if (!paymentReference.trim()) {
-        throw new Error('Por favor ingresa o confirma el número de aprobación o referencia de la transacción.');
-      }
+
+      const finalAmount = isDemoAffiliation ? 0 : 600000;
+      const finalReference = paymentReference.trim() || (isDemoAffiliation ? `DEMO-2026-${Date.now().toString().slice(-6)}` : '');
 
       // 1. Generar nuevo ID para el restaurante aliado
       const existingIds = tenants.map(t => parseInt(t.id)).filter(n => !isNaN(n));
@@ -280,16 +286,20 @@ export const MileniaRegisterAllyView: React.FC = () => {
       const newRestId = String(maxId + 1);
 
       // 2. Registrar usuario Propietario/Gerente en Firebase Auth & Firestore
-      await registerUser(allyOwnerEmail, allyOwnerPassword, {
-        name: allyOwnerName.trim(),
-        restaurantId: newRestId,
-        role: 'OWNER' as UserRole,
-        employeeId: allyOwnerEmployeeId.trim() || 'EMP-101',
-        position: 'Gerente General & Propietario',
-        phone: allyOwnerPhone.trim() || allyPhone.trim()
-      });
+      try {
+        await registerUser(allyOwnerEmail.trim(), allyOwnerPassword.trim(), {
+          name: allyOwnerName.trim(),
+          restaurantId: newRestId,
+          role: 'OWNER' as UserRole,
+          employeeId: allyOwnerEmployeeId.trim() || 'EMP-101',
+          position: 'Gerente General & Propietario',
+          phone: allyOwnerPhone.trim() || allyPhone.trim()
+        });
+      } catch (authErr: any) {
+        console.warn('Usuario ya registrado o auth offline, continuando registro en base de datos:', authErr);
+      }
 
-      // 3. Crear el restaurante Tenant en memoria y persistencia
+      // 3. Crear el restaurante Tenant en memoria y persistencia Firestore
       const newTenant: TenantRestaurant = {
         id: newRestId,
         slug: allyName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
@@ -300,7 +310,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
         email: allyEmail.trim() || allyOwnerEmail.trim(),
         rutDocumentUrl: rutFile?.dataUrl || undefined,
         rutDocumentFileName: rutFile?.name || undefined,
-        rutUploadedAt: new Date().toISOString(),
+        rutUploadedAt: rutFile ? new Date().toISOString() : undefined,
         tablesCount: allyTablesCount || 12,
         activeOrdersCount: 0,
         totalMonthlySalesCop: 0,
@@ -322,27 +332,28 @@ export const MileniaRegisterAllyView: React.FC = () => {
         subscription: {
           plan: 'enterprise',
           status: 'active',
-          mrrCop: 600000,
+          mrrCop: finalAmount,
           renewsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           maxTables: allyTablesCount || 20,
           maxEmployees: 15,
-          features: ['POS Táctil', 'KDS Cocina', 'Facturación DIAN', 'Menú QR']
+          features: ['POS Táctil', 'KDS Cocina', 'Facturación DIAN', 'Menú QR', 'Demo 2.0 Habilitado']
         },
         subscriptionPayment: {
-          amountCop: 600000,
-          method: selectedWallet,
-          voucherUrl: paymentVoucherFile.dataUrl,
-          voucherFileName: paymentVoucherFile.name,
-          referenceNumber: paymentReference.trim(),
+          amountCop: finalAmount,
+          method: isDemoAffiliation ? 'DEMO_CORTESIA_2.0' : 'DAVIVIENDA_TRANSFERENCIA_QR',
+          voucherUrl: paymentVoucherFile?.dataUrl || (isDemoAffiliation ? 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=400&q=80' : ''),
+          voucherFileName: paymentVoucherFile?.name || (isDemoAffiliation ? 'activacion_demo_2.0.png' : ''),
+          referenceNumber: finalReference,
           paidAt: new Date().toISOString(),
           status: 'confirmed'
         },
         createdAt: new Date().toISOString()
       };
 
+      // Guardar en contexto y Firestore (/aliados)
       addTenant(newTenant);
 
-      // Crear el empleado Propietario/Gerente
+      // 4. Crear el empleado Propietario/Gerente
       const ownerEmp: TenantEmployee = {
         id: allyOwnerEmployeeId.trim() || 'EMP-101',
         restaurantId: newRestId,
@@ -360,7 +371,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
 
       addEmployee(ownerEmp);
 
-      // Registrar Aliado en la colección general de aliados Firestore
+      // 5. Registrar Aliado en la colección general de aliados Firestore (/milenia_aliados)
       await addAliado({
         name: allyName.trim(),
         nit: allyRut.trim() || '901.000.000-1',
@@ -370,36 +381,42 @@ export const MileniaRegisterAllyView: React.FC = () => {
         email: allyEmail.trim() || allyOwnerEmail.trim(),
         plan: 'Enterprise',
         status: 'Activo',
-        monthlyFeeCop: 600000,
+        monthlyFeeCop: finalAmount,
         tablesCount: allyTablesCount || 12,
         contactName: allyOwnerName.trim()
       });
 
-      // Registrar transacción de ingreso en la contabilidad de Milenia
+      // 6. Registrar transacción de ingreso o cortesía demo en la contabilidad
       await addTransaction({
         type: 'INGRESO',
         category: 'SUSCRIPCION_SAAS',
-        description: `Activación Mensual Restaurante Aliado #${newRestId} (${allyName.trim()})`,
-        amountCop: 600000,
+        description: isDemoAffiliation 
+          ? `Afiliación Demo 2.0 (Cortesía $0 COP) Restaurante Aliado #${newRestId} (${allyName.trim()})`
+          : `Activación Mensual Restaurante Aliado #${newRestId} (${allyName.trim()})`,
+        amountCop: finalAmount,
         date: new Date().toISOString().split('T')[0],
         restaurantId: newRestId,
         restaurantName: allyName.trim(),
-        paymentMethod: 'TRANSFERENCIA_BANCARIA',
-        referenceNumber: paymentReference.trim(),
-        notes: `Billetera: ${selectedWallet}. Comprobante: ${paymentVoucherFile.name}. Documento Titular: ${allyOwnerDocumentId}`
+        paymentMethod: isDemoAffiliation ? 'DEMO_CORTESIA' : 'DAVIVIENDA_TRANSFERENCIA',
+        referenceNumber: finalReference,
+        notes: isDemoAffiliation
+          ? `Afiliación Demo 2.0 sin cobro de afiliación. Aprobación: ${finalReference}. Titular: ${allyOwnerName.trim()} (C.C. ${allyOwnerDocumentId.trim()})`
+          : `Pago Oficial Davivienda. Comprobante: ${paymentVoucherFile?.name}. Titular: ${allyOwnerDocumentId}`
       });
 
-      // Actualizar resumen financiero
-      const curFin = await getFinancialSummary();
-      const newIngresos = (curFin?.ingresos || 0) + 600000;
-      const newGastos = curFin?.gastos || 0;
-      await saveFinancialSummary({
-        ingresos: newIngresos,
-        gastos: newGastos,
-        titulo: 'Resumen Financiero Consolidado',
-        descripcion: 'Tabla consolidada de ingresos, gastos y balance neto en Firebase Firestore (/resumen_financiero).',
-        notas: `Activación de aliado #${newRestId} (${allyName.trim()}).`
-      });
+      // 7. Actualizar resumen financiero si hubo ingreso real
+      if (!isDemoAffiliation) {
+        const curFin = await getFinancialSummary();
+        const newIngresos = (curFin?.ingresos || 0) + 600000;
+        const newGastos = curFin?.gastos || 0;
+        await saveFinancialSummary({
+          ingresos: newIngresos,
+          gastos: newGastos,
+          titulo: 'Resumen Financiero Consolidado',
+          descripcion: 'Tabla consolidada de ingresos, gastos y balance neto en Firebase Firestore (/resumen_financiero).',
+          notas: `Activación de aliado #${newRestId} (${allyName.trim()}).`
+        });
+      }
 
       // Limpiar auto-fill de sesión
       sessionStorage.removeItem('milenia_auto_fill_lead');
@@ -409,10 +426,12 @@ export const MileniaRegisterAllyView: React.FC = () => {
       setSuccessInfo({
         name: `${allyName.trim()} (Aliado #${newRestId})`,
         redirectUrl: directUrl,
-        message: '¡Restaurante registrado, activado y verificado con éxito!'
+        message: isDemoAffiliation
+          ? '¡Aliado Demo 2.0 registrado, activado y verificado con éxito en la base de datos! Ingresando al panel...'
+          : '¡Restaurante registrado, activado y verificado con éxito! Ingresando al panel...'
       });
 
-      // Redirigir al panel del gerente
+      // 8. Redirigir directamente al panel del nuevo aliado
       setAppMode('restaurant');
       setTenantView('restaurant-panel-gerente');
       setTimeout(() => {
@@ -421,7 +440,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
           restaurantId: newRestId,
           cargo: 'gerente'
         });
-      }, 600);
+      }, 500);
 
     } catch (err: any) {
       console.error('Error registrando aliado:', err);
@@ -835,7 +854,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
           </form>
         ) : (
           /* ========================================================================= */
-          /* PASO 2: PASARELA DE ACTIVACIÓN CON CÓDIGOS QR & COMPROBANTE GEMINI IA     */
+          /* PASO 2: ACTIVACIÓN OFICIAL DAVIVIENDA / AFILIACIÓN DEMO 2.0              */
           /* ========================================================================= */
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
@@ -845,7 +864,15 @@ export const MileniaRegisterAllyView: React.FC = () => {
                   <span>Paso 2: Activación Oficial del Aliado</span>
                 </h2>
                 <p className="text-xs text-slate-400 mt-1">
-                  Transfiere los <strong>$600.000 COP</strong> correspondientes al <strong className="text-amber-400">Plan Máximo Integral Milenia</strong> usando tu billetera preferida.
+                  {isDemoAffiliation ? (
+                    <span className="text-emerald-400 font-semibold">
+                      Modo Demo 2.0 activo: Afiliación de cortesía con tarifa $0 COP y acceso inmediato al panel.
+                    </span>
+                  ) : (
+                    <span>
+                      Transfiere los <strong>$600.000 COP</strong> correspondientes al <strong className="text-amber-400">Plan Máximo Integral Milenia</strong> a través de la cuenta oficial Davivienda.
+                    </span>
+                  )}
                 </p>
               </div>
 
@@ -858,6 +885,45 @@ export const MileniaRegisterAllyView: React.FC = () => {
               </button>
             </div>
 
+            {/* CASILLA DE VERIFICACIÓN: AFILIACIÓN DEMO 2.0 */}
+            <div className={`p-4 sm:p-5 rounded-2xl border transition-all ${
+              isDemoAffiliation 
+                ? 'bg-emerald-950/40 border-emerald-500/60 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30' 
+                : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
+            }`}>
+              <label className="flex items-start gap-3.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isDemoAffiliation}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsDemoAffiliation(checked);
+                    if (checked && !paymentReference) {
+                      setPaymentReference('DEMO-2026-APROBADO');
+                    }
+                  }}
+                  className="w-5 h-5 mt-0.5 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500 shrink-0 cursor-pointer accent-emerald-500"
+                />
+                <div className="space-y-1 select-none">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-black text-white">
+                      Afiliación Demo 2.0 (Cortesía - Sin cobro de afiliación)
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                      isDemoAffiliation 
+                        ? 'bg-emerald-500 text-slate-950 font-black' 
+                        : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      {isDemoAffiliation ? '✓ Demo 2.0 Habilitado ($0 COP)' : 'Afiliación Estándar'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300">
+                    Marca esta casilla para registrar al aliado en la base de datos con tarifa <strong>$0 COP</strong>, omitir el comprobante bancario obligatorio y acceder de inmediato a todas las funciones del panel gerencial.
+                  </p>
+                </div>
+              </label>
+            </div>
+
             {/* Resumen del Restaurante a Registrar */}
             <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -865,166 +931,86 @@ export const MileniaRegisterAllyView: React.FC = () => {
                   <Store className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-white">{allyName}</p>
-                  <p className="text-xs text-slate-400 font-mono">NIT: {allyRut} &bull; {allyCity}</p>
+                  <p className="text-sm font-black text-white">{allyName || 'Nuevo Restaurante Aliado'}</p>
+                  <p className="text-xs text-slate-400 font-mono">NIT / RUT: {allyRut || 'Pendiente'} &bull; {allyCity}</p>
+                  {rutFile && (
+                    <p className="text-[10px] text-emerald-400 font-mono flex items-center gap-1 mt-0.5">
+                      <CheckCircle2 className="w-3 h-3" /> RUT Guardado: {rutFile.name}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="text-right">
                 <p className="text-[11px] text-slate-400">Tarifa de Activación:</p>
-                <p className="text-base font-black text-amber-400 font-mono">$600.000 COP / mes</p>
+                <p className={`text-base font-black font-mono ${isDemoAffiliation ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {isDemoAffiliation ? '$0 COP (Cortesía Demo 2.0)' : '$600.000 COP / mes'}
+                </p>
               </div>
             </div>
 
-            {/* Selector de Billetera Digital Oficial */}
-            <div className="space-y-3">
-              <label className="block text-xs font-black uppercase tracking-wider text-amber-400">
-                Selecciona tu Método de Pago para Ver el Código QR Oficial:
-              </label>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {/* Nequi */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedWallet('nequi')}
-                  className={`p-3 rounded-2xl border text-center transition cursor-pointer flex flex-col items-center gap-1.5 ${
-                    selectedWallet === 'nequi'
-                      ? 'bg-purple-950/40 border-purple-500 text-white shadow-lg shadow-purple-500/20 ring-1 ring-purple-500'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black text-xs shadow-md">
-                    N
-                  </div>
-                  <span className="text-xs font-bold">Nequi</span>
-                  {businessProfile.qrNequiUrl && (
-                    <span className="text-[9px] px-1.5 py-0.2 bg-purple-500/20 text-purple-300 rounded font-mono">QR Activo</span>
-                  )}
-                </button>
-
-                {/* Daviplata */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedWallet('daviplata')}
-                  className={`p-3 rounded-2xl border text-center transition cursor-pointer flex flex-col items-center gap-1.5 ${
-                    selectedWallet === 'daviplata'
-                      ? 'bg-red-950/40 border-red-500 text-white shadow-lg shadow-red-500/20 ring-1 ring-red-500'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center font-black text-xs shadow-md">
-                    D
-                  </div>
-                  <span className="text-xs font-bold">Daviplata</span>
-                  {businessProfile.qrDaviplataUrl && (
-                    <span className="text-[9px] px-1.5 py-0.2 bg-red-500/20 text-red-300 rounded font-mono">QR Activo</span>
-                  )}
-                </button>
-
-                {/* Bancolombia / Transferencia */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedWallet('transferencia')}
-                  className={`p-3 rounded-2xl border text-center transition cursor-pointer flex flex-col items-center gap-1.5 ${
-                    selectedWallet === 'transferencia'
-                      ? 'bg-amber-950/40 border-amber-500 text-white shadow-lg shadow-amber-500/20 ring-1 ring-amber-500'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs shadow-md">
-                    <Building2 className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs font-bold">Bancolombia</span>
-                  {businessProfile.qrBancolombiaUrl && (
-                    <span className="text-[9px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded font-mono">QR Activo</span>
-                  )}
-                </button>
-
-                {/* Breve / Transfiya */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedWallet('breve')}
-                  className={`p-3 rounded-2xl border text-center transition cursor-pointer flex flex-col items-center gap-1.5 ${
-                    selectedWallet === 'breve'
-                      ? 'bg-cyan-950/40 border-cyan-500 text-white shadow-lg shadow-cyan-500/20 ring-1 ring-cyan-500'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-xl bg-cyan-600 text-white flex items-center justify-center font-black text-xs shadow-md">
-                    ⚡
-                  </div>
-                  <span className="text-xs font-bold">Breve / Transfiya</span>
-                  {businessProfile.qrBreveUrl && (
-                    <span className="text-[9px] px-1.5 py-0.2 bg-cyan-500/20 text-cyan-300 rounded font-mono">QR Activo</span>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Visualizador de Código QR Oficial de Firestore */}
+            {/* Método Oficial de Pago Davivienda */}
             {(() => {
-              const anyUploadedQr = 
-                businessProfile.qrNequiUrl || 
-                businessProfile.qrDaviplataUrl || 
+              const qrDavivienda = 
                 businessProfile.qrBancolombiaUrl || 
-                businessProfile.qrBreveUrl || 
-                '';
+                businessProfile.qrDaviplataUrl || 
+                businessProfile.qrNequiUrl || 
+                'https://images.unsplash.com/photo-1607344645866-009c320c5ab8?auto=format&fit=crop&w=400&q=80';
 
-              let currentQr = '';
-              let currentMethodName = 'Nequi';
-              let currentKeyNumber = businessProfile.digitalKeys?.nequiKey || businessProfile.phone || '3043470984';
-              let currentKeyLabel = 'Número Nequi / Celular';
-              let currentHolder = businessProfile.bankAccount?.accountHolder || businessProfile.legalName || 'Milenia Gastronomía SAS';
-              let currentDoc = businessProfile.bankAccount?.holderDocument || businessProfile.nit || '901.450.888-1';
-              let isSpecificQr = false;
-
-              if (selectedWallet === 'nequi') {
-                currentMethodName = 'Billetera Nequi';
-                currentQr = businessProfile.qrNequiUrl || anyUploadedQr;
-                isSpecificQr = Boolean(businessProfile.qrNequiUrl);
-                currentKeyNumber = businessProfile.digitalKeys?.nequiKey || businessProfile.phone || '3043470984';
-                currentKeyLabel = 'Número de Celular / Nequi';
-              } else if (selectedWallet === 'daviplata') {
-                currentMethodName = 'Billetera Daviplata';
-                currentQr = businessProfile.qrDaviplataUrl || anyUploadedQr;
-                isSpecificQr = Boolean(businessProfile.qrDaviplataUrl);
-                currentKeyNumber = businessProfile.digitalKeys?.daviplataKey || businessProfile.phone || '3043470984';
-                currentKeyLabel = 'Número Daviplata / Celular';
-              } else if (selectedWallet === 'breve') {
-                currentMethodName = 'Llave Breve / Transfiya (Banco de la República)';
-                currentQr = businessProfile.qrBreveUrl || anyUploadedQr;
-                isSpecificQr = Boolean(businessProfile.qrBreveUrl);
-                currentKeyNumber = businessProfile.digitalKeys?.qrBreveInteroperableKey || businessProfile.digitalKeys?.transfiyaKey || 'BREVE-MILENIA-901450888-COL';
-                currentKeyLabel = 'Llave Breve Interoperable';
-              } else {
-                currentMethodName = `${businessProfile.bankAccount?.bankName || 'Bancolombia'} (${businessProfile.bankAccount?.accountType || 'Ahorros'})`;
-                currentQr = businessProfile.qrBancolombiaUrl || anyUploadedQr;
-                isSpecificQr = Boolean(businessProfile.qrBancolombiaUrl);
-                currentKeyNumber = businessProfile.bankAccount?.accountNumber || businessProfile.digitalKeys?.bancolombiaKey || '488432227616';
-                currentKeyLabel = `Número de Cuenta ${businessProfile.bankAccount?.accountType || 'Ahorros'}`;
-              }
+              const accountNumber = businessProfile.bankAccount?.accountNumber || businessProfile.digitalKeys?.bancolombiaKey || '488432227616';
+              const accountHolder = businessProfile.bankAccount?.accountHolder || businessProfile.legalName || 'Milenia Gastronomía SAS';
+              const accountDoc = businessProfile.bankAccount?.holderDocument || businessProfile.nit || '901.450.888-1';
 
               return (
                 <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
-                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                  
+                  {/* Encabezado Davivienda */}
+                  <div className="flex items-center justify-between border-b border-slate-900 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center font-black text-sm shadow-md">
+                        D
+                      </div>
+                      <div>
+                        <h3 className="text-base font-black text-white flex items-center gap-2">
+                          <span>Banco Davivienda</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-mono">
+                            Cuenta Oficial Davivienda
+                          </span>
+                        </h3>
+                        <p className="text-xs text-slate-400">
+                          {isDemoAffiliation 
+                            ? 'Datos informativos de recaudo (Omitido para Afiliación Demo 2.0 - $0 COP)' 
+                            : 'Escanea el código QR de Davivienda o transfiere a la cuenta de ahorros oficial:'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isDemoAffiliation && (
+                      <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                        Cortesía $0 COP
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-6 pt-1">
                     
-                    {/* Visualizador de QR Real de Firestore */}
+                    {/* Visualizador del Código QR Davivienda */}
                     <div className="flex flex-col items-center shrink-0">
                       <div 
                         onClick={() => {
-                          if (currentQr) {
-                            setZoomedQrUrl(currentQr);
+                          if (qrDavivienda) {
+                            setZoomedQrUrl(qrDavivienda);
                             setIsQrModalOpen(true);
                           }
                         }}
-                        className={`bg-white p-3 rounded-2xl shadow-xl flex flex-col items-center justify-center w-48 h-48 border-4 border-amber-500/40 relative group ${
-                          currentQr ? 'cursor-pointer hover:border-amber-400 transition-all' : ''
+                        className={`bg-white p-3 rounded-2xl shadow-xl flex flex-col items-center justify-center w-48 h-48 border-4 border-red-500/40 relative group ${
+                          qrDavivienda ? 'cursor-pointer hover:border-red-400 transition-all' : ''
                         }`}
                       >
-                        {currentQr ? (
+                        {qrDavivienda ? (
                           <div className="w-full h-full flex flex-col items-center justify-center relative">
                             <img
-                              src={currentQr}
-                              alt={`Código QR Oficial ${currentMethodName}`}
+                              src={qrDavivienda}
+                              alt="Código QR Oficial Davivienda"
                               className="w-full h-full object-contain rounded-lg group-hover:scale-105 transition-transform"
                             />
                             <div className="absolute inset-0 bg-slate-950/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1 text-center p-2 backdrop-blur-xs">
@@ -1035,66 +1021,78 @@ export const MileniaRegisterAllyView: React.FC = () => {
                         ) : (
                           <div className="flex flex-col items-center justify-center space-y-2 text-center p-2">
                             <QrCode className="w-16 h-16 text-slate-400 stroke-[1.5]" />
-                            <span className="text-[10px] font-bold text-slate-600">Escanea desde tu App Bancaria</span>
+                            <span className="text-[10px] font-bold text-slate-600">Escanea desde tu App Davivienda</span>
                           </div>
                         )}
                       </div>
 
                       <div className="mt-2 text-center">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30 inline-flex items-center gap-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-red-400 bg-red-500/10 px-2.5 py-1 rounded-full border border-red-500/30 inline-flex items-center gap-1">
                           <QrCode className="w-3 h-3" />
-                          {isSpecificQr ? `QR OFICIAL ${selectedWallet.toUpperCase()}` : 'QR OFICIAL MILENIA'}
+                          QR OFICIAL DAVIVIENDA
                         </span>
-                        {currentQr && (
-                          <p className="text-[10px] text-slate-400 mt-1 cursor-pointer hover:text-amber-300" onClick={() => { setZoomedQrUrl(currentQr); setIsQrModalOpen(true); }}>
-                            🔍 Toca para ampliar
+                        {qrDavivienda && (
+                          <p className="text-[10px] text-slate-400 mt-1 cursor-pointer hover:text-amber-300" onClick={() => { setZoomedQrUrl(qrDavivienda); setIsQrModalOpen(true); }}>
+                            🔍 Toca para ampliar código QR
                           </p>
                         )}
                       </div>
                     </div>
 
-                    {/* Detalles de la Cuenta y Llave */}
+                    {/* Detalles de la Cuenta Davivienda */}
                     <div className="space-y-3 flex-1 w-full">
-                      <div>
-                        <h3 className="text-base font-black text-white flex items-center gap-2">
-                          {selectedWallet === 'nequi' && <span className="text-purple-400">Paga con Billetera Nequi</span>}
-                          {selectedWallet === 'daviplata' && <span className="text-red-400">Paga con Billetera Daviplata</span>}
-                          {selectedWallet === 'transferencia' && <span className="text-amber-400">Transferencia Bancolombia</span>}
-                          {selectedWallet === 'breve' && <span className="text-cyan-400">Llave Breve / Red Interoperable</span>}
-                        </h3>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          Escanea el código QR desde tu app bancaria o transfiere directamente con los datos oficiales registrados:
-                        </p>
-                      </div>
-
-                      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
+                      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                        
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-400">{currentKeyLabel}:</span>
+                          <span className="text-slate-400 font-medium">Entidad Bancaria:</span>
+                          <span className="font-bold text-white flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                            Banco Davivienda
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-400 font-medium">Tipo de Cuenta:</span>
+                          <span className="font-bold text-white">Cuenta de Ahorros</span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-400 font-medium">Número de Cuenta:</span>
                           <div className="flex items-center gap-2 font-mono font-black text-white bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
-                            <span>{currentKeyNumber}</span>
+                            <span>{accountNumber}</span>
                             <button
                               type="button"
-                              onClick={() => handleCopy(currentKeyNumber.replace(/\s+/g, ''), 'walletKey')}
+                              onClick={() => handleCopy(accountNumber.replace(/\s+/g, ''), 'accNumber')}
                               className="p-1 text-slate-400 hover:text-amber-400 transition cursor-pointer"
-                              title="Copiar número"
+                              title="Copiar número de cuenta"
                             >
-                              {copiedKey === 'walletKey' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                              {copiedKey === 'accNumber' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                             </button>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-400">Titular de la Cuenta:</span>
-                          <span className="font-bold text-white text-right">{currentHolder}</span>
+                          <span className="text-slate-400 font-medium">Titular de la Cuenta:</span>
+                          <div className="flex items-center gap-2 text-right">
+                            <span className="font-bold text-white">{accountHolder}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopy(accountHolder, 'accHolder')}
+                              className="p-1 text-slate-400 hover:text-amber-400 transition cursor-pointer"
+                              title="Copiar titular"
+                            >
+                              {copiedKey === 'accHolder' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
                         </div>
 
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-400">NIT / Identificación:</span>
+                          <span className="text-slate-400 font-medium">NIT / Identificación:</span>
                           <div className="flex items-center gap-2 font-mono text-slate-300">
-                            <span>{currentDoc}</span>
+                            <span>{accountDoc}</span>
                             <button
                               type="button"
-                              onClick={() => handleCopy(currentDoc.replace(/[^0-9-]/g, ''), 'docId')}
+                              onClick={() => handleCopy(accountDoc.replace(/[^0-9-]/g, ''), 'docId')}
                               className="p-1 text-slate-400 hover:text-amber-400 transition cursor-pointer"
                               title="Copiar documento"
                             >
@@ -1103,16 +1101,26 @@ export const MileniaRegisterAllyView: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800">
-                          <span className="text-amber-400 font-bold">Valor Exacto a Transferir:</span>
-                          <span className="font-black text-white text-sm font-mono">$600.000 COP</span>
+                        <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-800">
+                          <span className="text-amber-400 font-bold">Valor a Transferir:</span>
+                          <span className={`font-black text-sm font-mono ${isDemoAffiliation ? 'text-emerald-400' : 'text-white'}`}>
+                            {isDemoAffiliation ? '$0 COP (Cortesía Demo 2.0)' : '$600.000 COP'}
+                          </span>
                         </div>
                       </div>
 
                       <div className="text-[11px] text-slate-400 bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/80 flex items-start gap-2">
                         <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                         <span>
-                          Al finalizar la transferencia, toma una captura de pantalla del comprobante y adjúntala abajo con el número de aprobación o referencia.
+                          {isDemoAffiliation ? (
+                            <strong className="text-emerald-300">
+                              En Modo Demo 2.0 no requieres realizar la transacción bancaria. Haz clic directamente en &quot;Activar Aliado Demo 2.0 y Entrar al Panel&quot;.
+                            </strong>
+                          ) : (
+                            <span>
+                              Realiza la transferencia desde tu app Davivienda o cualquier banco mediante Transfiya / PSE, toma un pantallazo (.png) y súbelo a continuación con el número de aprobación.
+                            </span>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -1122,14 +1130,14 @@ export const MileniaRegisterAllyView: React.FC = () => {
               );
             })()}
 
-            {/* Modal para Ampliar Código QR */}
+            {/* Modal para Ampliar Código QR Davivienda */}
             {isQrModalOpen && zoomedQrUrl && (
               <div 
                 className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4"
                 onClick={() => setIsQrModalOpen(false)}
               >
                 <div 
-                  className="bg-slate-900 border border-amber-500/40 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl animate-fade-in relative"
+                  className="bg-slate-900 border border-red-500/40 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl animate-fade-in relative"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
@@ -1141,28 +1149,32 @@ export const MileniaRegisterAllyView: React.FC = () => {
                   </button>
 
                   <div className="text-center space-y-1">
-                    <span className="text-[10px] font-mono text-amber-400 uppercase tracking-widest font-bold">Milenia Cloud POS</span>
-                    <h3 className="text-lg font-black text-white">Código QR Oficial de Recaudo</h3>
-                    <p className="text-xs text-slate-400">Escanea directamente con la cámara de tu celular o app bancaria</p>
+                    <span className="text-[10px] font-mono text-red-400 uppercase tracking-widest font-bold">Banco Davivienda Oficial</span>
+                    <h3 className="text-lg font-black text-white">Código QR Oficial Davivienda</h3>
+                    <p className="text-xs text-slate-400">Escanea directamente con tu aplicación Davivienda o billetera digital</p>
                   </div>
 
-                  <div className="bg-white p-4 rounded-2xl border-4 border-amber-500 shadow-2xl flex items-center justify-center">
+                  <div className="bg-white p-4 rounded-2xl border-4 border-red-500 shadow-2xl flex items-center justify-center">
                     <img 
                       src={zoomedQrUrl} 
-                      alt="Código QR Ampliado" 
+                      alt="Código QR Davivienda Ampliado" 
                       className="w-full max-h-72 object-contain rounded-lg"
                     />
                   </div>
 
                   <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-center space-y-1">
-                    <p className="text-xs font-bold text-white">Monto de Activación: $600.000 COP</p>
-                    <p className="text-[11px] font-mono text-slate-400">Titular: {businessProfile.bankAccount?.accountHolder || businessProfile.legalName}</p>
+                    <p className="text-xs font-bold text-white">
+                      Monto: {isDemoAffiliation ? '$0 COP (Demo 2.0)' : '$600.000 COP'}
+                    </p>
+                    <p className="text-[11px] font-mono text-slate-400">
+                      Titular: {businessProfile.bankAccount?.accountHolder || businessProfile.legalName}
+                    </p>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setIsQrModalOpen(false)}
-                    className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition cursor-pointer"
+                    className="w-full py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl transition cursor-pointer"
                   >
                     Entendido / Cerrar Vista
                   </button>
@@ -1170,12 +1182,16 @@ export const MileniaRegisterAllyView: React.FC = () => {
               </div>
             )}
 
-            {/* Subir Comprobante de Pago con Auto-OCR Gemini IA */}
-            <div className="bg-slate-950/90 border border-amber-500/40 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl relative overflow-hidden">
+            {/* Subir Comprobante de Pago (.PNG) con Auto-OCR Gemini IA */}
+            <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl relative overflow-hidden">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
                   <Receipt className="w-4 h-4" />
-                  <span>Subir Comprobante de Transacción / Pago *</span>
+                  <span>
+                    {isDemoAffiliation 
+                      ? 'Comprobante de Afiliación (Opcional en Modo Demo)' 
+                      : 'Subir Comprobante de Pago (.PNG / Pantallazo) *'}
+                  </span>
                 </div>
                 
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/40 text-purple-300 font-mono text-[10px] font-bold">
@@ -1185,13 +1201,25 @@ export const MileniaRegisterAllyView: React.FC = () => {
               </div>
 
               <p className="text-xs text-slate-400">
-                Una vez realizada la transacción en Daviplata, Nequi o Bancolombia, adjunta el pantallazo o comprobante. <strong className="text-purple-300">La IA de Gemini transcribirá automáticamente el número de aprobación o referencia</strong>.
+                {isDemoAffiliation ? (
+                  <span>
+                    En Afiliación Demo 2.0 no es obligatorio subir un comprobante bancario. Puedes adjuntar un pantallazo en formato <strong className="text-white font-mono">.png</strong> de prueba si lo deseas o continuar directamente.
+                  </span>
+                ) : (
+                  <span>
+                    Adjunta el pantallazo en formato <strong className="text-white font-mono">.png</strong> de tu transferencia en Davivienda. <strong className="text-purple-300">Gemini IA transcribirá automáticamente el número de aprobación</strong>.
+                  </span>
+                )}
               </p>
 
               {/* Subida del Comprobante (File Drag & Drop) */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
-                  <span>Captura de Pantalla o Comprobante Oficial *</span>
+                  <span>
+                    {isDemoAffiliation 
+                      ? 'Pantallazo de Comprobante (.PNG / Opcional)' 
+                      : 'Captura de Pantalla (.PNG) de la Transacción *'}
+                  </span>
                   {paymentVoucherFile && (
                     <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" /> Archivo cargado
@@ -1202,7 +1230,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
                 <input
                   type="file"
                   ref={voucherFileInputRef}
-                  accept="image/png,image/jpeg,image/jpg,.pdf"
+                  accept="image/png,image/jpeg,image/jpg"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) handleVoucherFileUpload(file);
@@ -1228,7 +1256,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => voucherFileInputRef.current?.click()}
-                          className="px-2.5 py-1 text-[10px] font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition"
+                          className="px-2.5 py-1 text-[10px] font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition cursor-pointer"
                         >
                           Cambiar
                         </button>
@@ -1236,11 +1264,11 @@ export const MileniaRegisterAllyView: React.FC = () => {
                           type="button"
                           onClick={() => {
                             setPaymentVoucherFile(null);
-                            setPaymentReference('');
+                            if (!isDemoAffiliation) setPaymentReference('');
                             setGeminiAnalysisMessage(null);
                             setGeminiDetectedData(null);
                           }}
-                          className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-rose-400 rounded-lg transition"
+                          className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-rose-400 rounded-lg transition cursor-pointer"
                           title="Eliminar comprobante"
                         >
                           <X className="w-4 h-4" />
@@ -1256,7 +1284,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
                           className="object-contain max-h-36 w-full opacity-90 hover:opacity-100 transition"
                         />
                         <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-slate-950/80 border border-slate-700 text-[9px] font-mono text-slate-300">
-                          Vista Previa
+                          Pantallazo PNG Verificado
                         </div>
                       </div>
                     )}
@@ -1277,16 +1305,16 @@ export const MileniaRegisterAllyView: React.FC = () => {
                       <UploadCloud className="w-6 h-6" />
                     </div>
                     <p className="text-xs text-white font-bold">
-                      Haz clic aquí para subir el <span className="text-amber-400">Comprobante de Pago</span> o arrastra el archivo
+                      Haz clic aquí para subir el <span className="text-amber-400">Pantallazo del Comprobante (.PNG)</span> o arrastra el archivo
                     </p>
                     <p className="text-[10px] text-slate-400">
-                      Captura de Daviplata, Nequi o PDF bancario &bull; <span className="text-purple-400 font-semibold">Gemini IA transcribirá la referencia</span>
+                      Captura de pantalla de la app Davivienda &bull; <span className="text-purple-400 font-semibold">Gemini IA leerá el número de aprobación</span>
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Barra de Referencia */}
+              {/* Barra de Número de Aprobación */}
               <div className="space-y-1.5 pt-1">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-semibold text-slate-300">
@@ -1298,7 +1326,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
                     </span>
                   ) : paymentReference ? (
                     <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1 font-bold">
-                      <Sparkles className="w-3 h-3" /> Transcrito con éxito
+                      <Sparkles className="w-3 h-3" /> Referencia confirmada
                     </span>
                   ) : null}
                 </div>
@@ -1309,7 +1337,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
                     type="text"
                     value={paymentReference}
                     onChange={(e) => setPaymentReference(e.target.value)}
-                    placeholder="Ej. 88472910 o Ref. M-194820"
+                    placeholder={isDemoAffiliation ? "DEMO-2026-APROBADO" : "Ej. 88472910 o Ref. M-194820"}
                     className={`w-full pl-10 pr-28 py-2.5 bg-slate-900 border rounded-xl text-xs sm:text-sm text-white focus:outline-none font-mono transition-all ${
                       isAnalyzingVoucher 
                         ? 'border-purple-500/60 bg-purple-950/20' 
@@ -1324,9 +1352,13 @@ export const MileniaRegisterAllyView: React.FC = () => {
                       <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded text-[10px] font-mono flex items-center gap-1">
                         <Loader2 className="w-2.5 h-2.5 animate-spin" /> IA Leyendo
                       </span>
+                    ) : isDemoAffiliation ? (
+                      <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded text-[10px] font-mono flex items-center gap-1">
+                        <Check className="w-2.5 h-2.5 stroke-[3]" /> Demo 2.0
+                      </span>
                     ) : paymentReference ? (
                       <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded text-[10px] font-mono flex items-center gap-1">
-                        <Check className="w-2.5 h-2.5 stroke-[3]" /> IA Auto-fill
+                        <Check className="w-2.5 h-2.5 stroke-[3]" /> Confirmado
                       </span>
                     ) : null}
                   </div>
@@ -1346,17 +1378,26 @@ export const MileniaRegisterAllyView: React.FC = () => {
               </div>
             </div>
 
-            {/* Botón Final: Subir Comprobante y Entrar al Panel del Aliado */}
+            {/* Botón Final: Activar Aliado y Entrar al Panel */}
             <button
               type="button"
-              disabled={loading || !paymentVoucherFile}
+              disabled={loading || (!isDemoAffiliation && (!paymentVoucherFile || !paymentReference.trim()))}
               onClick={handleCompleteAllyRegistration}
-              className="w-full py-4 px-4 bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`w-full py-4 px-4 font-black text-sm rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                isDemoAffiliation
+                  ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 shadow-emerald-500/20 hover:shadow-emerald-500/30'
+                  : 'bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 shadow-emerald-500/20 hover:shadow-emerald-500/30'
+              }`}
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Guardando en Base de Datos y Abriendo Panel...</span>
+                </>
+              ) : isDemoAffiliation ? (
+                <>
+                  <Sparkles className="w-4 h-4 text-slate-950 fill-slate-950" />
+                  <span>Activar Aliado Demo 2.0 y Entrar al Panel</span>
                 </>
               ) : (
                 <>

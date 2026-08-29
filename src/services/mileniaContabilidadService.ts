@@ -31,7 +31,7 @@ export interface MileniaTransaction {
   date: string;
   restaurantId?: string;
   restaurantName?: string;
-  paymentMethod: 'TRANSFERENCIA_BANCARIA' | 'PSE' | 'TARJETA_CREDITO' | 'EFECTIVO' | 'WOMPI';
+  paymentMethod: 'TRANSFERENCIA_BANCARIA' | 'PSE' | 'TARJETA_CREDITO' | 'EFECTIVO' | 'WOMPI' | 'DAVIVIENDA_TRANSFERENCIA' | 'DEMO_CORTESIA';
   referenceNumber?: string;
   notes?: string;
   createdAt: string;
