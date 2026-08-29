@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTasty } from '../../context/TastyContext';
 import { 
   Phone, 
@@ -16,9 +16,12 @@ import {
   ChevronUp,
   Cpu,
   Layers,
-  Check
+  Check,
+  Search,
+  X
 } from 'lucide-react';
 import { useCurrentDomain } from '../../utils/domainHelper';
+import { COLOMBIAN_CITIES } from '../../data/colombianCities';
 
 export const MileniaContactView: React.FC = () => {
   const { domain, getTenantDisplayUrl } = useCurrentDomain();
@@ -27,14 +30,39 @@ export const MileniaContactView: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
     restaurantName: '',
-    city: 'Pasto',
+    city: 'Pasto (Nariño)',
     phone: '',
     email: '',
     tablesCount: '10-20',
-    systemType: 'Suite Integral Milenia (POS + KDS + Reservas + Domicilios)',
+    systemType: 'Sistema Plus (POS + KDS + Comandera Móvil + Domicilios + Reservas + Facturación DIAN)',
     planInterest: 'plan_maximo',
     message: ''
   });
+
+  // Estado y control para el buscador interactivo de ciudades y municipios
+  const [citySearchTerm, setCitySearchTerm] = useState('');
+  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
+  const cityDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(event.target as Node)) {
+        setIsCityDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredCities = useMemo(() => {
+    if (!citySearchTerm.trim()) {
+      return COLOMBIAN_CITIES;
+    }
+    const term = citySearchTerm.toLowerCase();
+    return COLOMBIAN_CITIES.filter(
+      item => item.city.toLowerCase().includes(term) || item.department.toLowerCase().includes(term)
+    );
+  }, [citySearchTerm]);
 
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
@@ -45,6 +73,7 @@ export const MileniaContactView: React.FC = () => {
   ];
 
   const systemOptions = [
+    'Sistema Plus (POS + KDS + Comandera Móvil + Domicilios + Reservas + Facturación DIAN)',
     'Suite Integral Milenia (POS + KDS + Reservas + Domicilios)',
     'POS Táctil + Comandera Móvil para Meseros',
     'KDS Pantalla de Cocina en Tiempo Real',
@@ -59,8 +88,8 @@ export const MileniaContactView: React.FC = () => {
     const planLabel = planObj ? planObj.name : 'Plan Máximo Integral Milenia ($600.000 COP/mes)';
     const restaurant = formData.restaurantName.trim() || 'Mi Restaurante';
     const contactName = formData.name.trim() || 'Aliado Gastronómico';
-    const city = formData.city || 'Pasto';
-    const system = formData.systemType || 'Suite Integral Milenia (POS + KDS + Reservas + Domicilios)';
+    const city = formData.city || 'Pasto (Nariño)';
+    const system = formData.systemType || 'Sistema Plus (POS + KDS + Comandera Móvil + Domicilios + Reservas + Facturación DIAN)';
     const userPhone = formData.phone.trim();
     const email = formData.email.trim();
     const userMessage = formData.message.trim();
@@ -218,24 +247,96 @@ export const MileniaContactView: React.FC = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Ciudad *
+                {/* Buscador y selector de Ciudad / Municipio */}
+                <div className="relative" ref={cityDropdownRef}>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Ciudad o Municipio de Colombia *</span>
+                    </span>
+                    <span className="text-[10px] text-amber-500 font-normal">Filtro en tiempo real</span>
                   </label>
-                  <select
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white"
+                  
+                  {/* Campo de visualización / activación de búsqueda */}
+                  <div
+                    onClick={() => setIsCityDropdownOpen(true)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white flex items-center justify-between cursor-pointer hover:border-amber-500/50 transition shadow-sm"
                   >
-                    <option value="Pasto">Pasto (Nariño)</option>
-                    <option value="Bogotá D.C.">Bogotá D.C.</option>
-                    <option value="Medellín">Medellín</option>
-                    <option value="Cali">Cali</option>
-                    <option value="Cartagena">Cartagena</option>
-                    <option value="Barranquilla">Barranquilla</option>
-                    <option value="Bucaramanga">Bucaramanga</option>
-                    <option value="Otra ciudad">Otra ciudad de Colombia</option>
-                  </select>
+                    <span className="truncate font-medium">{formData.city}</span>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isCityDropdownOpen ? 'rotate-180 text-amber-500' : ''}`} />
+                  </div>
+
+                  {/* Menú desplegable con barra de búsqueda rápida */}
+                  {isCityDropdownOpen && (
+                    <div className="absolute z-50 left-0 right-0 mt-1.5 bg-slate-900 border border-amber-500/40 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                      {/* Input de filtro */}
+                      <div className="p-2.5 border-b border-slate-800 bg-slate-950/80 flex items-center gap-2">
+                        <Search className="w-4 h-4 text-amber-500 shrink-0" />
+                        <input
+                          type="text"
+                          autoFocus
+                          placeholder="Buscar ciudad o municipio (ej. Pasto, Cali, Medellín, Rionegro)..."
+                          value={citySearchTerm}
+                          onChange={(e) => setCitySearchTerm(e.target.value)}
+                          className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none"
+                        />
+                        {citySearchTerm && (
+                          <button
+                            type="button"
+                            onClick={() => setCitySearchTerm('')}
+                            className="p-1 text-slate-400 hover:text-white"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Lista de resultados */}
+                      <div className="max-h-56 overflow-y-auto divide-y divide-slate-800/60 text-xs">
+                        {filteredCities.length > 0 ? (
+                          filteredCities.map((item, idx) => {
+                            const formattedName = `${item.city} (${item.department})`;
+                            const isSelected = formData.city === formattedName;
+                            return (
+                              <button
+                                key={`${item.city}-${item.department}-${idx}`}
+                                type="button"
+                                onClick={() => {
+                                  setFormData({ ...formData, city: formattedName });
+                                  setIsCityDropdownOpen(false);
+                                  setCitySearchTerm('');
+                                }}
+                                className={`w-full px-3.5 py-2.5 text-left flex items-center justify-between transition cursor-pointer hover:bg-amber-500/15 ${
+                                  isSelected ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-300'
+                                }`}
+                              >
+                                <div>
+                                  <span className="font-semibold text-white">{item.city}</span>
+                                  <span className="text-[11px] text-slate-400 ml-1.5 font-normal">&bull; {item.department}</span>
+                                </div>
+                                {isSelected && <Check className="w-4 h-4 text-amber-400 shrink-0" />}
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <div className="p-4 text-center text-slate-400 text-xs space-y-2">
+                            <p>No se encontró ningún municipio con "{citySearchTerm}".</p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData({ ...formData, city: `${citySearchTerm} (Colombia)` });
+                                setIsCityDropdownOpen(false);
+                                setCitySearchTerm('');
+                              }}
+                              className="px-3 py-1.5 bg-amber-500 text-slate-950 font-bold rounded-lg text-[11px]"
+                            >
+                              Usar "{citySearchTerm}"
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
