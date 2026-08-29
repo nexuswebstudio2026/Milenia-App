@@ -143,8 +143,8 @@ export const MileniaHeader: React.FC = () => {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <Phone className="w-3.5 h-3.5" />
-              <span>Contactos</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>Solicitar demostración y/o afiliación</span>
             </button>
 
             <button
@@ -261,8 +261,8 @@ export const MileniaHeader: React.FC = () => {
               mileniaView === 'contactos' ? 'bg-amber-500 text-slate-950' : 'text-slate-700 dark:text-slate-300'
             }`}
           >
-            <span>Contactos</span>
-            <Phone className="w-4 h-4" />
+            <span>Solicitar demostración y/o afiliación</span>
+            <Sparkles className="w-4 h-4" />
           </button>
 
           <button

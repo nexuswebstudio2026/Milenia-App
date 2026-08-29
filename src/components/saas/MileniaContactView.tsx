@@ -65,17 +65,13 @@ export const MileniaContactView: React.FC = () => {
     const email = formData.email.trim();
     const userMessage = formData.message.trim();
 
-    let messageText = `¡Hola Milenia! 👋\n\n` +
-      `Solicito información y demostración para afiliar mi restaurante con el Plan Máximo ($600.000 COP):\n\n` +
-      `👤 *Nombre:* ${contactName}\n` +
-      `🏪 *Restaurante:* ${restaurant}\n` +
-      `📍 *Ciudad:* ${city}\n` +
-      (userPhone ? `📱 *WhatsApp/Celular:* ${userPhone}\n` : '') +
-      (email ? `✉️ *Correo Electrónico:* ${email}\n` : '') +
-      `\n⚙️ *SISTEMA REQUERIDO:*\n👉 ${system}\n\n` +
-      `⭐ *PLAN SELECCIONADO:*\n👉 ${planLabel}\n\n` +
-      (userMessage ? `📝 *Requerimientos / Mensaje:* ${userMessage}\n\n` : '') +
-      `He sido redirigido al módulo de registro y activación de aliados para completar el formulario. ¡Muchas gracias!`;
+    const userPhoneStr = userPhone || 'No especificado';
+    const emailStr = email || 'No especificado';
+    const observationText = userMessage 
+      ? `\n\nDejamos la siguiente observación: ${userMessage}` 
+      : `\n\nDejamos la siguiente observación: Deseamos asesoría y demostración para iniciar el proceso de activación del restaurante.`;
+
+    const messageText = `Hola Milenia, me llamo ${contactName}, soy el dueño o administrador de ${restaurant} ubicado en ${city}. Estamos interesados en el sistema ${system} con el siguiente plan ${planLabel}. Nuestro correo es ${emailStr} y nuestro WhatsApp es ${userPhoneStr}.${observationText}`;
 
     return `https://wa.me/${phone}?text=${encodeURIComponent(messageText)}`;
   };
@@ -139,14 +135,14 @@ export const MileniaContactView: React.FC = () => {
       {/* Top Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-amber-950 text-white rounded-3xl p-6 sm:p-10 border border-amber-500/20 shadow-xl space-y-3">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold">
-          <Phone className="w-3.5 h-3.5" />
-          <span>Atención Comercial & Soporte Colombia</span>
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Atención Comercial & Afiliaciones Colombia</span>
         </div>
         <h1 className="text-2xl sm:text-4xl font-black tracking-tight">
-          Contáctanos & Afilia tu Restaurante
+          Solicitar Demostración y/o Afiliación
         </h1>
         <p className="text-slate-300 text-xs sm:text-base max-w-2xl leading-relaxed">
-          Estamos listos para transformar la experiencia gastronómica y operativa de tu negocio en cualquier ciudad de Colombia.
+          Estamos listos para transformar la experiencia gastronómica y operativa de tu negocio en cualquier ciudad de Colombia con la Suite Milenia.
         </p>
       </div>
 

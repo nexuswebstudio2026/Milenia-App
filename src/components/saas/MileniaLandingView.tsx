@@ -59,8 +59,8 @@ export const MileniaLandingView: React.FC = () => {
             onClick={() => setMileniaView('contactos')}
             className="px-5 py-3 bg-slate-800/90 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-xl border border-slate-700 flex items-center gap-2 transition cursor-pointer"
           >
-            <MessageSquare className="w-4 h-4 text-amber-400" />
-            <span>Contáctanos</span>
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>Solicitar Demostración / Afiliación</span>
           </button>
         </div>
 
