@@ -18,15 +18,19 @@ import {
   Layers,
   Check,
   Search,
-  X
+  X,
+  Loader2,
+  Utensils
 } from 'lucide-react';
 import { useCurrentDomain } from '../../utils/domainHelper';
 import { COLOMBIAN_CITIES } from '../../data/colombianCities';
+import { saveSolicitudAfiliacionToFirestore } from '../../services/solicitudesService';
 
 export const MileniaContactView: React.FC = () => {
   const { domain, getTenantDisplayUrl } = useCurrentDomain();
   const { setMileniaView } = useTasty();
   const [formSent, setFormSent] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     restaurantName: '',
@@ -34,8 +38,8 @@ export const MileniaContactView: React.FC = () => {
     phone: '',
     email: '',
     tablesCount: '10-20',
-    systemType: 'Sistema Plus (POS + KDS + Comandera Móvil + Domicilios + Reservas + Facturación DIAN)',
-    planInterest: 'plan_maximo',
+    systemType: 'Sistema Plus',
+    planInterest: 'Plan Máximo Integral Milenia',
     message: ''
   });
 
@@ -66,30 +70,13 @@ export const MileniaContactView: React.FC = () => {
 
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  const planOptions = [
-    { id: 'plan_maximo', name: 'Plan Máximo Integral Milenia ($600.000 COP/mes)', detail: 'Acceso Total: Mesas ilimitadas + KDS Cocina + POS Táctil + Facturación DIAN + Menú QR + Domicilios' },
-    { id: 'plan_pro', name: 'Plan Pro Gastronómico ($389.000 COP/mes)', detail: 'Hasta 20 mesas + POS + KDS Cocina + Domicilios' },
-    { id: 'plan_basico', name: 'Plan Básico ($199.000 COP/mes)', detail: 'Hasta 12 mesas + Terminal POS' }
-  ];
-
-  const systemOptions = [
-    'Sistema Plus (POS + KDS + Comandera Móvil + Domicilios + Reservas + Facturación DIAN)',
-    'Suite Integral Milenia (POS + KDS + Reservas + Domicilios)',
-    'POS Táctil + Comandera Móvil para Meseros',
-    'KDS Pantalla de Cocina en Tiempo Real',
-    'Menú Digital QR + Domicilios Online',
-    'Sistema de Reservas y Gestión de Salón',
-    'Facturación Electrónica DIAN + Control de Caja e Inventario'
-  ];
-
   const generateWhatsAppUrl = () => {
     const phone = '573043470984';
-    const planObj = planOptions.find(p => p.id === formData.planInterest);
-    const planLabel = planObj ? planObj.name : 'Plan Máximo Integral Milenia ($600.000 COP/mes)';
+    const planLabel = 'Plan Máximo Integral Milenia';
     const restaurant = formData.restaurantName.trim() || 'Mi Restaurante';
     const contactName = formData.name.trim() || 'Aliado Gastronómico';
     const city = formData.city || 'Pasto (Nariño)';
-    const system = formData.systemType || 'Sistema Plus (POS + KDS + Comandera Móvil + Domicilios + Reservas + Facturación DIAN)';
+    const system = 'Sistema Plus';
     const userPhone = formData.phone.trim();
     const email = formData.email.trim();
     const userMessage = formData.message.trim();
@@ -98,25 +85,62 @@ export const MileniaContactView: React.FC = () => {
     const emailStr = email || 'No especificado';
     const observationText = userMessage 
       ? `\n\nDejamos la siguiente observación: ${userMessage}` 
-      : `\n\nDejamos la siguiente observación: Deseamos asesoría y demostración para iniciar el proceso de activación del restaurante.`;
+      : `\n\nDejamos la siguiente observación: Deseamos demostración, asesoría y activación de nuestro restaurante.`;
 
     const messageText = `Hola Milenia, me llamo ${contactName}, soy el dueño o administrador de ${restaurant} ubicado en ${city}. Estamos interesados en el sistema ${system} con el siguiente plan ${planLabel}. Nuestro correo es ${emailStr} y nuestro WhatsApp es ${userPhoneStr}.${observationText}`;
 
     return `https://wa.me/${phone}?text=${encodeURIComponent(messageText)}`;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
+
+    // 1. Guardar en la tabla 'solicitudes_afiliacion' en Firebase Firestore
+    try {
+      await saveSolicitudAfiliacionToFirestore({
+        name: formData.name,
+        restaurantName: formData.restaurantName,
+        city: formData.city,
+        phone: formData.phone,
+        email: formData.email,
+        tablesCount: formData.tablesCount,
+        systemType: 'Sistema Plus',
+        planInterest: 'Plan Máximo Integral Milenia ($600.000 COP/mes)',
+        message: formData.message,
+        source: 'web_formulario_afiliacion'
+      });
+    } catch (err) {
+      console.error('Error guardando solicitud de demostración en Firestore:', err);
+    }
+
+    // 2. Guardar en sessionStorage para que la IA auto-diligencie el formulario de Registrar Aliado
+    const leadData = {
+      name: formData.name,
+      restaurantName: formData.restaurantName,
+      city: formData.city,
+      phone: formData.phone,
+      email: formData.email,
+      tablesCount: formData.tablesCount,
+      systemType: 'Sistema Plus',
+      planInterest: 'Plan Máximo Integral Milenia',
+      message: formData.message,
+      createdAt: new Date().toISOString()
+    };
+    sessionStorage.setItem('milenia_auto_fill_lead', JSON.stringify(leadData));
+    sessionStorage.setItem('milenia_auto_tab', 'register_ally');
+
     setFormSent(true);
-    // 1. Enviar automáticamente a WhatsApp de Milenia con todos los datos diligenciados
+    setIsSaving(false);
+
+    // 3. Abrir WhatsApp de Milenia con el mensaje personalizado
     const waUrl = generateWhatsAppUrl();
     window.open(waUrl, '_blank', 'noopener,noreferrer');
 
-    // 2. Redirigir automáticamente a la opción de Ingreso de Aliados -> Registrar Aliado
-    sessionStorage.setItem('milenia_auto_tab', 'register_ally');
+    // 4. Redirigir de inmediato a la opción Registrar Aliado
     setTimeout(() => {
       setMileniaView('login');
-    }, 400);
+    }, 450);
   };
 
   const faqs = [
@@ -353,46 +377,46 @@ export const MileniaContactView: React.FC = () => {
                   />
                 </div>
 
-                {/* Selector de Sistema que Necesita */}
+                {/* Sistema que Necesita - Exclusivamente Sistema Plus */}
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
-                    <Cpu className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Sistema que Necesitas *</span>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Cpu className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Sistema que Necesitas *</span>
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wide">Exclusivo Suite Completa</span>
                   </label>
-                  <select
-                    value={formData.systemType}
-                    onChange={(e) => setFormData({ ...formData, systemType: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-amber-500/40 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white font-medium focus:ring-1 focus:ring-amber-500"
-                  >
-                    {systemOptions.map((opt, i) => (
-                      <option key={i} value={opt}>{opt}</option>
-                    ))}
-                  </select>
+                  <div className="w-full px-3.5 py-2.5 bg-amber-500/10 border border-amber-500/40 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white font-bold flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>Sistema Plus</span>
+                    </div>
+                    <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">POS + KDS + Comandera + Facturación DIAN</span>
+                  </div>
                 </div>
 
-                {/* Selector de Plan que Necesita */}
+                {/* Plan que Necesita - Exclusivamente Plan Máximo Integral Milenia */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Plan que Necesitas *</span>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Plan que Necesitas *</span>
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wide">Tarifa Oficial</span>
                   </label>
-                  <select
-                    value={formData.planInterest}
-                    onChange={(e) => setFormData({ ...formData, planInterest: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-amber-500/40 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white font-medium focus:ring-1 focus:ring-amber-500"
-                  >
-                    {planOptions.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
+                  <div className="w-full px-3.5 py-2.5 bg-amber-500/10 border border-amber-500/40 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white font-bold flex items-center justify-between">
+                    <span className="truncate">Plan Máximo Integral Milenia</span>
+                    <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 shrink-0 ml-1.5">$600.000 /mes</span>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Correo Electrónico
+                    Correo Electrónico *
                   </label>
                   <input
                     type="email"
+                    required
                     placeholder="nexuswebstudio2026@gmail.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -403,11 +427,11 @@ export const MileniaContactView: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Mensaje o Requerimientos Particulares
+                  Mensaje u Observaciones Particulares
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Cuéntanos sobre tu menú, cantidad de sedes o necesidades de facturación..."
+                  placeholder="Cuéntanos sobre tu restaurante, requerimientos especiales o dudas..."
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white"
@@ -417,11 +441,24 @@ export const MileniaContactView: React.FC = () => {
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-900/30 transition cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
+                  disabled={isSaving}
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-900/30 transition cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50"
                 >
-                  <span className="text-base">💬</span>
-                  <span>Enviar por WhatsApp (+57 304-347-0984)</span>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Guardando en Base de Datos y Abriendo WhatsApp...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-base">💬</span>
+                      <span>Enviar por WhatsApp (+57 304-347-0984) & Registrar Aliado</span>
+                    </>
+                  )}
                 </button>
+                <p className="text-[11px] text-center text-slate-500 dark:text-slate-400 mt-2">
+                  La solicitud se guarda en Firebase Firestore y se transmiten los datos con Inteligencia Artificial a la opción Registrar Aliado.
+                </p>
               </div>
             </form>
           )}

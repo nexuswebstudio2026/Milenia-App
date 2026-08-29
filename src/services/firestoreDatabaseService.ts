@@ -21,6 +21,27 @@ export interface FirestoreTableMeta {
 
 export const FIRESTORE_TABLES: FirestoreTableMeta[] = [
   {
+    id: 'solicitudes_afiliacion',
+    name: 'Solicitudes de Afiliación & Demo',
+    description: 'Registros de contactos, restaurantes interesados, demos solicitadas y prospectos',
+    category: 'saas',
+    icon: 'Sparkles',
+    defaultTemplate: {
+      name: 'Carlos Mendoza',
+      restaurantName: 'Asador Campestre San Juan',
+      city: 'Pasto (Nariño)',
+      phone: '+57 304 347 0984',
+      email: 'carlos@asadorcampestre.com',
+      tablesCount: '10-20',
+      systemType: 'Sistema Plus',
+      planInterest: 'Plan Máximo Integral Milenia ($600.000 COP/mes)',
+      message: 'Solicitud de demostración y activación para restaurante campestre',
+      status: 'pendiente_registro',
+      source: 'web_formulario_afiliacion',
+      createdAt: new Date().toISOString()
+    }
+  },
+  {
     id: 'aliados',
     name: 'Aliados Gastronómicos',
     description: 'Restaurantes y comercios registrados en la plataforma SaaS Milenia',

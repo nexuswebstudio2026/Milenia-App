@@ -197,9 +197,34 @@
         "updatedBy": { "type": "string", "maxLength": 100 }
       },
       "required": ["id", "ingresos", "gastos", "balanceNeto"]
+    },
+    "SolicitudAfiliacion": {
+      "title": "SolicitudAfiliacion",
+      "description": "Registro de solicitud de demostración o afiliación de restaurante en Milenia",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 150 },
+        "restaurantName": { "type": "string", "maxLength": 150 },
+        "city": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "maxLength": 150 },
+        "tablesCount": { "type": "string", "maxLength": 50 },
+        "systemType": { "type": "string", "maxLength": 150 },
+        "planInterest": { "type": "string", "maxLength": 150 },
+        "message": { "type": "string", "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["pendiente_registro", "registrado", "contactado", "completado"] },
+        "source": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "restaurantName", "city", "phone", "createdAt"]
     }
   },
   "firestore": {
+    "/solicitudes_afiliacion/{solicitudId}": {
+      "schema": "SolicitudAfiliacion",
+      "description": "Tabla y colección de solicitudes de demostración y afiliación de restaurantes"
+    },
     "/resumen_financiero/{id}": {
       "schema": "FinancialSummary",
       "description": "Tabla y documento de resumen financiero consolidado con ingresos, gastos y balance neto"

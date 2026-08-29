@@ -142,6 +142,15 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // 13. Solicitudes de Demostración y Afiliación Milenia
+    match /solicitudes_afiliacion/{solicitudId} {
+      allow read, write: if true;
+    }
+
+    match /solicitudes_afiliacion/{solicitudId}/{document=**} {
+      allow read, write: if true;
+    }
+
     match /tenants/{tenantId} {
       allow read, write: if true;
     }

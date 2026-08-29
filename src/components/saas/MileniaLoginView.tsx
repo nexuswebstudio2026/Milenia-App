@@ -127,7 +127,16 @@ export const MileniaLoginView: React.FC = () => {
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [zoomedQrUrl, setZoomedQrUrl] = useState<string | null>(null);
 
-  // Cargar Perfil de Negocio y QRs de Firestore
+  // Estado para auto-diligenciamiento con IA desde formulario de contacto/demostración
+  const [autoFilledLeadInfo, setAutoFilledLeadInfo] = useState<{
+    restaurantName: string;
+    name: string;
+    city: string;
+    phone: string;
+    email: string;
+  } | null>(null);
+
+  // Cargar Perfil de Negocio y QRs de Firestore, y auto-diligenciar con IA si viene de Demostración/Afiliación
   React.useEffect(() => {
     let unsubscribe = () => {};
     const initProfile = async () => {
@@ -148,6 +157,46 @@ export const MileniaLoginView: React.FC = () => {
     };
 
     initProfile();
+
+    // Auto-diligenciamiento inteligente con IA desde solicitud de demostración
+    try {
+      const rawLead = sessionStorage.getItem('milenia_auto_fill_lead');
+      if (rawLead) {
+        const lead = JSON.parse(rawLead);
+        if (lead && lead.restaurantName) {
+          setAllyName(lead.restaurantName);
+          setAllyLegalName(lead.restaurantName.includes('S.A.S') ? lead.restaurantName : `${lead.restaurantName} S.A.S.`);
+          if (lead.city) setAllyCity(lead.city);
+          if (lead.phone) {
+            setAllyPhone(lead.phone);
+            setAllyOwnerPhone(lead.phone);
+          }
+          if (lead.email) {
+            setAllyEmail(lead.email);
+            setAllyOwnerEmail(lead.email);
+          }
+          if (lead.name) {
+            setAllyOwnerName(lead.name);
+          }
+          if (lead.tablesCount) {
+            const parsedNum = parseInt(lead.tablesCount);
+            if (!isNaN(parsedNum)) {
+              setAllyTablesCount(parsedNum);
+            }
+          }
+          setAutoFilledLeadInfo({
+            restaurantName: lead.restaurantName,
+            name: lead.name,
+            city: lead.city,
+            phone: lead.phone,
+            email: lead.email
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Error procesando auto-diligenciamiento con IA:', err);
+    }
+
     return () => unsubscribe();
   }, []);
 
@@ -1002,6 +1051,44 @@ export const MileniaLoginView: React.FC = () => {
                 Completa los datos comerciales, sube tu Registro Único Tributario (RUT) y define tus credenciales de acceso.
               </p>
             </div>
+
+            {/* Banner de Inteligencia Artificial - Auto-diligenciamiento desde Solicitud */}
+            {autoFilledLeadInfo && (
+              <div className="p-4 bg-gradient-to-r from-amber-500/15 via-slate-900 to-amber-500/10 border border-amber-500/40 rounded-2xl flex items-start justify-between gap-3 shadow-lg animate-fade-in">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0 mt-0.5 shadow-md shadow-amber-500/20">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-black uppercase tracking-wider text-amber-400">
+                        Inteligencia Artificial Milenia &bull; Datos Auto-diligenciados
+                      </span>
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                        ✨ Coincidencia Detectada
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-200">
+                      Se han completado automáticamente los datos de <strong className="text-amber-300">{autoFilledLeadInfo.restaurantName}</strong> ({autoFilledLeadInfo.city}) y titular <strong className="text-white">{autoFilledLeadInfo.name}</strong> a partir de tu solicitud.
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Por favor revisa la información y completa los campos restantes (RUT, Cédula y Contraseña) para continuar.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAutoFilledLeadInfo(null);
+                    sessionStorage.removeItem('milenia_auto_fill_lead');
+                  }}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
+                  title="Cerrar notificación"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
 
             {/* Sección 1: Datos del Establecimiento */}
             <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
