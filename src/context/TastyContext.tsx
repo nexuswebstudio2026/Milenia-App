@@ -53,7 +53,8 @@ import {
   getAliadosFromFirestore, 
   subscribeToAliados, 
   saveAliadoToFirestore, 
-  seedAliadosInFirestore 
+  seedAliadosInFirestore,
+  repairAndResequenceFirestoreAliados
 } from '../services/aliadosService';
 import { seedAllAllyUsersInFirestore } from '../services/tenantUsersService';
 import { useTenantRoute, ParsedTenantRoute, AppRouteType } from '../hooks/useTenantRoute';
@@ -282,6 +283,11 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setTenants(loadedAliados);
         unsubscribe = subscribeToAliados((realtimeAliados) => {
           setTenants(realtimeAliados);
+        });
+
+        // Depurar y re-indexar en segundo plano para limpiar duplicados en Firestore
+        repairAndResequenceFirestoreAliados().catch((err) => {
+          console.warn('Initial cleanup background notice:', err);
         });
       } catch (err) {
         console.warn('Could not sync /aliados with Firestore:', err);

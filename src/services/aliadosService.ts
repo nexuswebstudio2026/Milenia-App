@@ -132,8 +132,8 @@ export async function getAliadosFromFirestore(): Promise<TenantRestaurant[]> {
 }
 
 /**
- * Corrige y re-indexa la colección '/aliados' en Firestore para que todos los aliados
- * tengan números consecutivos reales (1, 2, 3...) sin identificadores residuales o timestamps.
+ * Corrige, deduplica y re-indexa la colección '/aliados' en Firestore para que todos los aliados
+ * tengan números consecutivos reales (1, 2, 3...) sin duplicados ni identificadores residuales.
  */
 export async function repairAndResequenceFirestoreAliados(): Promise<{ updatedCount: number; message: string }> {
   try {
@@ -145,43 +145,52 @@ export async function repairAndResequenceFirestoreAliados(): Promise<{ updatedCo
     }
 
     const docs = snap.docs.map(d => ({ docId: d.id, data: d.data() }));
-    
-    // Si solo hay 1 aliado registrado, forzarlo a ser el Aliado #001
-    if (docs.length === 1) {
-      const single = docs[0];
-      const fixedData = {
-        ...single.data,
-        id: '1',
-        allyNumber: '#001',
-        updatedAt: new Date().toISOString()
-      };
-      
-      // Guardar en doc '1'
-      await setDoc(doc(db, COLLECTION_NAME, '1'), fixedData, { merge: true });
-      
-      // Si el id del doc original no era '1' (ej: '1788' o 'aliado-1788...'), eliminar el documento antiguo
-      if (single.docId !== '1') {
-        try {
-          await deleteDoc(doc(db, COLLECTION_NAME, single.docId));
-        } catch (_) {}
-      }
-      
-      return { updatedCount: 1, message: 'Se corrigió el aliado a Aliado #001 en la base de datos Firestore exitosamente.' };
-    }
 
-    // Si hay múltiples aliados, ordenarlos cronológicamente y asignar consecutivos 1, 2, 3...
+    // Ordenar cronológicamente
     docs.sort((a, b) => {
       const timeA = new Date(a.data.createdAt || 0).getTime();
       const timeB = new Date(b.data.createdAt || 0).getTime();
       return timeA - timeB;
     });
 
+    // Deduplicar: Si hay dos documentos con el mismo nombre normalizado o mismo NIT, conservar el mejor y borrar el duplicado
+    const seenNames = new Set<string>();
+    const seenNits = new Set<string>();
+    const uniqueDocs: typeof docs = [];
+    const duplicateDocIdsToDelete: string[] = [];
+
+    for (const item of docs) {
+      const nameKey = String(item.data.name || '').trim().toLowerCase();
+      const nitKey = String(item.data.nit || item.data.branding?.nit || '').trim();
+
+      const isDup = (nameKey && seenNames.has(nameKey)) || (nitKey && nitKey !== '901.000.000-1' && seenNits.has(nitKey));
+      if (isDup) {
+        duplicateDocIdsToDelete.push(item.docId);
+        continue;
+      }
+
+      if (nameKey) seenNames.add(nameKey);
+      if (nitKey && nitKey !== '901.000.000-1') seenNits.add(nitKey);
+      uniqueDocs.push(item);
+    }
+
+    // Eliminar documentos duplicados identificados en Firestore
+    for (const dupId of duplicateDocIdsToDelete) {
+      try {
+        await deleteDoc(doc(db, COLLECTION_NAME, dupId));
+      } catch (_) {}
+    }
+
+    // Re-indexar los documentos únicos restantes con consecutivos 1, 2, 3...
     let count = 0;
-    for (let i = 0; i < docs.length; i++) {
-      const item = docs[i];
+    const activeTargetIds = new Set<string>();
+
+    for (let i = 0; i < uniqueDocs.length; i++) {
+      const item = uniqueDocs[i];
       const sequentialNum = i + 1;
       const formattedNum = formatAllyNumber(sequentialNum);
       const targetId = String(sequentialNum);
+      activeTargetIds.add(targetId);
 
       const fixedPayload = {
         ...item.data,
@@ -192,7 +201,8 @@ export async function repairAndResequenceFirestoreAliados(): Promise<{ updatedCo
 
       await setDoc(doc(db, COLLECTION_NAME, targetId), fixedPayload, { merge: true });
       
-      if (item.docId !== targetId) {
+      // Si el id original era diferente al nuevo targetId (ej: 'aliado-1788...' o docId anterior), borrar el anterior
+      if (item.docId !== targetId && !activeTargetIds.has(item.docId)) {
         try {
           await deleteDoc(doc(db, COLLECTION_NAME, item.docId));
         } catch (_) {}
@@ -200,7 +210,19 @@ export async function repairAndResequenceFirestoreAliados(): Promise<{ updatedCo
       count++;
     }
 
-    return { updatedCount: count, message: `Se re-indexaron exitosamente ${count} aliados con consecutivos estrictos (1, 2, 3...).` };
+    // Limpieza final de cualquier documento residual que no pertenezca a los targetIds activos
+    for (const item of uniqueDocs) {
+      if (!activeTargetIds.has(item.docId)) {
+        try {
+          await deleteDoc(doc(db, COLLECTION_NAME, item.docId));
+        } catch (_) {}
+      }
+    }
+
+    return { 
+      updatedCount: count, 
+      message: `Se depuraron duplicados y se re-indexaron exitosamente ${count} aliados con consecutivos estrictos (1, 2, 3...).` 
+    };
   } catch (err: any) {
     console.error('Error durante la reparación de consecutivos en Firestore:', err);
     throw new Error(`Fallo al corregir consecutivos en base de datos: ${err.message || err}`);

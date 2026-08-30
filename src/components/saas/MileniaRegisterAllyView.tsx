@@ -40,19 +40,20 @@ import {
   getBusinessProfile, 
   subscribeToBusinessProfile 
 } from '../../services/mileniaBusinessService';
-import { addAliado } from '../../services/mileniaAliadosService';
 import { addTransaction } from '../../services/mileniaContabilidadService';
 import { getFinancialSummary, saveFinancialSummary } from '../../services/mileniaFinancialSummaryService';
 import { calculateNextAllySequence, formatAllyNumber, extractAllyNumber } from '../../utils/allySequence';
+import { repairAndResequenceFirestoreAliados } from '../../services/aliadosService';
 import { TenantRestaurant, TenantEmployee } from '../../types';
 
 export const MileniaRegisterAllyView: React.FC = () => {
   const { tenants, addTenant, addEmployee, navigateTo, setMode: setAppMode, setTenantView } = useTasty();
   const { userProfile } = useAuth();
 
-  // Estados de carga y error
+  // Estados de carga y prevención de doble registro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isSubmittingRef = useRef(false);
   const [successInfo, setSuccessInfo] = useState<{ name: string; redirectUrl: string; message: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -265,6 +266,10 @@ export const MileniaRegisterAllyView: React.FC = () => {
 
   // Finalizar registro del aliado con comprobante de pago o activación Demo 2.0
   const handleCompleteAllyRegistration = async () => {
+    if (isSubmittingRef.current || loading) {
+      return;
+    }
+    isSubmittingRef.current = true;
     setError(null);
     setLoading(true);
 
@@ -300,7 +305,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
         console.warn('Usuario ya registrado o auth offline, continuando registro en base de datos:', authErr);
       }
 
-      // 3. Crear el restaurante Tenant en memoria y persistencia Firestore
+      // 3. Crear el restaurante Tenant único en memoria y persistencia Firestore (/aliados)
       const newTenant: TenantRestaurant = {
         id: newRestId,
         allyNumber: newAllyNumber,
@@ -352,7 +357,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
         createdAt: new Date().toISOString()
       };
 
-      // Guardar en contexto y Firestore (/aliados)
+      // Guardar de forma única en contexto y Firestore (/aliados)
       addTenant(newTenant);
 
       // 4. Crear el empleado Propietario/Gerente
@@ -373,22 +378,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
 
       addEmployee(ownerEmp);
 
-      // 5. Registrar Aliado en la colección general de aliados Firestore (/milenia_aliados)
-      await addAliado({
-        name: allyName.trim(),
-        nit: allyRut.trim() || '901.000.000-1',
-        city: allyCity.trim() || 'Pasto (Nariño)',
-        address: allyAddress.trim() || 'Calle Principal #10-20',
-        phone: allyPhone.trim() || allyOwnerPhone.trim(),
-        email: allyEmail.trim() || allyOwnerEmail.trim(),
-        plan: 'Enterprise',
-        status: 'Activo',
-        monthlyFeeCop: finalAmount,
-        tablesCount: allyTablesCount || 12,
-        contactName: allyOwnerName.trim()
-      });
-
-      // 6. Registrar transacción de ingreso o cortesía demo en la contabilidad
+      // 5. Registrar transacción contable de activación
       await addTransaction({
         type: 'INGRESO',
         category: 'SUSCRIPCION_SAAS',
@@ -406,7 +396,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
           : `Pago Oficial Davivienda. Comprobante: ${paymentVoucherFile?.name}. Titular: ${allyOwnerDocumentId}`
       });
 
-      // 7. Actualizar resumen financiero si hubo ingreso real
+      // 6. Actualizar resumen financiero si hubo ingreso real
       if (!isDemoAffiliation) {
         const curFin = await getFinancialSummary();
         const newIngresos = (curFin?.ingresos || 0) + 600000;
@@ -419,6 +409,11 @@ export const MileniaRegisterAllyView: React.FC = () => {
           notas: `Activación de aliado #${newRestId} (${allyName.trim()}).`
         });
       }
+
+      // 7. Re-indexar y limpiar de forma preventiva en Firestore en segundo plano
+      repairAndResequenceFirestoreAliados().catch(err => {
+        console.warn('Resequence background notice:', err);
+      });
 
       // Limpiar auto-fill de sesión
       sessionStorage.removeItem('milenia_auto_fill_lead');
@@ -447,6 +442,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
     } catch (err: any) {
       console.error('Error registrando aliado:', err);
       setError(err?.message || 'Ocurrió un error al registrar el restaurante aliado.');
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };
