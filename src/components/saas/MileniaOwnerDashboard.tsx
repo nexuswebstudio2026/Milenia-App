@@ -130,15 +130,17 @@ export const MileniaOwnerDashboard: React.FC = () => {
 
   // Aliado Form State
   const [allyFormData, setAllyFormData] = useState({
+    id: '',
+    allyNumber: '',
     name: '',
     nit: '',
     city: 'Bogotá D.C.',
     address: '',
     phone: '',
     email: '',
-    plan: 'Pro' as AllyPlan,
+    plan: 'Plan Máximo Integral Milenia' as AllyPlan,
     status: 'Activo' as AllyStatus,
-    monthlyFeeCop: 289000,
+    monthlyFeeCop: 600000,
     tablesCount: 16,
     contactName: ''
   });
@@ -300,8 +302,11 @@ export const MileniaOwnerDashboard: React.FC = () => {
       a.name.toLowerCase().includes(searchAliado.toLowerCase()) ||
       a.nit.toLowerCase().includes(searchAliado.toLowerCase()) ||
       a.city.toLowerCase().includes(searchAliado.toLowerCase()) ||
+      (a.phone && a.phone.toLowerCase().includes(searchAliado.toLowerCase())) ||
+      (a.allyNumber && a.allyNumber.toLowerCase().includes(searchAliado.toLowerCase())) ||
+      (a.id && a.id.toLowerCase().includes(searchAliado.toLowerCase())) ||
       (a.contactName && a.contactName.toLowerCase().includes(searchAliado.toLowerCase()));
-    const matchesPlan = filterPlan === 'all' || a.plan === filterPlan;
+    const matchesPlan = filterPlan === 'all' || a.plan === filterPlan || (filterPlan === 'Plan Máximo Integral Milenia');
     const matchesStatus = filterStatus === 'all' || a.status === filterStatus;
     return matchesSearch && matchesPlan && matchesStatus;
   });
@@ -321,16 +326,19 @@ export const MileniaOwnerDashboard: React.FC = () => {
   // ==========================================
   const handleOpenCreateAlly = () => {
     setEditingAlly(null);
+    const nextNum = `#${String(aliados.length + 1).padStart(3, '0')}`;
     setAllyFormData({
+      id: `aliado-${Date.now()}`,
+      allyNumber: nextNum,
       name: '',
       nit: '',
       city: 'Bogotá D.C.',
       address: '',
-      phone: '+57 300 000 0000',
+      phone: '+57 304 347 0984',
       email: '',
-      plan: 'Pro',
+      plan: 'Plan Máximo Integral Milenia',
       status: 'Activo',
-      monthlyFeeCop: 289000,
+      monthlyFeeCop: 600000,
       tablesCount: 16,
       contactName: ''
     });
@@ -339,17 +347,20 @@ export const MileniaOwnerDashboard: React.FC = () => {
 
   const handleOpenEditAlly = (ally: MileniaAlly) => {
     setEditingAlly(ally);
+    const allyNum = ally.allyNumber || (ally.id.startsWith('aliado-') ? `#${ally.id.replace('aliado-', '').padStart(3, '0')}` : ally.id);
     setAllyFormData({
+      id: ally.id,
+      allyNumber: allyNum,
       name: ally.name,
       nit: ally.nit,
       city: ally.city,
       address: ally.address || '',
       phone: ally.phone || '',
       email: ally.email || '',
-      plan: ally.plan,
+      plan: (ally.plan as any) || 'Plan Máximo Integral Milenia',
       status: ally.status,
-      monthlyFeeCop: ally.monthlyFeeCop,
-      tablesCount: ally.tablesCount || 10,
+      monthlyFeeCop: ally.monthlyFeeCop || 600000,
+      tablesCount: ally.tablesCount || 16,
       contactName: ally.contactName || ''
     });
     setIsAllyModalOpen(true);
@@ -362,25 +373,28 @@ export const MileniaOwnerDashboard: React.FC = () => {
       return;
     }
 
-    // Auto calculate fee by plan if default
-    let fee = allyFormData.monthlyFeeCop;
-    if (allyFormData.plan === 'Básico' && fee === 289000) fee = 149000;
-    if (allyFormData.plan === 'Enterprise' && fee === 289000) fee = 499000;
+    const fee = Number(allyFormData.monthlyFeeCop) || 600000;
+    const cleanNumber = allyFormData.allyNumber.trim() || (editingAlly?.allyNumber || `#${String(aliados.length + 1).padStart(3, '0')}`);
 
     if (editingAlly) {
       // Update
       await updateAliado(editingAlly.id, {
         ...allyFormData,
-        monthlyFeeCop: fee
+        allyNumber: cleanNumber,
+        monthlyFeeCop: fee,
+        plan: allyFormData.plan || 'Plan Máximo Integral Milenia'
       });
-      showToast('Aliado Actualizado', `Se guardaron los cambios para ${allyFormData.name}.`, 'success');
+      showToast('Aliado Actualizado', `Se guardaron los datos y número del aliado (${cleanNumber}) para ${allyFormData.name}.`, 'success');
     } else {
       // Create
       await addAliado({
         ...allyFormData,
-        monthlyFeeCop: fee
+        id: allyFormData.id.trim() || `aliado-${Date.now()}`,
+        allyNumber: cleanNumber,
+        monthlyFeeCop: fee,
+        plan: 'Plan Máximo Integral Milenia'
       });
-      showToast('Aliado Registrado', `Restaurante ${allyFormData.name} añadido a Firestore.`, 'success');
+      showToast('Aliado Registrado', `Restaurante ${allyFormData.name} (${cleanNumber}) añadido exitosamente a Firestore.`, 'success');
     }
 
     setIsAllyModalOpen(false);
@@ -1247,9 +1261,7 @@ export const MileniaOwnerDashboard: React.FC = () => {
                   className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500"
                 >
                   <option value="all">Todos los Planes</option>
-                  <option value="Básico">Plan Básico ($149k)</option>
-                  <option value="Pro">Plan Pro ($289k)</option>
-                  <option value="Enterprise">Plan Enterprise ($499k)</option>
+                  <option value="Plan Máximo Integral Milenia">Plan Máximo Integral Milenia ($600k)</option>
                 </select>
 
                 <select
@@ -1274,7 +1286,8 @@ export const MileniaOwnerDashboard: React.FC = () => {
                 <table className="w-full text-left text-xs text-slate-300">
                   <thead className="bg-slate-950 text-slate-400 font-mono text-[11px] uppercase tracking-wider border-b border-slate-800">
                     <tr>
-                      <th className="py-3.5 px-5">Restaurante / Nombre</th>
+                      <th className="py-3.5 px-3 text-center">N° Aliado</th>
+                      <th className="py-3.5 px-4">Restaurante / Nombre</th>
                       <th className="py-3.5 px-4">NIT</th>
                       <th className="py-3.5 px-4">Ciudad</th>
                       <th className="py-3.5 px-4">Plan</th>
@@ -1286,7 +1299,7 @@ export const MileniaOwnerDashboard: React.FC = () => {
                   <tbody className="divide-y divide-slate-800/60 font-sans">
                     {filteredAliados.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                        <td colSpan={8} className="py-12 text-center text-slate-400 text-xs">
                           <div className="max-w-md mx-auto space-y-3">
                             <Building2 className="w-8 h-8 text-slate-600 mx-auto" />
                             <p className="font-bold text-slate-200">
@@ -1312,15 +1325,26 @@ export const MileniaOwnerDashboard: React.FC = () => {
                         </td>
                       </tr>
                     ) : (
-                      filteredAliados.map(ally => (
+                      filteredAliados.map(ally => {
+                        const displayAllyNum = ally.allyNumber || (ally.id.startsWith('aliado-') ? `#${ally.id.replace('aliado-', '').padStart(3, '0')}` : ally.id);
+                        return (
                         <tr key={ally.id} className="hover:bg-slate-800/40 transition">
                           
+                          {/* N° Aliado */}
+                          <td className="py-4 px-3 text-center">
+                            <span className="px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono font-bold text-[11px]">
+                              {displayAllyNum}
+                            </span>
+                          </td>
+
                           {/* Nombre */}
-                          <td className="py-4 px-5">
-                            <div className="font-bold text-white text-sm">{ally.name}</div>
+                          <td className="py-4 px-4">
+                            <div className="font-bold text-white text-sm flex items-center gap-2">
+                              <span>{ally.name}</span>
+                            </div>
                             <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5 font-mono">
                               <span>{ally.contactName || 'Sin contacto'}</span>
-                              {ally.phone && <span>&bull; {ally.phone}</span>}
+                              {ally.phone && <span className="text-emerald-400 font-bold">&bull; {ally.phone}</span>}
                             </div>
                           </td>
 
@@ -1336,20 +1360,14 @@ export const MileniaOwnerDashboard: React.FC = () => {
 
                           {/* Plan */}
                           <td className="py-4 px-4">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase border ${
-                              ally.plan === 'Enterprise'
-                                ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
-                                : ally.plan === 'Pro'
-                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                                : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-                            }`}>
-                              {ally.plan}
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase border bg-amber-500/20 text-amber-300 border-amber-500/30">
+                              Plan Máximo Integral
                             </span>
                           </td>
 
                           {/* Tarifa */}
                           <td className="py-4 px-4 font-mono font-bold text-amber-400">
-                            {formatCop(ally.monthlyFeeCop)}
+                            {formatCop(ally.monthlyFeeCop || 600000)}
                           </td>
 
                           {/* Estado */}
@@ -1402,7 +1420,8 @@ export const MileniaOwnerDashboard: React.FC = () => {
                           </td>
 
                         </tr>
-                      ))
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -1914,6 +1933,42 @@ export const MileniaOwnerDashboard: React.FC = () => {
 
             <form onSubmit={handleSaveAlly} className="space-y-3.5 text-xs">
               
+              {/* NÚMERO DE ALIADO & TELÉFONO */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1 flex items-center justify-between">
+                    <span>Número del Aliado *</span>
+                    <span className="text-[10px] text-amber-400 font-mono font-bold">Código Único</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. #001 o AL-01"
+                    value={allyFormData.allyNumber}
+                    onChange={(e) => setAllyFormData({ ...allyFormData, allyNumber: e.target.value })}
+                    className="w-full bg-slate-950 border border-amber-500/40 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-500 shadow-inner"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-0.5 font-mono">Identificador oficial del restaurante</p>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1 flex items-center justify-between">
+                    <span>Teléfono / Celular / WA *</span>
+                    <span className="text-[10px] text-emerald-400 font-mono font-bold">Contacto Directo</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="+57 304 347 0984"
+                    value={allyFormData.phone}
+                    onChange={(e) => setAllyFormData({ ...allyFormData, phone: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-0.5">Llamadas y soporte WhatsApp</p>
+                </div>
+              </div>
+
+              {/* NOMBRE COMERCIAL */}
               <div>
                 <label className="block text-slate-400 font-medium mb-1">Nombre Comercial del Restaurante *</label>
                 <input
@@ -1926,6 +1981,7 @@ export const MileniaOwnerDashboard: React.FC = () => {
                 />
               </div>
 
+              {/* NIT & CIUDAD */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-400 font-medium mb-1">NIT / Identificación Fiscal *</label>
@@ -1952,22 +2008,99 @@ export const MileniaOwnerDashboard: React.FC = () => {
                 </div>
               </div>
 
+              {/* DIRECCIÓN & EMAIL */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 font-medium mb-1">Plan Suscripción *</label>
+                  <label className="block text-slate-400 font-medium mb-1">Dirección del Local</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Calle 93 # 12-45"
+                    value={allyFormData.address}
+                    onChange={(e) => setAllyFormData({ ...allyFormData, address: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1">Correo Electrónico</label>
+                  <input
+                    type="email"
+                    placeholder="gerencia@restaurante.com"
+                    value={allyFormData.email}
+                    onChange={(e) => setAllyFormData({ ...allyFormData, email: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              {/* PLAN SUSCRIPCIÓN & TARIFA MENSUAL */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1 flex items-center justify-between">
+                    <span>Plan Suscripción *</span>
+                    <span className="text-[10px] font-bold text-amber-400 uppercase">Plan Único Oficial</span>
+                  </label>
                   <select
                     value={allyFormData.plan}
                     onChange={(e) => {
-                      const newPlan = e.target.value as AllyPlan;
-                      const fee = newPlan === 'Básico' ? 149000 : newPlan === 'Pro' ? 289000 : 499000;
-                      setAllyFormData({ ...allyFormData, plan: newPlan, monthlyFeeCop: fee });
+                      setAllyFormData({ 
+                        ...allyFormData, 
+                        plan: e.target.value as AllyPlan,
+                        monthlyFeeCop: 600000 
+                      });
                     }}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                    className="w-full bg-slate-950 border border-amber-500/50 rounded-xl px-3 py-2 text-amber-300 font-bold focus:outline-none focus:border-amber-500"
                   >
-                    <option value="Básico">Básico ($149,000 COP)</option>
-                    <option value="Pro">Pro ($289,000 COP)</option>
-                    <option value="Enterprise">Enterprise ($499,000 COP)</option>
+                    <option value="Plan Máximo Integral Milenia">Plan Máximo Integral Milenia ($600.000 COP)</option>
                   </select>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Incluye: POS Web + Cocina + Comandera + Factura DIAN + Carta QR + Soporte 24/7.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1 flex items-center justify-between">
+                    <span>Tarifa Mensual (COP) *</span>
+                    <span className="text-[10px] text-amber-400 font-mono font-bold">Cobro Mensual</span>
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="1000"
+                    value={allyFormData.monthlyFeeCop}
+                    onChange={(e) => setAllyFormData({ ...allyFormData, monthlyFeeCop: Number(e.target.value) || 0 })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono font-bold focus:outline-none focus:border-amber-500"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    {formatCop(allyFormData.monthlyFeeCop || 600000)} / mes
+                  </p>
+                </div>
+              </div>
+
+              {/* CONTACTO, MESAS Y ESTADO */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1">Gerente / Contacto</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Marco Bellini"
+                    value={allyFormData.contactName}
+                    onChange={(e) => setAllyFormData({ ...allyFormData, contactName: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1">Capacidad Mesas</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="150"
+                    value={allyFormData.tablesCount}
+                    onChange={(e) => setAllyFormData({ ...allyFormData, tablesCount: Number(e.target.value) || 1 })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
+                  />
                 </div>
 
                 <div>
@@ -1983,30 +2116,6 @@ export const MileniaOwnerDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-400 font-medium mb-1">Nombre Contacto / Gerente</label>
-                  <input
-                    type="text"
-                    placeholder="Ej. Marco Bellini"
-                    value={allyFormData.contactName}
-                    onChange={(e) => setAllyFormData({ ...allyFormData, contactName: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-400 font-medium mb-1">Teléfono WhatsApp</label>
-                  <input
-                    type="text"
-                    placeholder="+57 315 000 0000"
-                    value={allyFormData.phone}
-                    onChange={(e) => setAllyFormData({ ...allyFormData, phone: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-              </div>
-
               <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-800">
                 <button
                   type="button"
@@ -2019,7 +2128,7 @@ export const MileniaOwnerDashboard: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black rounded-xl transition shadow-md shadow-amber-500/20 cursor-pointer"
                 >
-                  {editingAlly ? 'Actualizar Aliado' : 'Crear en Firestore'}
+                  {editingAlly ? 'Actualizar Datos y Número del Aliado' : 'Guardar y Registrar Aliado'}
                 </button>
               </div>
 

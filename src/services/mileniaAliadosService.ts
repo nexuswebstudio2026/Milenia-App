@@ -10,11 +10,12 @@ import {
   onSnapshot 
 } from '../firebaseConfig';
 
-export type AllyPlan = 'Básico' | 'Pro' | 'Enterprise';
+export type AllyPlan = 'Plan Máximo Integral Milenia' | 'Máximo Integral' | 'Pro' | 'Básico' | 'Enterprise';
 export type AllyStatus = 'Activo' | 'Inactivo' | 'Pendiente';
 
 export interface MileniaAlly {
   id: string;
+  allyNumber?: string;
   name: string;
   nit: string;
   city: string;
@@ -33,75 +34,80 @@ export interface MileniaAlly {
 export const INITIAL_ALIADOS: MileniaAlly[] = [
   {
     id: 'aliado-1',
+    allyNumber: '#001',
     name: 'Parrilla & Fuego Camilo',
     nit: '901.450.888-1',
     city: 'Bogotá D.C.',
     address: 'Calle 93 # 12-45, Chicó',
     phone: '+57 304 347 0984',
     email: 'camilovidal.1704@gmail.com',
-    plan: 'Enterprise',
+    plan: 'Plan Máximo Integral Milenia',
     status: 'Activo',
-    monthlyFeeCop: 499000,
+    monthlyFeeCop: 600000,
     tablesCount: 24,
     contactName: 'Andrés Camilo Vidal',
     createdAt: '2026-01-15T08:00:00.000Z'
   },
   {
     id: 'aliado-2',
+    allyNumber: '#002',
     name: 'Bella Italia Ristorante',
     nit: '900.872.101-3',
     city: 'Medellín',
     address: 'Carrera 35 # 8A-20, El Poblado',
     phone: '+57 315 889 0011',
     email: 'admin@bellaitalia.co',
-    plan: 'Pro',
+    plan: 'Plan Máximo Integral Milenia',
     status: 'Activo',
-    monthlyFeeCop: 289000,
+    monthlyFeeCop: 600000,
     tablesCount: 18,
     contactName: 'Marco Bellini',
     createdAt: '2026-02-10T10:30:00.000Z'
   },
   {
     id: 'aliado-3',
+    allyNumber: '#003',
     name: 'Burgers & Beers Craft',
     nit: '901.223.456-7',
     city: 'Cali',
     address: 'Av 9N # 14-32, Granada',
     phone: '+57 312 400 9988',
     email: 'gerencia@burgersbeers.co',
-    plan: 'Pro',
+    plan: 'Plan Máximo Integral Milenia',
     status: 'Activo',
-    monthlyFeeCop: 289000,
+    monthlyFeeCop: 600000,
     tablesCount: 16,
     contactName: 'Alejandro Restrepo',
     createdAt: '2026-03-01T14:15:00.000Z'
   },
   {
     id: 'aliado-4',
+    allyNumber: '#004',
     name: 'Café & Bistro Macondo',
     nit: '900.654.321-9',
     city: 'Cartagena',
     address: 'Calle de la Mantilla # 3-18',
     phone: '+57 300 765 4321',
     email: 'hola@macondobistro.co',
-    plan: 'Básico',
+    plan: 'Plan Máximo Integral Milenia',
     status: 'Activo',
-    monthlyFeeCop: 149000,
+    monthlyFeeCop: 600000,
     tablesCount: 10,
     contactName: 'Sofía Montoya',
     createdAt: '2026-03-20T09:00:00.000Z'
   },
   {
     id: 'aliado-5',
+    allyNumber: '#005',
     name: 'La Fogata Campestre',
     nit: '901.987.654-2',
     city: 'Bucaramanga',
     address: 'Km 7 Vía Ruitoque Alto',
     phone: '+57 318 450 1192',
     email: 'info@lafogatacampestre.co',
-    plan: 'Pro',
+    plan: 'Plan Máximo Integral Milenia',
     status: 'Activo',
-    monthlyFeeCop: 289000,
+    monthlyFeeCop: 600000,
     tablesCount: 22,
     contactName: 'Miguel Ángel Narváez',
     createdAt: '2026-04-05T16:20:00.000Z'
@@ -142,10 +148,10 @@ export async function getAliados(): Promise<MileniaAlly[]> {
 /**
  * Crea un nuevo aliado en Firestore colección 'aliados' (addDoc / setDoc)
  */
-export async function addAliado(allyData: Omit<MileniaAlly, 'id' | 'createdAt'>): Promise<MileniaAlly> {
+export async function addAliado(allyData: Omit<MileniaAlly, 'id' | 'createdAt'> & { id?: string }): Promise<MileniaAlly> {
   const newAlly: MileniaAlly = {
     ...allyData,
-    id: `aliado-${Date.now()}`,
+    id: allyData.id && allyData.id.trim() ? allyData.id.trim() : `aliado-${Date.now()}`,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
