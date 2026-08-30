@@ -125,16 +125,15 @@ const LOCAL_STORAGE_KEY = 'milenia_aliados_cache_v1';
 /**
  * Normaliza un documento Firestore a la interfaz MileniaAlly con consecutivo estricto (#001, #002...)
  */
-export function parseMileniaAllyDoc(id: string, data: any): MileniaAlly {
-  const rawId = String(id || data.id || '');
-  const numeric = extractAllyNumber(data.allyNumber) || extractAllyNumber(rawId) || 1;
-  const cleanAllyNum = formatAllyNumber(numeric);
-  const safeId = numeric > 0 && numeric < 1000 ? String(numeric) : (rawId && !rawId.startsWith('aliado-17') && rawId !== '1788' ? rawId : String(numeric));
+export function parseMileniaAllyDoc(id: string, data: any, index: number = 0): MileniaAlly {
+  const safeId = String(id || data.id || `ally-${index + 1}`).trim();
+  const explicitNum = extractAllyNumber(data.allyNumber) || extractAllyNumber(data.id) || extractAllyNumber(id);
+  const cleanAllyNum = formatAllyNumber(explicitNum > 0 ? explicitNum : index + 1);
 
   return {
     id: safeId,
-    allyNumber: cleanAllyNum,
-    name: data.name || 'Restaurante Aliado',
+    allyNumber: data.allyNumber && data.allyNumber !== '#1788' ? data.allyNumber : cleanAllyNum,
+    name: data.name || data.restaurantName || `Restaurante Aliado ${cleanAllyNum}`,
     nit: data.nit || data.branding?.nit || '901.000.000-1',
     city: data.city || 'Bogotá D.C.',
     address: data.address || '',
@@ -151,19 +150,44 @@ export function parseMileniaAllyDoc(id: string, data: any): MileniaAlly {
 }
 
 /**
- * Obtiene todos los aliados desde Firestore colección 'aliados' garantizando consecutivos
+ * Obtiene todos los aliados desde Firestore colección 'aliados' (y 'milenia_aliados') garantizando sincronización total
  */
 export async function getAliados(): Promise<MileniaAlly[]> {
   try {
     const colRef = collection(db, 'aliados');
     const snap = await getDocs(colRef);
 
-    if (snap.empty) {
+    let mileniaSnapDocs: any[] = [];
+    try {
+      const mileniaCol = collection(db, 'milenia_aliados');
+      const mSnap = await getDocs(mileniaCol);
+      if (!mSnap.empty) {
+        mileniaSnapDocs = mSnap.docs;
+      }
+    } catch (_) {}
+
+    const allDocsMap = new Map<string, MileniaAlly>();
+
+    // Procesar docs de 'aliados'
+    snap.docs.forEach((d, idx) => {
+      const ally = parseMileniaAllyDoc(d.id, d.data(), idx);
+      allDocsMap.set(d.id, ally);
+    });
+
+    // Procesar docs de 'milenia_aliados' que no estén duplicados por ID
+    mileniaSnapDocs.forEach((d, idx) => {
+      if (!allDocsMap.has(d.id)) {
+        const ally = parseMileniaAllyDoc(d.id, d.data(), snap.docs.length + idx);
+        allDocsMap.set(d.id, ally);
+      }
+    });
+
+    if (allDocsMap.size === 0) {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([]));
       return [];
     }
 
-    const list = snap.docs.map(d => parseMileniaAllyDoc(d.id, d.data()));
+    const list = Array.from(allDocsMap.values());
     const sanitized = sanitizeAllySequenceList(list);
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sanitized));
     return sanitized;
@@ -305,8 +329,27 @@ export async function deleteAliado(id: string): Promise<void> {
 export function subscribeToAliados(onUpdate: (aliados: MileniaAlly[]) => void) {
   try {
     const colRef = collection(db, 'aliados');
-    return onSnapshot(colRef, (snap) => {
-      const list = snap.docs.map(d => parseMileniaAllyDoc(d.id, d.data()));
+    return onSnapshot(colRef, async (snap) => {
+      let mileniaDocs: any[] = [];
+      try {
+        const mSnap = await getDocs(collection(db, 'milenia_aliados'));
+        mileniaDocs = mSnap.docs;
+      } catch (_) {}
+
+      const allDocsMap = new Map<string, MileniaAlly>();
+      snap.docs.forEach((d, idx) => {
+        const ally = parseMileniaAllyDoc(d.id, d.data(), idx);
+        allDocsMap.set(d.id, ally);
+      });
+
+      mileniaDocs.forEach((d, idx) => {
+        if (!allDocsMap.has(d.id)) {
+          const ally = parseMileniaAllyDoc(d.id, d.data(), snap.docs.length + idx);
+          allDocsMap.set(d.id, ally);
+        }
+      });
+
+      const list = Array.from(allDocsMap.values());
       const sanitized = sanitizeAllySequenceList(list);
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sanitized));
       onUpdate(sanitized);

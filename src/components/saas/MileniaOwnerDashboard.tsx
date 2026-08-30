@@ -349,9 +349,9 @@ export const MileniaOwnerDashboard: React.FC = () => {
       const res = await repairAndResequenceFirestoreAliados();
       const updated = await getAliados();
       setAliados(updated);
-      showToast('Base de Datos Sincronizada', res.message, 'success');
+      showToast('Sincronización Exitosa', `Se han sincronizado ${updated.length} aliados registrados desde la base de datos de Firebase.`, 'success');
     } catch (err: any) {
-      showToast('Error', err.message || 'No se pudo sincronizar la secuencia en Firestore', 'error');
+      showToast('Error de Sincronización', err.message || 'No se pudo sincronizar la secuencia en Firestore', 'error');
     } finally {
       setIsRepairingSequences(false);
     }
@@ -1298,11 +1298,11 @@ export const MileniaOwnerDashboard: React.FC = () => {
                 <button
                   onClick={handleRepairDatabaseSequences}
                   disabled={isRepairingSequences}
-                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-2xl border border-amber-500/30 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-sm"
-                  title="Reindexar base de datos Firestore para que los aliados tengan números consecutivos (1, 2, 3...)"
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-2xl border border-amber-500/30 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-sm"
+                  title="Sincronizar base de datos Firestore y actualizar lista de aliados en tiempo real"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isRepairingSequences ? 'animate-spin text-amber-400' : ''}`} />
-                  <span>{isRepairingSequences ? 'Sincronizando...' : 'Corregir Consecutivos (1, 2, 3...)'}</span>
+                  <span>{isRepairingSequences ? 'Sincronizando...' : 'Sincronizar con Firebase'}</span>
                 </button>
 
                 <button

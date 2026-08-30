@@ -62,6 +62,26 @@ export const FIRESTORE_TABLES: FirestoreTableMeta[] = [
     }
   },
   {
+    id: 'milenia_aliados',
+    name: 'Aliados Milenia (Registro)',
+    description: 'Colección de aliados y comercios registrados en Milenia',
+    category: 'saas',
+    icon: 'Building2',
+    defaultTemplate: {
+      name: 'Restaurante Aliado Milenia',
+      nit: '900.123.456-7',
+      city: 'Bogotá D.C.',
+      address: 'Calle 100 # 15-20',
+      phone: '+57 300 123 4567',
+      email: 'contacto@restaurante.com',
+      plan: 'Plan Máximo Integral Milenia',
+      status: 'Activo',
+      monthlyFeeCop: 600000,
+      tablesCount: 16,
+      createdAt: new Date().toISOString()
+    }
+  },
+  {
     id: 'resumen_financiero',
     name: 'Resumen Financiero',
     description: 'Consolidado oficial de ingresos, gastos y balance neto en tiempo real',

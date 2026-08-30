@@ -112,55 +112,35 @@ export function calculateNextAllySequence(allies: any[] = []): AllySequenceInfo 
 }
 
 /**
- * Normaliza un array de aliados asegurando que no existan duplicados (por nombre, nit, slug o id)
- * y que sus consecutivos estén en orden estricto (1, 2, 3...)
+ * Normaliza un array de aliados asegurando que todos los registros se preserven
+ * y que sus números consecutivos se asignen limpiamente (#001, #002, #003...)
  */
 export function sanitizeAllySequenceList<T extends { id?: string; name?: string; slug?: string; nit?: string; allyNumber?: string; createdAt?: string }>(allies: T[]): T[] {
   if (!Array.isArray(allies) || allies.length === 0) return [];
 
-  // Deduplicación inteligente: evitar registros duplicados por nombre normalizado, nit o id
-  const seenKeys = new Set<string>();
-  const deduplicated: T[] = [];
+  // Deduplicación estricta ÚNICAMENTE si existe exactamente el mismo ID de documento
+  const seenIds = new Set<string>();
+  const uniqueList: T[] = [];
 
   for (const ally of allies) {
-    const rawName = String(ally.name || '').trim().toLowerCase();
-    const rawNit = String((ally as any).branding?.nit || ally.nit || '').trim();
-    const rawSlug = String(ally.slug || '').trim().toLowerCase();
     const rawId = String(ally.id || '').trim();
-
-    // Clave primaria de identidad del restaurante
-    const nameKey = rawName ? `name:${rawName}` : '';
-    const nitKey = rawNit && rawNit !== '901.000.000-1' ? `nit:${rawNit}` : '';
-    const slugKey = rawSlug && rawSlug !== 'rest-1' ? `slug:${rawSlug}` : '';
-    const idKey = rawId ? `id:${rawId}` : '';
-
-    const isDuplicate = 
-      (nameKey && seenKeys.has(nameKey)) ||
-      (nitKey && seenKeys.has(nitKey)) ||
-      (slugKey && seenKeys.has(slugKey));
-
-    if (isDuplicate) {
-      continue; // Ignorar el registro duplicado
+    if (rawId && seenIds.has(rawId)) {
+      continue; // Solo omitir si el docId es idéntico al que ya está en la lista
     }
-
-    if (nameKey) seenKeys.add(nameKey);
-    if (nitKey) seenKeys.add(nitKey);
-    if (slugKey) seenKeys.add(slugKey);
-    if (idKey) seenKeys.add(idKey);
-
-    deduplicated.push(ally);
+    if (rawId) seenIds.add(rawId);
+    uniqueList.push(ally);
   }
 
-  return deduplicated.map((ally, index) => {
+  return uniqueList.map((ally, index) => {
     const naturalSeq = index + 1;
     const currentNum = extractAllyNumber(ally.allyNumber) || extractAllyNumber(ally.id);
-    const finalNum = currentNum > 0 && currentNum <= deduplicated.length ? currentNum : naturalSeq;
+    const finalNum = currentNum > 0 ? currentNum : naturalSeq;
     const formattedNum = formatAllyNumber(finalNum);
 
     return {
       ...ally,
-      allyNumber: formattedNum,
-      id: String(finalNum)
+      allyNumber: ally.allyNumber && ally.allyNumber !== '#1788' ? ally.allyNumber : formattedNum,
+      id: ally.id ? String(ally.id) : String(naturalSeq)
     };
   });
 }

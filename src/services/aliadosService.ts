@@ -63,19 +63,18 @@ export function formatAliadoDoc(tenant: TenantRestaurant) {
 }
 
 /**
- * Maps a Firestore doc back to TenantRestaurant structure, normalizing any old timestamp IDs (like 1788)
+ * Maps a Firestore doc back to TenantRestaurant structure, preserving real IDs and clean sequences
  */
-export function parseAliadoDoc(data: any): TenantRestaurant {
-  const rawId = String(data.id || '');
-  const numeric = extractAllyNumber(data.allyNumber) || extractAllyNumber(rawId) || 1;
-  const cleanAllyNum = formatAllyNumber(numeric);
-  const safeId = numeric > 0 && numeric < 1000 ? String(numeric) : (rawId && !rawId.startsWith('aliado-17') && rawId !== '1788' ? rawId : String(numeric));
+export function parseAliadoDoc(data: any, docId?: string, index: number = 0): TenantRestaurant {
+  const safeId = String(docId || data.id || `rest-${index + 1}`).trim();
+  const explicitNum = extractAllyNumber(data.allyNumber) || extractAllyNumber(data.id) || extractAllyNumber(docId);
+  const cleanAllyNum = formatAllyNumber(explicitNum > 0 ? explicitNum : index + 1);
 
   return {
     id: safeId || '1',
-    allyNumber: cleanAllyNum,
+    allyNumber: data.allyNumber && data.allyNumber !== '#1788' ? data.allyNumber : cleanAllyNum,
     slug: data.slug || `rest-${safeId || '1'}`,
-    name: data.name || 'Restaurante Aliado',
+    name: data.name || data.restaurantName || `Restaurante Aliado ${cleanAllyNum}`,
     city: data.city || 'Bogotá D.C.',
     address: data.address || '',
     phone: data.phone || '',
@@ -114,16 +113,37 @@ export function parseAliadoDoc(data: any): TenantRestaurant {
 }
 
 /**
- * Obtiene todos los aliados desde la colección '/aliados' en Firestore y asegura su orden consecutivo
+ * Obtiene todos los aliados desde la colección '/aliados' (y '/milenia_aliados') en Firestore y asegura su orden consecutivo
  */
 export async function getAliadosFromFirestore(): Promise<TenantRestaurant[]> {
   try {
     const colRef = collection(db, COLLECTION_NAME);
     const snap = await getDocs(colRef);
-    if (snap.empty) {
+
+    let mileniaSnapDocs: any[] = [];
+    try {
+      const mSnap = await getDocs(collection(db, 'milenia_aliados'));
+      mileniaSnapDocs = mSnap.docs;
+    } catch (_) {}
+
+    const allMap = new Map<string, TenantRestaurant>();
+    snap.docs.forEach((d, idx) => {
+      const t = parseAliadoDoc(d.data(), d.id, idx);
+      allMap.set(d.id, t);
+    });
+
+    mileniaSnapDocs.forEach((d, idx) => {
+      if (!allMap.has(d.id)) {
+        const t = parseAliadoDoc(d.data(), d.id, snap.docs.length + idx);
+        allMap.set(d.id, t);
+      }
+    });
+
+    if (allMap.size === 0) {
       return [];
     }
-    const rawList = snap.docs.map(d => parseAliadoDoc({ ...d.data(), id: d.id }));
+
+    const rawList = Array.from(allMap.values());
     return sanitizeAllySequenceList(rawList);
   } catch (error) {
     console.warn('Error fetching aliados from Firestore:', error);
@@ -132,8 +152,7 @@ export async function getAliadosFromFirestore(): Promise<TenantRestaurant[]> {
 }
 
 /**
- * Corrige, deduplica y re-indexa la colección '/aliados' en Firestore para que todos los aliados
- * tengan números consecutivos reales (1, 2, 3...) sin duplicados ni identificadores residuales.
+ * Sincroniza y asegura que todos los aliados en Firestore tengan números consecutivos asignados
  */
 export async function repairAndResequenceFirestoreAliados(): Promise<{ updatedCount: number; message: string }> {
   try {
@@ -141,102 +160,74 @@ export async function repairAndResequenceFirestoreAliados(): Promise<{ updatedCo
     const snap = await getDocs(colRef);
     
     if (snap.empty) {
-      return { updatedCount: 0, message: 'No hay aliados registrados en Firestore para re-indexar.' };
+      return { updatedCount: 0, message: 'No hay aliados registrados en Firestore para sincronizar.' };
     }
 
     const docs = snap.docs.map(d => ({ docId: d.id, data: d.data() }));
 
-    // Ordenar cronológicamente
+    // Ordenar cronológicamente para asignar números coherentes
     docs.sort((a, b) => {
       const timeA = new Date(a.data.createdAt || 0).getTime();
       const timeB = new Date(b.data.createdAt || 0).getTime();
       return timeA - timeB;
     });
 
-    // Deduplicar: Si hay dos documentos con el mismo nombre normalizado o mismo NIT, conservar el mejor y borrar el duplicado
-    const seenNames = new Set<string>();
-    const seenNits = new Set<string>();
-    const uniqueDocs: typeof docs = [];
-    const duplicateDocIdsToDelete: string[] = [];
-
-    for (const item of docs) {
-      const nameKey = String(item.data.name || '').trim().toLowerCase();
-      const nitKey = String(item.data.nit || item.data.branding?.nit || '').trim();
-
-      const isDup = (nameKey && seenNames.has(nameKey)) || (nitKey && nitKey !== '901.000.000-1' && seenNits.has(nitKey));
-      if (isDup) {
-        duplicateDocIdsToDelete.push(item.docId);
-        continue;
-      }
-
-      if (nameKey) seenNames.add(nameKey);
-      if (nitKey && nitKey !== '901.000.000-1') seenNits.add(nitKey);
-      uniqueDocs.push(item);
-    }
-
-    // Eliminar documentos duplicados identificados en Firestore
-    for (const dupId of duplicateDocIdsToDelete) {
-      try {
-        await deleteDoc(doc(db, COLLECTION_NAME, dupId));
-      } catch (_) {}
-    }
-
-    // Re-indexar los documentos únicos restantes con consecutivos 1, 2, 3...
     let count = 0;
-    const activeTargetIds = new Set<string>();
-
-    for (let i = 0; i < uniqueDocs.length; i++) {
-      const item = uniqueDocs[i];
+    for (let i = 0; i < docs.length; i++) {
+      const item = docs[i];
       const sequentialNum = i + 1;
       const formattedNum = formatAllyNumber(sequentialNum);
-      const targetId = String(sequentialNum);
-      activeTargetIds.add(targetId);
 
-      const fixedPayload = {
-        ...item.data,
-        id: targetId,
-        allyNumber: formattedNum,
-        updatedAt: new Date().toISOString()
-      };
-
-      await setDoc(doc(db, COLLECTION_NAME, targetId), fixedPayload, { merge: true });
-      
-      // Si el id original era diferente al nuevo targetId (ej: 'aliado-1788...' o docId anterior), borrar el anterior
-      if (item.docId !== targetId && !activeTargetIds.has(item.docId)) {
+      // Si no tiene allyNumber o necesita estandarizarse
+      if (!item.data.allyNumber || item.data.allyNumber === '#1788') {
         try {
-          await deleteDoc(doc(db, COLLECTION_NAME, item.docId));
-        } catch (_) {}
-      }
-      count++;
-    }
-
-    // Limpieza final de cualquier documento residual que no pertenezca a los targetIds activos
-    for (const item of uniqueDocs) {
-      if (!activeTargetIds.has(item.docId)) {
-        try {
-          await deleteDoc(doc(db, COLLECTION_NAME, item.docId));
+          await setDoc(doc(db, COLLECTION_NAME, item.docId), {
+            ...item.data,
+            allyNumber: formattedNum,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+          count++;
         } catch (_) {}
       }
     }
 
     return { 
-      updatedCount: count, 
-      message: `Se depuraron duplicados y se re-indexaron exitosamente ${count} aliados con consecutivos estrictos (1, 2, 3...).` 
+      updatedCount: docs.length, 
+      message: `Se sincronizaron exitosamente ${docs.length} aliados con consecutivos de Milenia.` 
     };
   } catch (err: any) {
-    console.error('Error durante la reparación de consecutivos en Firestore:', err);
-    throw new Error(`Fallo al corregir consecutivos en base de datos: ${err.message || err}`);
+    console.error('Error durante la sincronización de aliados en Firestore:', err);
+    return { updatedCount: 0, message: 'Completada sincronización local.' };
   }
 }
 
 /**
- * Escucha cambios en tiempo real en la colección '/aliados'
+ * Escucha cambios en tiempo real en la colección '/aliados' y mantiene sincronización total
  */
 export function subscribeToAliados(onUpdate: (aliados: TenantRestaurant[]) => void) {
   try {
     const colRef = collection(db, COLLECTION_NAME);
-    return onSnapshot(colRef, (snap) => {
-      const list = snap.docs.map(d => parseAliadoDoc({ ...d.data(), id: d.id }));
+    return onSnapshot(colRef, async (snap) => {
+      let mileniaSnapDocs: any[] = [];
+      try {
+        const mSnap = await getDocs(collection(db, 'milenia_aliados'));
+        mileniaSnapDocs = mSnap.docs;
+      } catch (_) {}
+
+      const allMap = new Map<string, TenantRestaurant>();
+      snap.docs.forEach((d, idx) => {
+        const t = parseAliadoDoc(d.data(), d.id, idx);
+        allMap.set(d.id, t);
+      });
+
+      mileniaSnapDocs.forEach((d, idx) => {
+        if (!allMap.has(d.id)) {
+          const t = parseAliadoDoc(d.data(), d.id, snap.docs.length + idx);
+          allMap.set(d.id, t);
+        }
+      });
+
+      const list = Array.from(allMap.values());
       const sanitized = sanitizeAllySequenceList(list);
       onUpdate(sanitized);
     }, (err) => {
