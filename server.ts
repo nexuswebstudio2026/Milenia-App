@@ -31,6 +31,61 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Endpoint de verificación y recepción de Webhook de WhatsApp (Evolution API / Meta Cloud API)
+app.get('/api/whatsapp/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode && token) {
+    if (mode === 'subscribe' && (token === 'milenia_verify_token' || token === process.env.WHATSAPP_VERIFY_TOKEN)) {
+      console.log('✅ WhatsApp Webhook verificado con éxito');
+      return res.status(200).send(challenge);
+    } else {
+      return res.sendStatus(403);
+    }
+  }
+  return res.json({ status: 'active', message: 'Milenia WhatsApp Webhook Gateway operational' });
+});
+
+app.post('/api/whatsapp/webhook', (req, res) => {
+  try {
+    const payload = req.body;
+    console.log('📩 WhatsApp Webhook entrante:', JSON.stringify(payload).substring(0, 200));
+
+    // Retornar 200 OK inmediatamente al proveedor
+    res.status(200).json({ success: true, received: true });
+  } catch (error: any) {
+    console.error('Error procesando webhook de WhatsApp:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint para enviar mensajes de WhatsApp a clientes o grupos
+app.post('/api/whatsapp/send', async (req, res) => {
+  try {
+    const { to, message, isGroup } = req.body;
+    if (!to || !message) {
+      return res.status(400).json({ success: false, error: 'Faltan parámetros: to y message' });
+    }
+
+    // Aquí se enviaría la petición al backend de Evolution API / Meta Cloud API
+    console.log(`📤 Enviando WhatsApp a ${to} (Grupo: ${isGroup}): ${message}`);
+
+    return res.json({
+      success: true,
+      data: {
+        messageId: `msg_${Date.now()}`,
+        to,
+        status: 'sent',
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Endpoint para análisis y transcripción de comprobantes de pago con Gemini IA
 app.post('/api/gemini/analyze-voucher', async (req, res) => {
   try {

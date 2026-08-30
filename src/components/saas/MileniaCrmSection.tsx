@@ -25,11 +25,15 @@ import {
   UserCheck,
   Building2,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  Layers,
+  QrCode
 } from 'lucide-react';
 import { MileniaAlly } from '../../services/mileniaAliadosService';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { MileniaWhatsAppInbox } from './MileniaWhatsAppInbox';
+import { WhatsAppConversation } from '../../services/mileniaWhatsAppService';
 
 export interface CrmLead {
   id: string;
@@ -111,6 +115,7 @@ interface MileniaCrmSectionProps {
 }
 
 export const MileniaCrmSection: React.FC<MileniaCrmSectionProps> = ({ aliados, showToast }) => {
+  const [activeTab, setActiveTab] = useState<'leads' | 'whatsapp'>('whatsapp');
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -135,6 +140,26 @@ export const MileniaCrmSection: React.FC<MileniaCrmSectionProps> = ({ aliados, s
     source: 'WhatsApp' as CrmLead['source'],
     initialNote: ''
   });
+
+  const handleConvertChatToLead = (chat: WhatsAppConversation) => {
+    setFormData({
+      id: '',
+      restaurantName: chat.name.replace(/\(.*\)/, '').trim(),
+      contactName: chat.name.includes('(') ? chat.name.split('(')[0].trim() : chat.name,
+      phone: chat.phoneNumber ? chat.phoneNumber.replace(/[^0-9]/g, '') : '',
+      email: '',
+      city: 'Bogotá D.C.',
+      stage: 'lead',
+      planInterest: 'Plan Máximo Integral Milenia',
+      estimatedValueCop: 600000,
+      nextFollowUpDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+      source: 'WhatsApp',
+      initialNote: `Mensaje de WhatsApp: "${chat.lastMessageText}"`
+    });
+    setSelectedLead(null);
+    setIsModalOpen(true);
+    showToast('Convertir a Lead', `Creando oportunidad en CRM desde el chat de WhatsApp: ${chat.name}`, 'info');
+  };
 
   // Load Leads
   useEffect(() => {
@@ -371,8 +396,44 @@ export const MileniaCrmSection: React.FC<MileniaCrmSectionProps> = ({ aliados, s
         </div>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Top Selector: Tabs (WhatsApp Inbox & Leads Pipeline) */}
+      <div className="flex items-center gap-3 p-1.5 bg-slate-900/80 border border-slate-800 rounded-2xl w-fit">
+        <button
+          onClick={() => setActiveTab('whatsapp')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeTab === 'whatsapp'
+              ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-black'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <MessageSquare className="w-4 h-4" />
+          <span>Bandeja WhatsApp Business & Grupos</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('leads')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeTab === 'leads'
+              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>Pipeline CRM & Oportunidades ({leads.length})</span>
+        </button>
+      </div>
+
+      {activeTab === 'whatsapp' ? (
+        <MileniaWhatsAppInbox 
+          leads={leads}
+          showToast={(title, desc, type) => showToast(`${title}: ${desc || ''}`, type)}
+          onConvertChatToLead={handleConvertChatToLead}
+        />
+      ) : (
+        <>
+          {/* Metrics Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
           <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
             <span>Oportunidades Abiertas</span>
@@ -598,6 +659,8 @@ export const MileniaCrmSection: React.FC<MileniaCrmSectionProps> = ({ aliados, s
             No hay registros comerciales con los filtros aplicados. Puedes registrar un nuevo restaurante prospecto haciendo clic en "Nuevo Prospecto".
           </p>
         </div>
+      )}
+      </>
       )}
 
       {/* MODAL: REGISTRAR / EDITAR LEAD */}

@@ -82,6 +82,23 @@ export const FIRESTORE_TABLES: FirestoreTableMeta[] = [
     }
   },
   {
+    id: 'crm_whatsapp_conversations',
+    name: 'WhatsApp CRM & Grupos',
+    description: 'Historial de conversaciones y grupos de WhatsApp Business vinculados al CRM',
+    category: 'saas',
+    icon: 'MessageSquare',
+    defaultTemplate: {
+      name: 'Carlos Gómez (Asadero)',
+      phoneNumber: '+57 315 894 2301',
+      isGroup: false,
+      lastMessageText: 'Hola Andrés, ya revisamos la propuesta.',
+      lastMessageTime: 'Hace 5 min',
+      unreadCount: 0,
+      status: 'active',
+      tags: ['WhatsApp', 'Plan Máximo', 'Demo']
+    }
+  },
+  {
     id: 'resumen_financiero',
     name: 'Resumen Financiero',
     description: 'Consolidado oficial de ingresos, gastos y balance neto en tiempo real',
