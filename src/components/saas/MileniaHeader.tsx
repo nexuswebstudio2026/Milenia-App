@@ -107,9 +107,10 @@ export const MileniaHeader: React.FC = () => {
             </div>
           </button>
 
-          {/* Center Navigation Links (Desktop): Inicio, Aliados, Registrar aliado, Propietario milenia */}
+          {/* Center Navigation Links (Desktop): Inicio, Aliados, Aliado, Ingreso CEO */}
           <nav className="hidden md:flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
             
+            {/* 1. Inicio */}
             <button
               onClick={() => setMileniaView('inicio')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -121,6 +122,7 @@ export const MileniaHeader: React.FC = () => {
               Inicio
             </button>
 
+            {/* 2. Aliados */}
             <button
               onClick={() => setMileniaView('aliados')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
@@ -136,6 +138,7 @@ export const MileniaHeader: React.FC = () => {
               </span>
             </button>
 
+            {/* 3. Aliado */}
             <button
               onClick={() => setMileniaView('registrar_aliado')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
@@ -145,9 +148,10 @@ export const MileniaHeader: React.FC = () => {
               }`}
             >
               <Store className="w-3.5 h-3.5 text-amber-500" />
-              <span>Registrar aliado</span>
+              <span>Aliado</span>
             </button>
 
+            {/* 4. Ingreso CEO */}
             <button
               onClick={() => setMileniaView('propietario')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
@@ -155,10 +159,10 @@ export const MileniaHeader: React.FC = () => {
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
                   : 'text-amber-500 dark:text-amber-400 hover:bg-amber-500/10'
               }`}
-              title="Panel Maestro de Control del Propietario de Milenia SaaS"
+              title="Panel Maestro de Control del Propietario / CEO de Milenia SaaS"
             >
               <Crown className="w-3.5 h-3.5" />
-              <span>Propietario milenia</span>
+              <span>Ingreso CEO</span>
             </button>
 
           </nav>
@@ -262,7 +266,7 @@ export const MileniaHeader: React.FC = () => {
               mileniaView === 'registrar_aliado' ? 'bg-amber-500 text-slate-950' : 'text-slate-700 dark:text-slate-300'
             }`}
           >
-            <span>Registrar aliado</span>
+            <span>Aliado</span>
             <Store className="w-4 h-4" />
           </button>
 
@@ -276,7 +280,7 @@ export const MileniaHeader: React.FC = () => {
           >
             <span className="flex items-center gap-2">
               <Crown className="w-4 h-4 text-amber-400" />
-              <span>Propietario milenia</span>
+              <span>Ingreso CEO</span>
             </span>
             <ChevronRight className="w-4 h-4" />
           </button>

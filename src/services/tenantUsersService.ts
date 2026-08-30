@@ -246,6 +246,65 @@ export async function deleteAllyUser(restaurantId: string | number, uid: string)
 }
 
 /**
+ * Obtiene la lista completa de todos los empleados y usuarios de Milenia y sus aliados desde Firestore (/users)
+ */
+export async function getAllUsers(): Promise<AllyUser[]> {
+  try {
+    const globalUsersRef = collection(db, 'users');
+    const snap = await getDocs(globalUsersRef);
+    if (!snap.empty) {
+      const list = snap.docs.map(d => d.data() as AllyUser);
+      localStorage.setItem('milenia_all_users_cache', JSON.stringify(list));
+      return list;
+    }
+  } catch (e) {
+    console.warn('Error fetching all users from Firestore:', e);
+  }
+
+  try {
+    const raw = localStorage.getItem('milenia_all_users_cache');
+    if (raw) return JSON.parse(raw);
+  } catch (_) {}
+
+  return INITIAL_ALLY_USERS;
+}
+
+/**
+ * Suscripción en tiempo real a todos los usuarios de la colección /users
+ */
+export function subscribeToAllUsers(onUpdate: (users: AllyUser[]) => void) {
+  try {
+    const globalUsersRef = collection(db, 'users');
+    return onSnapshot(globalUsersRef, (snap) => {
+      if (!snap.empty) {
+        const list = snap.docs.map(d => d.data() as AllyUser);
+        localStorage.setItem('milenia_all_users_cache', JSON.stringify(list));
+        onUpdate(list);
+      }
+    }, (err) => {
+      console.warn('Snapshot listener error on /users:', err);
+    });
+  } catch (e) {
+    console.warn('Could not attach snapshot to /users:', e);
+    return () => {};
+  }
+}
+
+/**
+ * Elimina un usuario por UID de la base de datos
+ */
+export async function deleteGlobalUser(uid: string, restaurantId?: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, 'users', uid));
+    if (restaurantId) {
+      await deleteDoc(doc(db, 'aliados', String(restaurantId), 'usuarios', uid));
+    }
+  } catch (e) {
+    console.warn('Error deleting global user:', e);
+  }
+}
+
+/**
  * Inicializa la tabla de usuarios en Firestore para todos los aliados
  */
 export async function seedAllAllyUsersInFirestore(): Promise<void> {

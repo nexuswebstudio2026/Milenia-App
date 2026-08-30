@@ -90,9 +90,11 @@ import {
 import { MileniaOwnerAuthScreen } from './MileniaOwnerAuthScreen';
 import { BusinessProfileSection } from './BusinessProfileSection';
 import { FirestoreDatabaseManager } from './FirestoreDatabaseManager';
-import { Menu, PanelLeftClose, PanelLeft, ChevronLeft, Calculator } from 'lucide-react';
+import { MileniaVentasSection } from './MileniaVentasSection';
+import { MileniaEmpleadosSection } from './MileniaEmpleadosSection';
+import { Menu, PanelLeftClose, PanelLeft, ChevronLeft, Calculator, ShoppingBag, Users as UsersIcon } from 'lucide-react';
 
-type NavigationSection = 'dashboard' | 'aliados' | 'contabilidad' | 'database' | 'configuracion' | 'perfil_usuario' | 'perfil_negocio';
+type NavigationSection = 'dashboard' | 'aliados' | 'ventas' | 'contabilidad' | 'empleados' | 'database' | 'configuracion' | 'perfil_negocio' | 'perfil_usuario';
 
 export const MileniaOwnerDashboard: React.FC = () => {
   const { setMileniaView, showToast, switchTenant, navigateTo } = useTasty();
@@ -627,7 +629,7 @@ export const MileniaOwnerDashboard: React.FC = () => {
           {/* Navigation Items */}
           <nav className="space-y-1.5">
             
-            {/* Dashboard */}
+            {/* 1. Dashboard */}
             <button
               onClick={() => {
                 setCurrentSection('dashboard');
@@ -647,7 +649,7 @@ export const MileniaOwnerDashboard: React.FC = () => {
               {isSidebarOpen && currentSection === 'dashboard' && <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></div>}
             </button>
 
-            {/* Aliados */}
+            {/* 2. Aliados */}
             <button
               onClick={() => {
                 setCurrentSection('aliados');
@@ -671,7 +673,31 @@ export const MileniaOwnerDashboard: React.FC = () => {
               )}
             </button>
 
-            {/* Contabilidad */}
+            {/* 3. Ventas */}
+            <button
+              onClick={() => {
+                setCurrentSection('ventas');
+                setIsMobileMenuOpen(false);
+              }}
+              title="Ventas & Facturación DIAN"
+              className={`w-full flex items-center ${isSidebarOpen ? 'justify-between px-3.5' : 'justify-center px-0'} py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                currentSection === 'ventas'
+                  ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <ShoppingBag className={`w-4 h-4 shrink-0 ${currentSection === 'ventas' ? 'text-amber-400' : 'text-slate-400'}`} />
+                {isSidebarOpen && <span>Ventas</span>}
+              </div>
+              {isSidebarOpen && (
+                <span className="px-2 py-0.5 text-[9px] font-mono font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Facturas
+                </span>
+              )}
+            </button>
+
+            {/* 4. Contabilidad */}
             <button
               onClick={() => {
                 setCurrentSection('contabilidad');
@@ -695,7 +721,31 @@ export const MileniaOwnerDashboard: React.FC = () => {
               )}
             </button>
 
-            {/* Base de Datos Firestore (CRUD completo de tablas) */}
+            {/* 5. Empleados */}
+            <button
+              onClick={() => {
+                setCurrentSection('empleados');
+                setIsMobileMenuOpen(false);
+              }}
+              title="Gestión de Empleados & Usuarios"
+              className={`w-full flex items-center ${isSidebarOpen ? 'justify-between px-3.5' : 'justify-center px-0'} py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                currentSection === 'empleados'
+                  ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <UsersIcon className={`w-4 h-4 shrink-0 ${currentSection === 'empleados' ? 'text-amber-400' : 'text-slate-400'}`} />
+                {isSidebarOpen && <span>Empleados</span>}
+              </div>
+              {isSidebarOpen && (
+                <span className="px-2 py-0.5 text-[9px] font-mono font-bold rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  Equipo
+                </span>
+              )}
+            </button>
+
+            {/* 6. Base de Datos */}
             <button
               onClick={() => {
                 setCurrentSection('database');
@@ -710,7 +760,7 @@ export const MileniaOwnerDashboard: React.FC = () => {
             >
               <div className="flex items-center gap-3">
                 <Database className={`w-4 h-4 shrink-0 ${currentSection === 'database' ? 'text-amber-400' : 'text-slate-400'}`} />
-                {isSidebarOpen && <span>Base de Datos</span>}
+                {isSidebarOpen && <span>Base de datos</span>}
               </div>
               {isSidebarOpen && (
                 <span className="px-2 py-0.5 text-[9px] font-mono font-bold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
@@ -719,7 +769,7 @@ export const MileniaOwnerDashboard: React.FC = () => {
               )}
             </button>
 
-            {/* Configuración */}
+            {/* 7. Configuración */}
             <button
               onClick={() => {
                 setCurrentSection('configuracion');
@@ -738,7 +788,7 @@ export const MileniaOwnerDashboard: React.FC = () => {
               </div>
             </button>
 
-            {/* Perfil del Negocio (Milenia / QR / Breve / Bancos) */}
+            {/* 8. Perfil del negocio */}
             <button
               onClick={() => {
                 setCurrentSection('perfil_negocio');
@@ -753,7 +803,7 @@ export const MileniaOwnerDashboard: React.FC = () => {
             >
               <div className="flex items-center gap-3">
                 <Briefcase className={`w-4 h-4 shrink-0 ${currentSection === 'perfil_negocio' ? 'text-amber-400' : 'text-slate-400'}`} />
-                {isSidebarOpen && <span>Perfil del Negocio</span>}
+                {isSidebarOpen && <span>Perfil del negocio</span>}
               </div>
               {isSidebarOpen && (
                 <span className="text-[9px] font-mono text-purple-300 font-bold bg-purple-500/20 border border-purple-500/30 px-1.5 py-0.5 rounded">
@@ -762,13 +812,13 @@ export const MileniaOwnerDashboard: React.FC = () => {
               )}
             </button>
 
-            {/* Perfil de Usuario (Titular / Propietario) */}
+            {/* 9. Perfil del usuario */}
             <button
               onClick={() => {
                 setCurrentSection('perfil_usuario');
                 setIsMobileMenuOpen(false);
               }}
-              title="Perfil de Usuario"
+              title="Perfil del Usuario"
               className={`w-full flex items-center ${isSidebarOpen ? 'justify-between px-3.5' : 'justify-center px-0'} py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
                 currentSection === 'perfil_usuario'
                   ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-md'
@@ -777,7 +827,7 @@ export const MileniaOwnerDashboard: React.FC = () => {
             >
               <div className="flex items-center gap-3">
                 <User className={`w-4 h-4 shrink-0 ${currentSection === 'perfil_usuario' ? 'text-amber-400' : 'text-slate-400'}`} />
-                {isSidebarOpen && <span>Perfil de Usuario</span>}
+                {isSidebarOpen && <span>Perfil del usuario</span>}
               </div>
               {isSidebarOpen && (
                 <span className="text-[10px] font-mono text-amber-400 font-bold">1085312034</span>
@@ -1363,7 +1413,14 @@ export const MileniaOwnerDashboard: React.FC = () => {
         )}
 
         {/* ======================================================================= */}
-        {/* SECCIÓN 3: MÓDULO CONTABILIDAD (INGRESOS & GASTOS FIRESTORE)             */}
+        {/* SECCIÓN 3: MÓDULO DE VENTAS & FACTURACIÓN DIAN                          */}
+        {/* ======================================================================= */}
+        {currentSection === 'ventas' && (
+          <MileniaVentasSection showToast={showToast} />
+        )}
+
+        {/* ======================================================================= */}
+        {/* SECCIÓN 4: MÓDULO CONTABILIDAD (INGRESOS & GASTOS FIRESTORE)             */}
         {/* ======================================================================= */}
         {currentSection === 'contabilidad' && (
           <div className="space-y-6 animate-fade-in">
@@ -1564,7 +1621,14 @@ export const MileniaOwnerDashboard: React.FC = () => {
         )}
 
         {/* ======================================================================= */}
-        {/* SECCIÓN 4: CONFIGURACIÓN DEL SISTEMA                                    */}
+        {/* SECCIÓN 5: MÓDULO DE EMPLEADOS & GESTIÓN DE PERSONAL                     */}
+        {/* ======================================================================= */}
+        {currentSection === 'empleados' && (
+          <MileniaEmpleadosSection showToast={showToast} />
+        )}
+
+        {/* ======================================================================= */}
+        {/* SECCIÓN 6: CONFIGURACIÓN DEL SISTEMA                                    */}
         {/* ======================================================================= */}
         {currentSection === 'configuracion' && (
           <div className="space-y-6 animate-fade-in">
