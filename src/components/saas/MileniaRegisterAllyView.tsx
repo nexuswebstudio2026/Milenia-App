@@ -43,6 +43,7 @@ import {
 import { addAliado } from '../../services/mileniaAliadosService';
 import { addTransaction } from '../../services/mileniaContabilidadService';
 import { getFinancialSummary, saveFinancialSummary } from '../../services/mileniaFinancialSummaryService';
+import { calculateNextAllySequence, formatAllyNumber, extractAllyNumber } from '../../utils/allySequence';
 import { TenantRestaurant, TenantEmployee } from '../../types';
 
 export const MileniaRegisterAllyView: React.FC = () => {
@@ -280,10 +281,10 @@ export const MileniaRegisterAllyView: React.FC = () => {
       const finalAmount = isDemoAffiliation ? 0 : 600000;
       const finalReference = paymentReference.trim() || (isDemoAffiliation ? `DEMO-2026-${Date.now().toString().slice(-6)}` : '');
 
-      // 1. Generar nuevo ID para el restaurante aliado
-      const existingIds = tenants.map(t => parseInt(t.id)).filter(n => !isNaN(n));
-      const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 5;
-      const newRestId = String(maxId + 1);
+      // 1. Generar nuevo ID y número consecutivo estricto para el restaurante aliado (1, 2, 3...)
+      const sequenceInfo = calculateNextAllySequence(tenants);
+      const newRestId = sequenceInfo.nextId;
+      const newAllyNumber = sequenceInfo.nextAllyNumber;
 
       // 2. Registrar usuario Propietario/Gerente en Firebase Auth & Firestore
       try {
@@ -302,6 +303,7 @@ export const MileniaRegisterAllyView: React.FC = () => {
       // 3. Crear el restaurante Tenant en memoria y persistencia Firestore
       const newTenant: TenantRestaurant = {
         id: newRestId,
+        allyNumber: newAllyNumber,
         slug: allyName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         name: allyName.trim(),
         city: allyCity.trim() || 'Pasto, Colombia',

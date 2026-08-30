@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { formatCop } from '../../utils/currency';
 import { useCurrentDomain } from '../../utils/domainHelper';
+import { formatAllyDisplay } from '../../utils/allySequence';
 
 export const MileniaAlliesView: React.FC = () => {
   const { 
@@ -126,7 +127,7 @@ export const MileniaAlliesView: React.FC = () => {
       {/* Allies Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredTenants.map((tenant) => {
-          const displayNum = tenant.allyNumber || (tenant.id.startsWith('#') ? tenant.id : (tenant.id.startsWith('aliado-') ? `#${tenant.id.replace('aliado-', '').padStart(3, '0')}` : `#${tenant.id}`));
+          const displayNum = formatAllyDisplay(tenant.allyNumber || tenant.id);
 
           return (
           <div

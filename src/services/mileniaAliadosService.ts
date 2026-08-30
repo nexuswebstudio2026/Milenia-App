@@ -9,6 +9,12 @@ import {
   deleteDoc, 
   onSnapshot 
 } from '../firebaseConfig';
+import { 
+  extractAllyNumber, 
+  formatAllyNumber, 
+  calculateNextAllySequence, 
+  sanitizeAllySequenceList 
+} from '../utils/allySequence';
 
 export type AllyPlan = 'Plan Máximo Integral Milenia' | 'Máximo Integral' | 'Pro' | 'Básico' | 'Enterprise';
 export type AllyStatus = 'Activo' | 'Inactivo' | 'Pendiente';
@@ -33,7 +39,7 @@ export interface MileniaAlly {
 
 export const INITIAL_ALIADOS: MileniaAlly[] = [
   {
-    id: 'aliado-1',
+    id: '1',
     allyNumber: '#001',
     name: 'Parrilla & Fuego Camilo',
     nit: '901.450.888-1',
@@ -49,7 +55,7 @@ export const INITIAL_ALIADOS: MileniaAlly[] = [
     createdAt: '2026-01-15T08:00:00.000Z'
   },
   {
-    id: 'aliado-2',
+    id: '2',
     allyNumber: '#002',
     name: 'Bella Italia Ristorante',
     nit: '900.872.101-3',
@@ -65,7 +71,7 @@ export const INITIAL_ALIADOS: MileniaAlly[] = [
     createdAt: '2026-02-10T10:30:00.000Z'
   },
   {
-    id: 'aliado-3',
+    id: '3',
     allyNumber: '#003',
     name: 'Burgers & Beers Craft',
     nit: '901.223.456-7',
@@ -81,7 +87,7 @@ export const INITIAL_ALIADOS: MileniaAlly[] = [
     createdAt: '2026-03-01T14:15:00.000Z'
   },
   {
-    id: 'aliado-4',
+    id: '4',
     allyNumber: '#004',
     name: 'Café & Bistro Macondo',
     nit: '900.654.321-9',
@@ -97,7 +103,7 @@ export const INITIAL_ALIADOS: MileniaAlly[] = [
     createdAt: '2026-03-20T09:00:00.000Z'
   },
   {
-    id: 'aliado-5',
+    id: '5',
     allyNumber: '#005',
     name: 'La Fogata Campestre',
     nit: '901.987.654-2',
@@ -117,15 +123,17 @@ export const INITIAL_ALIADOS: MileniaAlly[] = [
 const LOCAL_STORAGE_KEY = 'milenia_aliados_cache_v1';
 
 /**
- * Normaliza un documento Firestore a la interfaz MileniaAlly
+ * Normaliza un documento Firestore a la interfaz MileniaAlly con consecutivo estricto (#001, #002...)
  */
 export function parseMileniaAllyDoc(id: string, data: any): MileniaAlly {
   const rawId = String(id || data.id || '');
-  const num = data.allyNumber || (rawId.startsWith('#') ? rawId : (rawId.startsWith('aliado-') ? `#${rawId.replace('aliado-', '').padStart(3, '0')}` : (rawId ? `#${rawId}` : '#001')));
-  
+  const numeric = extractAllyNumber(data.allyNumber) || extractAllyNumber(rawId) || 1;
+  const cleanAllyNum = formatAllyNumber(numeric);
+  const safeId = numeric > 0 && numeric < 1000 ? String(numeric) : (rawId && !rawId.startsWith('aliado-17') && rawId !== '1788' ? rawId : String(numeric));
+
   return {
-    id: rawId,
-    allyNumber: num,
+    id: safeId,
+    allyNumber: cleanAllyNum,
     name: data.name || 'Restaurante Aliado',
     nit: data.nit || data.branding?.nit || '901.000.000-1',
     city: data.city || 'Bogotá D.C.',
@@ -143,7 +151,7 @@ export function parseMileniaAllyDoc(id: string, data: any): MileniaAlly {
 }
 
 /**
- * Obtiene todos los aliados desde Firestore colección 'aliados'
+ * Obtiene todos los aliados desde Firestore colección 'aliados' garantizando consecutivos
  */
 export async function getAliados(): Promise<MileniaAlly[]> {
   try {
@@ -156,28 +164,38 @@ export async function getAliados(): Promise<MileniaAlly[]> {
     }
 
     const list = snap.docs.map(d => parseMileniaAllyDoc(d.id, d.data()));
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
-    return list;
+    const sanitized = sanitizeAllySequenceList(list);
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sanitized));
+    return sanitized;
   } catch (e) {
     console.warn('Error en getAliados desde Firestore:', e);
     try {
       const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (cached) return JSON.parse(cached);
+      if (cached) return sanitizeAllySequenceList(JSON.parse(cached));
     } catch (_) {}
     return [];
   }
 }
 
 /**
- * Crea un nuevo aliado en Firestore colección 'aliados' (addDoc / setDoc)
+ * Crea un nuevo aliado en Firestore colección 'aliados' con número consecutivo calculado (1, 2, 3...)
  */
 export async function addAliado(allyData: Omit<MileniaAlly, 'id' | 'createdAt'> & { id?: string }): Promise<MileniaAlly> {
-  const generatedId = allyData.id && allyData.id.trim() ? allyData.id.trim() : `aliado-${Date.now()}`;
-  const allyNum = allyData.allyNumber || (generatedId.startsWith('#') ? generatedId : (generatedId.startsWith('aliado-') ? `#${generatedId.replace('aliado-', '').padStart(3, '0')}` : `#${generatedId}`));
+  // Obtener aliados actuales para calcular el siguiente consecutivo real
+  const currentList = await getAliados();
+  const sequenceInfo = calculateNextAllySequence(currentList);
+
+  const finalId = allyData.id && !allyData.id.startsWith('aliado-17') && allyData.id !== '1788' 
+    ? allyData.id.trim() 
+    : sequenceInfo.nextId;
+    
+  const allyNum = allyData.allyNumber && allyData.allyNumber !== '#1788' && extractAllyNumber(allyData.allyNumber) > 0
+    ? formatAllyNumber(extractAllyNumber(allyData.allyNumber))
+    : sequenceInfo.nextAllyNumber;
 
   const newAlly: MileniaAlly = {
     ...allyData,
-    id: generatedId,
+    id: finalId,
     allyNumber: allyNum,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -212,9 +230,8 @@ export async function addAliado(allyData: Omit<MileniaAlly, 'id' | 'createdAt'> 
   }
 
   try {
-    const current = await getAliados();
-    current.unshift(newAlly);
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(current));
+    const updated = await getAliados();
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
   } catch (_) {}
 
   return newAlly;
@@ -224,8 +241,12 @@ export async function addAliado(allyData: Omit<MileniaAlly, 'id' | 'createdAt'> 
  * Actualiza un aliado existente en Firestore colección 'aliados' (updateDoc / setDoc)
  */
 export async function updateAliado(id: string, updates: Partial<MileniaAlly>): Promise<void> {
+  const numeric = extractAllyNumber(updates.allyNumber) || extractAllyNumber(id) || 1;
+  const cleanNumber = formatAllyNumber(numeric);
+
   const payload: any = {
     ...updates,
+    allyNumber: cleanNumber,
     updatedAt: new Date().toISOString()
   };
 
@@ -254,7 +275,7 @@ export async function updateAliado(id: string, updates: Partial<MileniaAlly>): P
     const current = await getAliados();
     const idx = current.findIndex(a => a.id === id);
     if (idx >= 0) {
-      current[idx] = { ...current[idx], ...updates, updatedAt: payload.updatedAt };
+      current[idx] = { ...current[idx], ...updates, allyNumber: cleanNumber, updatedAt: payload.updatedAt };
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(current));
     }
   } catch (_) {}
@@ -286,8 +307,9 @@ export function subscribeToAliados(onUpdate: (aliados: MileniaAlly[]) => void) {
     const colRef = collection(db, 'aliados');
     return onSnapshot(colRef, (snap) => {
       const list = snap.docs.map(d => parseMileniaAllyDoc(d.id, d.data()));
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
-      onUpdate(list);
+      const sanitized = sanitizeAllySequenceList(list);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sanitized));
+      onUpdate(sanitized);
     }, (err) => {
       console.warn('Snapshot listener en aliados:', err);
     });
@@ -296,3 +318,4 @@ export function subscribeToAliados(onUpdate: (aliados: MileniaAlly[]) => void) {
     return () => {};
   }
 }
+

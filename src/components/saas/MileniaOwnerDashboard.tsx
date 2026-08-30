@@ -59,6 +59,13 @@ import {
   deleteAliado, 
   subscribeToAliados 
 } from '../../services/mileniaAliadosService';
+import { repairAndResequenceFirestoreAliados } from '../../services/aliadosService';
+import { 
+  calculateNextAllySequence, 
+  formatAllyNumber, 
+  extractAllyNumber, 
+  formatAllyDisplay 
+} from '../../utils/allySequence';
 import { 
   MileniaTransaction, 
   TransactionType, 
@@ -195,7 +202,16 @@ export const MileniaOwnerDashboard: React.FC = () => {
     // Load Aliados
     const loadAllAliados = async () => {
       setLoadingAliados(true);
-      const data = await getAliados();
+      let data = await getAliados();
+      
+      // Auto-corregir si detectamos un aliado único con '#1788', '1788' o número no consecutivo
+      if (data.length === 1 && (data[0].id === '1788' || data[0].allyNumber === '#1788' || data[0].id.startsWith('aliado-17') || data[0].allyNumber !== '#001')) {
+        try {
+          await repairAndResequenceFirestoreAliados();
+          data = await getAliados();
+        } catch (_) {}
+      }
+      
       setAliados(data);
       setLoadingAliados(false);
     };
@@ -325,12 +341,28 @@ export const MileniaOwnerDashboard: React.FC = () => {
   // ==========================================
   // ALIADO CRUD HANDLERS
   // ==========================================
+  const [isRepairingSequences, setIsRepairingSequences] = useState(false);
+
+  const handleRepairDatabaseSequences = async () => {
+    setIsRepairingSequences(true);
+    try {
+      const res = await repairAndResequenceFirestoreAliados();
+      const updated = await getAliados();
+      setAliados(updated);
+      showToast('Base de Datos Sincronizada', res.message, 'success');
+    } catch (err: any) {
+      showToast('Error', err.message || 'No se pudo sincronizar la secuencia en Firestore', 'error');
+    } finally {
+      setIsRepairingSequences(false);
+    }
+  };
+
   const handleOpenCreateAlly = () => {
     setEditingAlly(null);
-    const nextNum = `#${String(aliados.length + 1).padStart(3, '0')}`;
+    const seq = calculateNextAllySequence(aliados);
     setAllyFormData({
-      id: `aliado-${Date.now()}`,
-      allyNumber: nextNum,
+      id: seq.nextId,
+      allyNumber: seq.nextAllyNumber,
       name: '',
       nit: '',
       city: 'Bogotá D.C.',
@@ -348,10 +380,11 @@ export const MileniaOwnerDashboard: React.FC = () => {
 
   const handleOpenEditAlly = (ally: MileniaAlly) => {
     setEditingAlly(ally);
-    const allyNum = ally.allyNumber || (ally.id.startsWith('aliado-') ? `#${ally.id.replace('aliado-', '').padStart(3, '0')}` : ally.id);
+    const num = extractAllyNumber(ally.allyNumber) || extractAllyNumber(ally.id) || 1;
+    const cleanNum = formatAllyNumber(num);
     setAllyFormData({
       id: ally.id,
-      allyNumber: allyNum,
+      allyNumber: cleanNum,
       name: ally.name,
       nit: ally.nit,
       city: ally.city,
@@ -375,12 +408,16 @@ export const MileniaOwnerDashboard: React.FC = () => {
     }
 
     const fee = Number(allyFormData.monthlyFeeCop) || 600000;
-    const cleanNumber = allyFormData.allyNumber.trim() || (editingAlly?.allyNumber || `#${String(aliados.length + 1).padStart(3, '0')}`);
+    const seq = calculateNextAllySequence(aliados);
+    const numericVal = extractAllyNumber(allyFormData.allyNumber) || (editingAlly ? extractAllyNumber(editingAlly.allyNumber) || 1 : seq.nextNumber);
+    const cleanNumber = formatAllyNumber(numericVal);
+    const targetId = editingAlly ? editingAlly.id : String(numericVal);
 
     if (editingAlly) {
       // Update
       await updateAliado(editingAlly.id, {
         ...allyFormData,
+        id: editingAlly.id,
         allyNumber: cleanNumber,
         monthlyFeeCop: fee,
         plan: allyFormData.plan || 'Plan Máximo Integral Milenia'
@@ -390,7 +427,7 @@ export const MileniaOwnerDashboard: React.FC = () => {
       // Create
       await addAliado({
         ...allyFormData,
-        id: allyFormData.id.trim() || `aliado-${Date.now()}`,
+        id: targetId,
         allyNumber: cleanNumber,
         monthlyFeeCop: fee,
         plan: 'Plan Máximo Integral Milenia'
@@ -1257,13 +1294,25 @@ export const MileniaOwnerDashboard: React.FC = () => {
                 </p>
               </div>
 
-              <button
-                onClick={handleOpenCreateAlly}
-                className="px-4 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs rounded-2xl shadow-lg shadow-amber-500/20 transition flex items-center gap-2 cursor-pointer"
-              >
-                <Plus className="w-4 h-4 stroke-[3]" />
-                <span>Agregar Nuevo Aliado</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRepairDatabaseSequences}
+                  disabled={isRepairingSequences}
+                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-2xl border border-amber-500/30 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-sm"
+                  title="Reindexar base de datos Firestore para que los aliados tengan números consecutivos (1, 2, 3...)"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRepairingSequences ? 'animate-spin text-amber-400' : ''}`} />
+                  <span>{isRepairingSequences ? 'Sincronizando...' : 'Corregir Consecutivos (1, 2, 3...)'}</span>
+                </button>
+
+                <button
+                  onClick={handleOpenCreateAlly}
+                  className="px-4 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs rounded-2xl shadow-lg shadow-amber-500/20 transition flex items-center gap-2 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 stroke-[3]" />
+                  <span>Agregar Nuevo Aliado</span>
+                </button>
+              </div>
             </div>
 
             {/* Filter Bar */}
