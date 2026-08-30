@@ -458,7 +458,7 @@ export const AllyManagerAccessPanel: React.FC = () => {
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-2.5 py-0.5 text-[10px] font-mono font-black uppercase tracking-wider rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  Aliado #{currentTenant.id}
+                  Aliado {currentTenant.allyNumber || `#${currentTenant.id}`}
                 </span>
                 <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full ${activeRoleConfig.bgColor} ${activeRoleConfig.textColor} border ${activeRoleConfig.borderColor} flex items-center gap-1`}>
                   <RoleIcon className="w-3 h-3" />
@@ -520,7 +520,7 @@ export const AllyManagerAccessPanel: React.FC = () => {
               >
                 {tenants.map(t => (
                   <option key={t.id} value={t.id}>
-                    Aliado #{t.id} - {t.name}
+                    Aliado {t.allyNumber || `#${t.id}`} - {t.name}
                   </option>
                 ))}
               </select>

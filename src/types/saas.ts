@@ -87,6 +87,7 @@ export interface AllySubscriptionPayment {
 
 export interface TenantRestaurant {
   id: string; // Unique_ID e.g. 'rest-milenia-bogota'
+  allyNumber?: string; // e.g. '#001', '#002'
   slug: string; // 'milenia-bogota', 'camilo-medellin', 'parrilla-valle'
   name: string;
   city: string; // e.g. "Bogotá, Colombia"

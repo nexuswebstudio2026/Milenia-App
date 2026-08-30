@@ -510,7 +510,7 @@ export const MileniaLoginView: React.FC = () => {
                   >
                     {tenants.map(t => (
                       <option key={t.id} value={t.id}>
-                        Aliado #{t.id} - {t.name} ({t.city.split(',')[0]})
+                        Aliado {t.allyNumber || `#${t.id}`} - {t.name} ({t.city.split(',')[0]})
                       </option>
                     ))}
                   </select>

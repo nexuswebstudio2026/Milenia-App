@@ -18,8 +18,10 @@ const COLLECTION_NAME = 'aliados';
  * Normalizes a TenantRestaurant object for Firestore storage
  */
 export function formatAliadoDoc(tenant: TenantRestaurant) {
+  const allyNum = tenant.allyNumber || (tenant.id.startsWith('#') ? tenant.id : (tenant.id.startsWith('aliado-') ? `#${tenant.id.replace('aliado-', '').padStart(3, '0')}` : `#${tenant.id}`));
   return {
     id: String(tenant.id),
+    allyNumber: allyNum,
     slug: tenant.slug || `rest-${tenant.id}`,
     name: tenant.name,
     city: tenant.city,
@@ -28,9 +30,10 @@ export function formatAliadoDoc(tenant: TenantRestaurant) {
     email: tenant.email,
     nit: tenant.branding?.nit || '',
     dianResolution: tenant.branding?.dianResolution || '',
-    plan: tenant.subscription?.plan || 'pro',
+    plan: tenant.subscription?.plan || 'Plan Máximo Integral Milenia',
     status: tenant.subscription?.status || 'active',
-    tablesCount: tenant.tablesCount || 8,
+    monthlyFeeCop: tenant.subscription?.mrrCop || 600000,
+    tablesCount: tenant.tablesCount || 16,
     activeOrdersCount: tenant.activeOrdersCount || 0,
     totalMonthlySalesCop: tenant.totalMonthlySalesCop || 0,
     logoUrl: tenant.branding?.logoUrl || '',
@@ -54,43 +57,47 @@ export function formatAliadoDoc(tenant: TenantRestaurant) {
  * Maps a Firestore doc back to TenantRestaurant structure
  */
 export function parseAliadoDoc(data: any): TenantRestaurant {
+  const rawId = String(data.id || '');
+  const allyNum = data.allyNumber || (rawId.startsWith('#') ? rawId : (rawId.startsWith('aliado-') ? `#${rawId.replace('aliado-', '').padStart(3, '0')}` : (rawId ? `#${rawId}` : '#001')));
+  
   return {
-    id: String(data.id),
-    slug: data.slug || `rest-${data.id}`,
+    id: rawId || '1',
+    allyNumber: allyNum,
+    slug: data.slug || `rest-${rawId || '1'}`,
     name: data.name || 'Restaurante Aliado',
-    city: data.city || 'Colombia',
+    city: data.city || 'Bogotá D.C.',
     address: data.address || '',
     phone: data.phone || '',
     email: data.email || '',
     createdAt: data.createdAt || '2025-01-01',
-    tablesCount: Number(data.tablesCount) || 8,
+    tablesCount: Number(data.tablesCount) || 16,
     activeOrdersCount: Number(data.activeOrdersCount) || 0,
-    totalMonthlySalesCop: Number(data.totalMonthlySalesCop) || 0,
+    totalMonthlySalesCop: Number(data.totalMonthlySalesCop) || (Number(data.monthlyFeeCop) ? Number(data.monthlyFeeCop) * 10 : 0),
     rutDocumentUrl: data.rutDocumentUrl || undefined,
     rutDocumentFileName: data.rutDocumentFileName || undefined,
     rutUploadedAt: data.rutUploadedAt || undefined,
     subscriptionPayment: data.subscriptionPayment || undefined,
-    branding: data.branding || {
-      logoUrl: data.logoUrl || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=200&q=80',
-      primaryColor: data.primaryColor || '#ea580c',
-      accentColor: data.accentColor || '#f59e0b',
-      themeStyle: 'rustic',
-      bannerImage: data.bannerImage || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
-      tagline: data.tagline || 'Gastronomía Tradicional',
-      currency: 'COP',
-      currencySymbol: '$',
-      dianResolution: data.dianResolution || 'Resolución DIAN No. 18764032910 de 2025',
-      nit: data.nit || '901.884.231-9',
-      tipSuggestedPercentage: 10
+    branding: {
+      logoUrl: data.branding?.logoUrl || data.logoUrl || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=200&q=80',
+      primaryColor: data.branding?.primaryColor || data.primaryColor || '#ea580c',
+      accentColor: data.branding?.accentColor || data.accentColor || '#f59e0b',
+      themeStyle: data.branding?.themeStyle || 'rustic',
+      bannerImage: data.branding?.bannerImage || data.bannerImage || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
+      tagline: data.branding?.tagline || data.tagline || 'Gastronomía Tradicional',
+      currency: data.branding?.currency || data.currency || 'COP',
+      currencySymbol: data.branding?.currencySymbol || data.currencySymbol || '$',
+      dianResolution: data.branding?.dianResolution || data.dianResolution || 'Resolución DIAN No. 18764032910 de 2025',
+      nit: data.branding?.nit || data.nit || '901.884.231-9',
+      tipSuggestedPercentage: data.branding?.tipSuggestedPercentage || 10
     },
-    subscription: data.subscription || {
-      plan: 'pro',
-      status: data.status || 'active',
-      mrrCop: 600000,
-      renewsAt: '2026-09-01',
-      maxTables: 30,
-      maxEmployees: 20,
-      features: ['POS Meseros', 'KDS Cocina', 'Facturación DIAN', 'Menú QR', 'Control de Inventario', 'Gestión de Personal']
+    subscription: {
+      plan: (data.subscription?.plan || data.plan || 'Plan Máximo Integral Milenia') as any,
+      status: (data.subscription?.status || data.status || 'active') as any,
+      mrrCop: Number(data.subscription?.mrrCop || data.monthlyFeeCop || 600000),
+      renewsAt: data.subscription?.renewsAt || '2026-09-01',
+      maxTables: Number(data.subscription?.maxTables || data.tablesCount || 30),
+      maxEmployees: Number(data.subscription?.maxEmployees || 20),
+      features: data.subscription?.features || ['POS Meseros', 'KDS Cocina', 'Facturación DIAN', 'Menú QR', 'Control de Inventario', 'Gestión de Personal']
     }
   };
 }

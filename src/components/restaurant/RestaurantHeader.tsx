@@ -88,7 +88,7 @@ export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }
               URL: {getTenantDisplayUrl(currentTenant.id)}
             </span>
             <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-black uppercase">
-              Aliado #{currentTenant.id}
+              Aliado {currentTenant.allyNumber || `#${currentTenant.id}`}
             </span>
           </div>
         </div>
@@ -136,7 +136,7 @@ export const RestaurantHeader: React.FC<RestaurantHeaderProps> = ({ onOpenCart }
                       ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300' 
                       : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
                   }`}>
-                    {String(currentTenant.id) === '1' ? 'Milenia Core #1' : `Aliado #${currentTenant.id} (Firestore)`}
+                    {String(currentTenant.id) === '1' ? 'Milenia Core' : `Aliado ${currentTenant.allyNumber || `#${currentTenant.id}`} (Firestore)`}
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">

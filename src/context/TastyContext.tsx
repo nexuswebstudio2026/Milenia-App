@@ -489,6 +489,10 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           branding: {
             ...t.branding,
             ...(partial.branding || {})
+          },
+          subscription: {
+            ...t.subscription,
+            ...(partial.subscription || {})
           }
         };
         updatedTenant = mod;

@@ -43,13 +43,19 @@ export const MileniaAlliesView: React.FC = () => {
   const filteredTenants = tenants.filter(tenant => {
     const name = tenant.name || '';
     const id = tenant.id || '';
+    const allyNum = tenant.allyNumber || '';
     const city = tenant.city || '';
     const tagline = tenant.branding?.tagline || '';
+    const phone = tenant.phone || '';
+    const nit = tenant.branding?.nit || '';
 
     const matchesSearch = 
       name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      id.includes(searchQuery) ||
+      id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      allyNum.toLowerCase().includes(searchQuery.toLowerCase()) ||
       city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      nit.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tagline.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCity = selectedCity === 'all' || city.toLowerCase().includes(selectedCity.toLowerCase());
@@ -119,7 +125,10 @@ export const MileniaAlliesView: React.FC = () => {
 
       {/* Allies Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredTenants.map((tenant) => (
+        {filteredTenants.map((tenant) => {
+          const displayNum = tenant.allyNumber || (tenant.id.startsWith('#') ? tenant.id : (tenant.id.startsWith('aliado-') ? `#${tenant.id.replace('aliado-', '').padStart(3, '0')}` : `#${tenant.id}`));
+
+          return (
           <div
             key={tenant.id}
             className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-amber-500/50 transition-all duration-300 flex flex-col justify-between group"
@@ -139,10 +148,10 @@ export const MileniaAlliesView: React.FC = () => {
                 <div className="absolute top-3 left-3 flex items-center gap-2">
                   <div className="px-3 py-1 bg-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg flex items-center gap-1.5">
                     <Store className="w-3.5 h-3.5" />
-                    <span>Aliado #{tenant.id}</span>
+                    <span>Aliado {displayNum}</span>
                   </div>
-                  <span className="px-2.5 py-0.5 rounded-lg bg-slate-900/90 text-white text-[11px] font-medium backdrop-blur-xs">
-                    Plan {tenant.subscription.plan.toUpperCase()}
+                  <span className="px-2.5 py-0.5 rounded-lg bg-slate-900/90 text-amber-400 text-[11px] font-bold backdrop-blur-xs border border-amber-500/30">
+                    Plan Máximo Integral
                   </span>
                 </div>
 
@@ -172,7 +181,7 @@ export const MileniaAlliesView: React.FC = () => {
                 <div className="p-3 bg-amber-50/70 dark:bg-slate-800/80 rounded-2xl border border-amber-200 dark:border-slate-700 space-y-1">
                   <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
                     <span>URL Oficial del Aliado:</span>
-                    <span className="text-amber-600 dark:text-amber-400 font-mono font-bold">ID: {tenant.id}</span>
+                    <span className="text-amber-600 dark:text-amber-400 font-mono font-bold">N° Aliado: {displayNum}</span>
                   </div>
                   <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
                     <span className="font-mono text-xs font-bold text-slate-800 dark:text-amber-300 truncate">
@@ -202,6 +211,14 @@ export const MileniaAlliesView: React.FC = () => {
                     <div className="text-[10px] text-slate-400 font-medium">Capacidad</div>
                     <div className="font-bold">{tenant.tablesCount} Mesas activas</div>
                   </div>
+                  {tenant.phone && (
+                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 col-span-2 flex items-center justify-between">
+                      <div className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                        <Phone className="w-3 h-3 text-emerald-500" /> Contacto:
+                      </div>
+                      <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{tenant.phone}</div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Sub-services Quick Navigation */}
@@ -248,7 +265,7 @@ export const MileniaAlliesView: React.FC = () => {
                   onClick={() => handleEnterRestaurant(tenant.id, 'home')}
                   className="py-2.5 px-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 transition cursor-pointer"
                 >
-                  <span>Carta & Aliado {tenant.id}</span>
+                  <span>Carta & Aliado {displayNum}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
 
@@ -270,7 +287,8 @@ export const MileniaAlliesView: React.FC = () => {
             </div>
 
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {filteredTenants.length === 0 && (

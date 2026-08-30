@@ -117,6 +117,32 @@ export const INITIAL_ALIADOS: MileniaAlly[] = [
 const LOCAL_STORAGE_KEY = 'milenia_aliados_cache_v1';
 
 /**
+ * Normaliza un documento Firestore a la interfaz MileniaAlly
+ */
+export function parseMileniaAllyDoc(id: string, data: any): MileniaAlly {
+  const rawId = String(id || data.id || '');
+  const num = data.allyNumber || (rawId.startsWith('#') ? rawId : (rawId.startsWith('aliado-') ? `#${rawId.replace('aliado-', '').padStart(3, '0')}` : (rawId ? `#${rawId}` : '#001')));
+  
+  return {
+    id: rawId,
+    allyNumber: num,
+    name: data.name || 'Restaurante Aliado',
+    nit: data.nit || data.branding?.nit || '901.000.000-1',
+    city: data.city || 'Bogotá D.C.',
+    address: data.address || '',
+    phone: data.phone || '',
+    email: data.email || '',
+    plan: data.plan || data.subscription?.plan || 'Plan Máximo Integral Milenia',
+    status: data.status || data.subscription?.status || 'Activo',
+    monthlyFeeCop: Number(data.monthlyFeeCop || data.subscription?.mrrCop || 600000),
+    tablesCount: Number(data.tablesCount || 16),
+    contactName: data.contactName || '',
+    createdAt: data.createdAt || new Date().toISOString(),
+    updatedAt: data.updatedAt
+  };
+}
+
+/**
  * Obtiene todos los aliados desde Firestore colección 'aliados'
  */
 export async function getAliados(): Promise<MileniaAlly[]> {
@@ -129,10 +155,7 @@ export async function getAliados(): Promise<MileniaAlly[]> {
       return [];
     }
 
-    const list = snap.docs.map(d => ({
-      ...d.data(),
-      id: d.id
-    })) as MileniaAlly[];
+    const list = snap.docs.map(d => parseMileniaAllyDoc(d.id, d.data()));
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
     return list;
   } catch (e) {
@@ -149,15 +172,41 @@ export async function getAliados(): Promise<MileniaAlly[]> {
  * Crea un nuevo aliado en Firestore colección 'aliados' (addDoc / setDoc)
  */
 export async function addAliado(allyData: Omit<MileniaAlly, 'id' | 'createdAt'> & { id?: string }): Promise<MileniaAlly> {
+  const generatedId = allyData.id && allyData.id.trim() ? allyData.id.trim() : `aliado-${Date.now()}`;
+  const allyNum = allyData.allyNumber || (generatedId.startsWith('#') ? generatedId : (generatedId.startsWith('aliado-') ? `#${generatedId.replace('aliado-', '').padStart(3, '0')}` : `#${generatedId}`));
+
   const newAlly: MileniaAlly = {
     ...allyData,
-    id: allyData.id && allyData.id.trim() ? allyData.id.trim() : `aliado-${Date.now()}`,
+    id: generatedId,
+    allyNumber: allyNum,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
 
   try {
-    await setDoc(doc(db, 'aliados', newAlly.id), newAlly);
+    await setDoc(doc(db, 'aliados', newAlly.id), {
+      ...newAlly,
+      branding: {
+        nit: newAlly.nit,
+        tagline: 'Gastronomía Tradicional',
+        currency: 'COP',
+        currencySymbol: '$',
+        primaryColor: '#ea580c',
+        accentColor: '#f59e0b',
+        themeStyle: 'rustic',
+        logoUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=200&q=80',
+        bannerImage: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
+        dianResolution: 'Resolución DIAN No. 18764032910 de 2025'
+      },
+      subscription: {
+        plan: newAlly.plan,
+        status: newAlly.status === 'Activo' ? 'active' : 'suspended',
+        mrrCop: newAlly.monthlyFeeCop,
+        renewsAt: '2026-09-01',
+        maxTables: newAlly.tablesCount || 30,
+        maxEmployees: 20
+      }
+    }, { merge: true });
   } catch (e) {
     console.warn('Error en addAliado en Firestore:', e);
   }
@@ -175,29 +224,37 @@ export async function addAliado(allyData: Omit<MileniaAlly, 'id' | 'createdAt'> 
  * Actualiza un aliado existente en Firestore colección 'aliados' (updateDoc / setDoc)
  */
 export async function updateAliado(id: string, updates: Partial<MileniaAlly>): Promise<void> {
-  const payload = {
+  const payload: any = {
     ...updates,
     updatedAt: new Date().toISOString()
   };
 
+  if (updates.nit) {
+    payload['branding.nit'] = updates.nit;
+  }
+  if (updates.monthlyFeeCop) {
+    payload['subscription.mrrCop'] = updates.monthlyFeeCop;
+  }
+  if (updates.plan) {
+    payload['subscription.plan'] = updates.plan;
+  }
+  if (updates.tablesCount) {
+    payload['tablesCount'] = updates.tablesCount;
+    payload['subscription.maxTables'] = updates.tablesCount;
+  }
+
   try {
     const allyDocRef = doc(db, 'aliados', id);
-    await updateDoc(allyDocRef, payload);
+    await setDoc(allyDocRef, payload, { merge: true });
   } catch (e) {
-    // Si no existe con updateDoc, intenta con setDoc merge
-    try {
-      const allyDocRef = doc(db, 'aliados', id);
-      await setDoc(allyDocRef, payload, { merge: true });
-    } catch (err) {
-      console.warn('Error en updateAliado en Firestore:', err);
-    }
+    console.warn('Error en updateAliado en Firestore:', e);
   }
 
   try {
     const current = await getAliados();
     const idx = current.findIndex(a => a.id === id);
     if (idx >= 0) {
-      current[idx] = { ...current[idx], ...payload };
+      current[idx] = { ...current[idx], ...updates, updatedAt: payload.updatedAt };
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(current));
     }
   } catch (_) {}
@@ -228,10 +285,7 @@ export function subscribeToAliados(onUpdate: (aliados: MileniaAlly[]) => void) {
   try {
     const colRef = collection(db, 'aliados');
     return onSnapshot(colRef, (snap) => {
-      const list = snap.docs.map(d => ({
-        ...d.data(),
-        id: d.id
-      })) as MileniaAlly[];
+      const list = snap.docs.map(d => parseMileniaAllyDoc(d.id, d.data()));
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
       onUpdate(list);
     }, (err) => {
