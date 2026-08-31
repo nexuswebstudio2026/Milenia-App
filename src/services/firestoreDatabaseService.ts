@@ -62,6 +62,28 @@ export const FIRESTORE_TABLES: FirestoreTableMeta[] = [
     }
   },
   {
+    id: 'empleados',
+    name: 'Empleados & Personal Milenia',
+    description: 'Personal operativo, soporte técnico, asesores de onboarding y equipo corporativo de Milenia',
+    category: 'saas',
+    icon: 'Users',
+    defaultTemplate: {
+      employeeCode: 'EMP-MLN-001',
+      name: 'Andrés Felipe Morales',
+      documentId: '1098765432',
+      phone: '+57 304 347 0984',
+      email: 'andres.morales@milenia.app',
+      assignedAllyId: 'all',
+      assignedAllyName: 'Todos los Aliados (Cobertura Global)',
+      operationalRole: 'Líder de Operaciones & Despliegues Milenia',
+      department: 'Soporte & Operaciones',
+      status: 'active',
+      salaryCop: 2800000,
+      hireDate: new Date().toISOString().split('T')[0],
+      createdAt: new Date().toISOString()
+    }
+  },
+  {
     id: 'milenia_aliados',
     name: 'Aliados Milenia (Registro)',
     description: 'Colección de aliados y comercios registrados en Milenia',
