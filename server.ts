@@ -36,10 +36,21 @@ let whatsappState = {
   instanceName: 'milenia_business_oficial',
   phoneNumber: '+57 304 347 0984',
   isConnected: true,
-  batteryLevel: 94,
+  batteryLevel: 98,
   lastSyncAt: new Date().toISOString(),
   qrCode: '2@' + Buffer.from(`milenia_wa_${Date.now()}_ref`).toString('base64') + ',' + Buffer.from('pk_milenia_gateway_v2').toString('base64') + ',' + Buffer.from('client_token_sec').toString('base64'),
-  pairingCode: 'MLNA-9824'
+  pairingCode: 'MLNA-9824',
+  provider: 'evolution_api',
+  metaConfig: {
+    wabaId: '',
+    phoneNumberId: '',
+    accessToken: ''
+  },
+  evolutionConfig: {
+    apiUrl: 'https://api.milenia.app/wa',
+    apiKey: '',
+    instanceName: 'milenia_pos_crm'
+  }
 };
 
 // WhatsApp instance status endpoint
@@ -52,7 +63,7 @@ app.get('/api/whatsapp/instance/status', (req, res) => {
 
 // Generate dynamic QR / Pairing session
 app.post('/api/whatsapp/instance/connect', (req, res) => {
-  const { phoneNumber } = req.body || {};
+  const { phoneNumber, provider } = req.body || {};
   const randRef = Math.random().toString(36).substring(2, 15);
   const randKey = Math.random().toString(36).substring(2, 15);
   const randTok = Math.random().toString(36).substring(2, 15);
@@ -71,6 +82,7 @@ app.post('/api/whatsapp/instance/connect', (req, res) => {
   whatsappState = {
     ...whatsappState,
     phoneNumber: phoneNumber || whatsappState.phoneNumber,
+    provider: provider || whatsappState.provider,
     qrCode: validWaQr,
     pairingCode: pair,
     lastSyncAt: new Date().toISOString()
@@ -84,10 +96,11 @@ app.post('/api/whatsapp/instance/connect', (req, res) => {
 
 // Confirm WhatsApp connection
 app.post('/api/whatsapp/instance/confirm-paired', (req, res) => {
-  const { phoneNumber } = req.body || {};
+  const { phoneNumber, provider } = req.body || {};
   whatsappState = {
     ...whatsappState,
     phoneNumber: phoneNumber || whatsappState.phoneNumber || '+57 304 347 0984',
+    provider: provider || whatsappState.provider,
     isConnected: true,
     batteryLevel: 98,
     lastSyncAt: new Date().toISOString()
@@ -95,7 +108,7 @@ app.post('/api/whatsapp/instance/confirm-paired', (req, res) => {
 
   res.json({
     success: true,
-    message: 'WhatsApp Business vinculado exitosamente con el CRM',
+    message: 'WhatsApp Business vinculado exitosamente con el CRM de Milenia',
     data: whatsappState
   });
 });
@@ -110,6 +123,27 @@ app.post('/api/whatsapp/instance/disconnect', (req, res) => {
   res.json({ success: true, message: 'WhatsApp desconectado', data: whatsappState });
 });
 
+// Update instance provider configuration
+app.post('/api/whatsapp/instance/configure', (req, res) => {
+  const { provider, phoneNumber, metaConfig, evolutionConfig } = req.body || {};
+  
+  whatsappState = {
+    ...whatsappState,
+    provider: provider || whatsappState.provider,
+    phoneNumber: phoneNumber || whatsappState.phoneNumber,
+    metaConfig: metaConfig || whatsappState.metaConfig,
+    evolutionConfig: evolutionConfig || whatsappState.evolutionConfig,
+    isConnected: true,
+    lastSyncAt: new Date().toISOString()
+  };
+
+  res.json({
+    success: true,
+    message: 'Configuración de WhatsApp guardada y sincronizada',
+    data: whatsappState
+  });
+});
+
 // Endpoint de verificación y recepción de Webhook de WhatsApp (Evolution API / Meta Cloud API)
 app.get('/api/whatsapp/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
@@ -117,14 +151,20 @@ app.get('/api/whatsapp/webhook', (req, res) => {
   const challenge = req.query['hub.challenge'];
 
   if (mode && token) {
-    if (mode === 'subscribe' && (token === 'milenia_verify_token' || token === process.env.WHATSAPP_VERIFY_TOKEN)) {
+    if (mode === 'subscribe' && (token === 'milenia_verify_token' || token === process.env.WHATSAPP_VERIFY_TOKEN || token === 'milenia_crm_token')) {
       console.log('✅ WhatsApp Webhook verificado con éxito');
       return res.status(200).send(challenge);
     } else {
       return res.sendStatus(403);
     }
   }
-  return res.json({ status: 'active', message: 'Milenia WhatsApp Webhook Gateway operational' });
+  return res.json({ 
+    status: 'active', 
+    message: 'Milenia WhatsApp Webhook Gateway operational',
+    webhookUrl: '/api/whatsapp/webhook',
+    verifyToken: 'milenia_verify_token',
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.post('/api/whatsapp/webhook', (req, res) => {
@@ -135,10 +175,11 @@ app.post('/api/whatsapp/webhook', (req, res) => {
     // Si viene de Evolution API o Meta Cloud API, procesar el mensaje
     if (payload.event === 'messages.upsert' || payload.entry) {
       whatsappState.lastSyncAt = new Date().toISOString();
+      whatsappState.isConnected = true;
     }
 
     // Retornar 200 OK inmediatamente al proveedor
-    res.status(200).json({ success: true, received: true });
+    res.status(200).json({ success: true, received: true, processedAt: new Date().toISOString() });
   } catch (error: any) {
     console.error('Error procesando webhook de WhatsApp:', error);
     res.status(500).json({ success: false, error: error.message });

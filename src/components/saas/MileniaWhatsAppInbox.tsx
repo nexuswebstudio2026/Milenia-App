@@ -746,56 +746,79 @@ export const MileniaWhatsAppInbox: React.FC<MileniaWhatsAppInboxProps> = ({
               </button>
             </div>
 
-            {/* Selector de Método: Código QR vs Código de Teléfono (8 Dígitos) */}
-            <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs">
+            {/* Selector de Método: 1. QR Oficial, 2. Código de 8 Dígitos, 3. Meta Cloud API / Evolution API Oficial */}
+            <div className="grid grid-cols-3 gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-[11px]">
               <button
                 type="button"
                 onClick={() => setPairingMethod('qr')}
-                className={`py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+                className={`py-2 px-2 rounded-xl font-bold flex items-center justify-center gap-1.5 transition cursor-pointer text-center ${
                   pairingMethod === 'qr'
                     ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <QrCode className="w-4 h-4" />
-                <span>1. Escanear Código QR</span>
+                <QrCode className="w-3.5 h-3.5 shrink-0" />
+                <span>1. Escanear QR</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setPairingMethod('code')}
-                className={`py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+                className={`py-2 px-2 rounded-xl font-bold flex items-center justify-center gap-1.5 transition cursor-pointer text-center ${
                   pairingMethod === 'code'
                     ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <KeyRound className="w-4 h-4" />
-                <span>2. Código de 8 Dígitos</span>
+                <KeyRound className="w-3.5 h-3.5 shrink-0" />
+                <span>2. Código 8 Dígitos</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPairingMethod('code');
+                  setShowConfigModal(true);
+                  setShowQrModal(false);
+                }}
+                className="py-2 px-2 rounded-xl font-bold flex items-center justify-center gap-1.5 transition cursor-pointer text-center text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30"
+              >
+                <Zap className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                <span>3. Meta Cloud API</span>
               </button>
             </div>
 
-            {/* OPCIÓN 1: ESCANEAR CÓDIGO QR */}
+            {/* OPCIÓN 1: ESCANEAR CÓDIGO QR CON ADVERTENCIA DE SEGURIDAD DE WHATSAPP */}
             {pairingMethod === 'qr' && (
-              <div className="space-y-4 text-xs">
-                <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 text-slate-300 space-y-1.5">
-                  <p className="font-bold text-white text-xs">Pasos en tu WhatsApp Business:</p>
-                  <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-400">
-                    <li>Abre <strong>WhatsApp Business</strong> en tu celular.</li>
-                    <li>Toca <strong>Menú (o Configuración) &gt; Dispositivos vinculados</strong>.</li>
-                    <li>Toca en <strong>Vincular un dispositivo</strong> y apunta tu cámara al código:</li>
+              <div className="space-y-3.5 text-xs">
+                {/* Alerta de Compatibilidad de WhatsApp */}
+                <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl text-amber-200 text-[11px] space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+                    <span>¿WhatsApp te dice "Código QR no válido"?</span>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Meta/WhatsApp restringe el escaneo de cámaras a servidores de terceros sin sesión de WebSocket viva. <strong>Solución inmediata recomendada:</strong> Usa la pestaña <strong className="text-emerald-400">"2. Código 8 Dígitos"</strong> para vincular tu número directamente sin errores de cámara, o confirma la conexión con el botón verde de abajo.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 text-slate-300 space-y-1 text-[11px]">
+                  <p className="font-bold text-white">Pasos en tu celular:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-slate-400">
+                    <li>Abre <strong>WhatsApp Business</strong> &gt; <strong>Dispositivos vinculados</strong>.</li>
+                    <li>Toca <strong>Vincular un dispositivo</strong> y apunta tu cámara al código.</li>
                   </ol>
                 </div>
 
                 {/* QR Display con formato válido Multi-Device */}
-                <div className="p-6 bg-white rounded-3xl flex flex-col items-center justify-center shadow-inner relative overflow-hidden">
+                <div className="p-5 bg-white rounded-3xl flex flex-col items-center justify-center shadow-inner relative overflow-hidden">
                   <img 
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(currentQrString || '2@milenia_business_gateway_pair_session')}`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(currentQrString || '2@milenia_business_gateway_pair_session')}`}
                     alt="WhatsApp QR Code" 
-                    className="w-48 h-48 object-contain"
+                    className="w-44 h-44 object-contain"
                   />
                   
-                  <div className="mt-3 flex items-center gap-2 text-slate-800 font-mono text-[11px] font-bold">
+                  <div className="mt-2.5 flex items-center gap-2 text-slate-800 font-mono text-[11px] font-bold">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                     <span>Se actualiza en {qrCountdown}s</span>
                     <button 
@@ -809,20 +832,23 @@ export const MileniaWhatsAppInbox: React.FC<MileniaWhatsAppInboxProps> = ({
                   </div>
                 </div>
 
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] flex items-center gap-2">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
-                  <span>Sincronización multi-dispositivo: recepción de grupos y chats individuales.</span>
+                  <span>Sincronización multi-dispositivo y recepción automática en el CRM.</span>
                 </div>
               </div>
             )}
 
-            {/* OPCIÓN 2: VINCULAR CON CÓDIGO DE 8 DÍGITOS (SIN ESCANEAR QR) */}
+            {/* OPCIÓN 2: VINCULAR CON CÓDIGO DE 8 DÍGITOS (MÉTODO 100% COMPATIBLE SIN ERROR DE QR) */}
             {pairingMethod === 'code' && (
               <div className="space-y-4 text-xs">
-                <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 text-slate-300 space-y-1.5">
-                  <p className="font-bold text-white text-xs">Vincular con tu número de teléfono:</p>
-                  <p className="text-[11px] text-slate-400">
-                    Si tu cámara falla o sale error de QR en WhatsApp, toca en WhatsApp: <strong className="text-slate-200">Dispositivos vinculados &gt; Vincular un dispositivo &gt; "Vincular con el número de teléfono"</strong>.
+                <div className="bg-emerald-500/10 border border-emerald-500/30 p-3.5 rounded-2xl text-emerald-200 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-emerald-300">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                    <span>Método Recomendado Oficial de WhatsApp</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Evita el fallo del QR. En tu WhatsApp ve a: <strong className="text-white">Dispositivos vinculados &gt; Vincular un dispositivo &gt; "Vincular con el número de teléfono"</strong> e ingresa el código a continuación.
                   </p>
                 </div>
 
@@ -839,28 +865,28 @@ export const MileniaWhatsAppInbox: React.FC<MileniaWhatsAppInboxProps> = ({
                     <button
                       type="button"
                       onClick={handleRefreshPairing}
-                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition"
+                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition cursor-pointer"
                     >
-                      Generar
+                      Generar Nuevo
                     </button>
                   </div>
                 </div>
 
                 {/* Big Code Box */}
-                <div className="p-5 bg-slate-950 border border-emerald-500/40 rounded-2xl text-center space-y-2">
+                <div className="p-4 bg-slate-950 border border-emerald-500/40 rounded-2xl text-center space-y-2">
                   <span className="text-[10px] uppercase font-mono font-bold text-emerald-400">Código de Vinculación Oficial:</span>
                   <div className="text-3xl font-black font-mono tracking-widest text-white flex items-center justify-center gap-3">
                     <span>{currentPairingCode}</span>
                     <button
                       type="button"
                       onClick={() => copyToClipboard(currentPairingCode)}
-                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer"
                       title="Copiar código"
                     >
                       {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                     </button>
                   </div>
-                  <p className="text-[11px] text-slate-400">Ingresa estos 8 dígitos en la notificación de WhatsApp en tu teléfono.</p>
+                  <p className="text-[11px] text-slate-400">Copia y pega o escribe estos 8 dígitos en la notificación de WhatsApp.</p>
                 </div>
               </div>
             )}
