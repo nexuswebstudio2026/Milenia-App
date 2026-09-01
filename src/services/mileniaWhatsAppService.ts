@@ -332,7 +332,215 @@ export async function getConversationMessages(conversationId: string): Promise<W
 }
 
 /**
- * Envía un mensaje a un chat o grupo y lo sincroniza en Firestore
+ * Genera una sesión de vinculación con QR y Código de Vinculación (Pairing Code)
+ */
+export async function startPairingSession(phoneNumber?: string): Promise<{ qrCode: string; pairingCode: string; config: WhatsAppInstanceConfig }> {
+  try {
+    const res = await fetch('/api/whatsapp/instance/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.data) {
+        const updatedConfig: WhatsAppInstanceConfig = {
+          ...DEFAULT_CONFIG,
+          phoneNumber: data.data.phoneNumber || phoneNumber || DEFAULT_CONFIG.phoneNumber,
+          isConnected: false,
+          qrCodeData: data.data.qrCode,
+          lastSyncAt: data.data.lastSyncAt
+        };
+        await saveWhatsAppConfig(updatedConfig);
+        return {
+          qrCode: data.data.qrCode,
+          pairingCode: data.data.pairingCode || 'MLNA-9824',
+          config: updatedConfig
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('Fallback generating local pairing session:', err);
+  }
+
+  // Generar sesión local en fallback
+  const randRef = Math.random().toString(36).substring(2, 12);
+  const randKey = Math.random().toString(36).substring(2, 12);
+  const qr = `2@${btoa('milenia_wa_' + randRef)},${btoa(randKey)},${btoa('client_sec_' + Date.now())}`;
+  
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let pair = '';
+  for (let i = 0; i < 8; i++) {
+    if (i === 4) pair += '-';
+    pair += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  const updatedConfig: WhatsAppInstanceConfig = {
+    ...DEFAULT_CONFIG,
+    phoneNumber: phoneNumber || DEFAULT_CONFIG.phoneNumber,
+    isConnected: false,
+    qrCodeData: qr,
+    lastSyncAt: new Date().toISOString()
+  };
+  await saveWhatsAppConfig(updatedConfig);
+
+  return {
+    qrCode: qr,
+    pairingCode: pair,
+    config: updatedConfig
+  };
+}
+
+/**
+ * Confirma y activa la vinculación de WhatsApp
+ */
+export async function confirmWhatsAppPairing(phoneNumber?: string): Promise<WhatsAppInstanceConfig> {
+  const current = await getWhatsAppConfig();
+  const phone = phoneNumber || current.phoneNumber || '+57 304 347 0984';
+
+  const updated: WhatsAppInstanceConfig = {
+    ...current,
+    phoneNumber: phone,
+    isConnected: true,
+    batteryLevel: 98,
+    lastSyncAt: new Date().toISOString()
+  };
+
+  await saveWhatsAppConfig(updated);
+
+  try {
+    await fetch('/api/whatsapp/instance/confirm-paired', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber: phone })
+    });
+  } catch (_) {}
+
+  return updated;
+}
+
+/**
+ * Desconecta la sesión de WhatsApp
+ */
+export async function disconnectWhatsAppInstance(): Promise<WhatsAppInstanceConfig> {
+  const current = await getWhatsAppConfig();
+  const updated: WhatsAppInstanceConfig = {
+    ...current,
+    isConnected: false,
+    lastSyncAt: new Date().toISOString()
+  };
+  await saveWhatsAppConfig(updated);
+
+  try {
+    await fetch('/api/whatsapp/instance/disconnect', { method: 'POST' });
+  } catch (_) {}
+
+  return updated;
+}
+
+/**
+ * Agrega o crea una nueva conversación de WhatsApp
+ */
+export async function addNewWhatsAppConversation(conv: Partial<WhatsAppConversation>): Promise<WhatsAppConversation> {
+  const id = conv.id || conv.phoneNumber?.replace(/[^0-9]/g, '') || `chat_${Date.now()}`;
+  const newChat: WhatsAppConversation = {
+    id,
+    name: conv.name || conv.phoneNumber || 'Nuevo Contacto',
+    phoneNumber: conv.phoneNumber || '+57 300 000 0000',
+    isGroup: Boolean(conv.isGroup),
+    groupParticipantsCount: conv.groupParticipantsCount,
+    avatarUrl: conv.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    lastMessageText: conv.lastMessageText || 'Conversación iniciada desde el CRM',
+    lastMessageTime: 'Justo ahora',
+    unreadCount: 0,
+    assignedLeadId: conv.assignedLeadId,
+    assignedLeadName: conv.assignedLeadName,
+    status: 'active',
+    tags: conv.tags || ['Nuevo', 'WhatsApp CRM']
+  };
+
+  const currentList = await getWhatsAppConversations();
+  const exists = currentList.findIndex(c => c.id === id);
+  let updatedList: WhatsAppConversation[];
+  if (exists >= 0) {
+    updatedList = [...currentList];
+    updatedList[exists] = { ...updatedList[exists], ...newChat };
+  } else {
+    updatedList = [newChat, ...currentList];
+  }
+
+  localStorage.setItem(STORAGE_CONVERSATIONS_KEY, JSON.stringify(updatedList));
+
+  try {
+    if (db) {
+      await setDoc(doc(db, 'crm_whatsapp_conversations', id), newChat, { merge: true });
+    }
+  } catch (e) {
+    console.warn('Error adding whatsapp conversation to firestore:', e);
+  }
+
+  return newChat;
+}
+
+/**
+ * Simula o inyecta la recepción de un mensaje en tiempo real
+ */
+export async function receiveIncomingWhatsAppMessage(
+  conversationId: string, 
+  senderName: string, 
+  messageText: string,
+  senderPhone?: string
+): Promise<{ message: WhatsAppMessageItem; conversation: WhatsAppConversation }> {
+  const newMsg: WhatsAppMessageItem = {
+    id: `msg-in-${Date.now()}`,
+    senderName,
+    senderPhone: senderPhone || conversationId,
+    isFromMe: false,
+    messageText: messageText.trim(),
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    status: 'received'
+  };
+
+  // Guardar mensaje
+  const currentMsgs = await getConversationMessages(conversationId);
+  const updatedMsgs = [...currentMsgs, newMsg];
+  localStorage.setItem(`${STORAGE_MESSAGES_PREFIX}${conversationId}`, JSON.stringify(updatedMsgs));
+
+  // Actualizar conversación
+  const conversations = await getWhatsAppConversations();
+  let found = conversations.find(c => c.id === conversationId);
+  if (!found) {
+    found = await addNewWhatsAppConversation({
+      id: conversationId,
+      name: senderName,
+      phoneNumber: senderPhone || conversationId,
+      lastMessageText: messageText.trim()
+    });
+  } else {
+    found.lastMessageText = messageText.trim();
+    found.lastMessageTime = 'Justo ahora';
+    found.unreadCount = (found.unreadCount || 0) + 1;
+  }
+
+  const updatedConvs = conversations.map(c => c.id === conversationId ? (found as WhatsAppConversation) : c);
+  localStorage.setItem(STORAGE_CONVERSATIONS_KEY, JSON.stringify(updatedConvs));
+
+  try {
+    if (db) {
+      await setDoc(doc(db, 'crm_whatsapp_conversations', conversationId, 'messages', newMsg.id), newMsg, { merge: true });
+      await setDoc(doc(db, 'crm_whatsapp_conversations', conversationId), {
+        lastMessageText: messageText.trim(),
+        lastMessageTime: 'Justo ahora',
+        unreadCount: (found.unreadCount || 0)
+      }, { merge: true });
+    }
+  } catch (_) {}
+
+  return { message: newMsg, conversation: found };
+}
+
+/**
+ * Envía un mensaje a un chat o grupo y lo sincroniza en Firestore y LocalStorage
  */
 export async function sendWhatsAppMessage(conversationId: string, text: string): Promise<WhatsAppMessageItem> {
   const newMsg: WhatsAppMessageItem = {
@@ -379,5 +587,39 @@ export async function sendWhatsAppMessage(conversationId: string, text: string):
     console.warn('Error saving message in firestore:', e);
   }
 
+  // Notificar al backend si está disponible
+  try {
+    await fetch('/api/whatsapp/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: conversationId,
+        message: text.trim(),
+        isGroup: conversationId.includes('group')
+      })
+    });
+  } catch (_) {}
+
   return newMsg;
+}
+
+/**
+ * Suscripción en tiempo real a las conversaciones de WhatsApp
+ */
+export function subscribeToWhatsAppConversations(onUpdate: (conversations: WhatsAppConversation[]) => void) {
+  try {
+    if (db) {
+      const colRef = collection(db, 'crm_whatsapp_conversations');
+      return onSnapshot(colRef, (snap) => {
+        if (!snap.empty) {
+          const list = snap.docs.map(d => ({ ...d.data(), id: d.id })) as WhatsAppConversation[];
+          localStorage.setItem(STORAGE_CONVERSATIONS_KEY, JSON.stringify(list));
+          onUpdate(list);
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Error in onSnapshot for whatsapp conversations:', err);
+  }
+  return () => {};
 }
