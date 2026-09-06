@@ -4,6 +4,7 @@ import { MenuItem, Order, OrderStatus, TableReservation, InventoryItem, DianReso
 import { GoogleWorkspaceModal } from '../google/GoogleWorkspaceModal';
 import { getLocalDriveDocuments, archiveDailyZReportToGoogleDrive } from '../../services/googleDriveService';
 import { fetchUpcomingCalendarEvents } from '../../services/googleCalendarService';
+import { EmpleadosView } from '../empleados/EmpleadosView';
 import { 
   ChefHat, 
   Utensils, 
@@ -13,6 +14,8 @@ import {
   Trash2, 
   Edit3, 
   CheckCircle2, 
+  Users,
+  UserCheck,
   Clock, 
   DollarSign, 
   TrendingUp, 
@@ -74,7 +77,7 @@ export const AdminDashboard: React.FC = () => {
     showToast
   } = useTasty();
 
-  const [adminTab, setAdminTab] = useState<'ventas' | 'inventario' | 'kds' | 'menu' | 'dian_config' | 'google_workspace'>('ventas');
+  const [adminTab, setAdminTab] = useState<'ventas' | 'inventario' | 'kds' | 'menu' | 'empleados' | 'dian_config' | 'google_workspace'>('ventas');
   const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
   const [filterOrderType, setFilterOrderType] = useState<string>('all');
   const [menuSearch, setMenuSearch] = useState('');
@@ -348,6 +351,22 @@ export const AdminDashboard: React.FC = () => {
             >
               <Utensils className="w-4 h-4" />
               <span>Carta / Menú</span>
+            </button>
+
+            <button
+              id="tab-empleados-btn"
+              onClick={() => setAdminTab('empleados')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                adminTab === 'empleados'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Empleados</span>
+              <span className="px-1.5 py-0.2 text-[9px] rounded-full bg-slate-800 text-amber-300 font-mono font-bold">
+                BD
+              </span>
             </button>
 
             <button
@@ -1239,6 +1258,18 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 5. TAB: EMPLEADOS & GESTIÓN DE PERSONAL (FIRESTORE)                       */}
+      {/* ========================================================================= */}
+      {adminTab === 'empleados' && (
+        <div className="animate-fadeIn">
+          <EmpleadosView 
+            title="Gestión de Empleados del Restaurante" 
+            subtitle="Administración de colaboradores, credenciales de acceso, asignación de turnos y sincronización en tiempo real con Firestore"
+          />
         </div>
       )}
 

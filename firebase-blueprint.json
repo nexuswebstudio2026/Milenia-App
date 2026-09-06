@@ -249,6 +249,10 @@
       "schema": "Employee",
       "description": "Tabla y colección de colaboradores y empleados registrados"
     },
+    "/empleados/{empleadoId}": {
+      "schema": "Employee",
+      "description": "Tabla y colección oficial de empleados gastronómicos en la base de datos Firestore de Milenia"
+    },
     "/sales/{saleId}": {
       "schema": "SaleRecord",
       "description": "Ventas y métricas de facturación aisladas por restaurante"

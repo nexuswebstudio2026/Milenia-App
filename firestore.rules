@@ -47,6 +47,15 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // 1.2 Empleados Collection: /empleados/{empleadoId}
+    match /empleados/{empleadoId} {
+      allow read, write: if true;
+    }
+
+    match /empleados/{empleadoId}/{document=**} {
+      allow read, write: if true;
+    }
+
     // 2. Sales & Revenue Data: /sales/{saleId}
     match /sales/{saleId} {
       allow read, write: if true;
