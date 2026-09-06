@@ -266,7 +266,7 @@ export const OperationalPanelManager: React.FC<OperationalPanelManagerProps> = (
       </header>
 
       {/* 2. MAIN ACTIVE PANEL CONTENT */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-8 space-y-6">
+      <main className="flex-1 max-w-[1550px] w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
         {currentStation.id === 'gerencia' ? (
           /* ========================================================================= */
           /* PANEL DE GERENCIA: ADMIN DASHBOARD (Includes Empleados option inside)      */

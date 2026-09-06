@@ -53,7 +53,8 @@ import {
   Upload,
   Download,
   ExternalLink,
-  Wallet
+  Wallet,
+  ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -81,6 +82,7 @@ export const AdminDashboard: React.FC = () => {
   } = useTasty();
 
   const [adminTab, setAdminTab] = useState<'ventas' | 'salon_meseros' | 'kds' | 'contabilidad' | 'inventario' | 'menu' | 'empleados' | 'dian_config' | 'google_workspace'>('ventas');
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
   const [filterOrderType, setFilterOrderType] = useState<string>('all');
   const [menuSearch, setMenuSearch] = useState('');
@@ -294,138 +296,260 @@ export const AdminDashboard: React.FC = () => {
             </p>
           </div>
 
-          {/* Tab Navigation Pill Selector */}
-          <div className="flex items-center flex-wrap gap-1.5 p-1.5 bg-slate-950/80 border border-slate-800 rounded-2xl">
-            <button
-              id="tab-ventas-btn"
-              onClick={() => setAdminTab('ventas')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                adminTab === 'ventas'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              <span>Control de Ventas</span>
-            </button>
-
-            <button
-              id="tab-salon-btn"
-              onClick={() => setAdminTab('salon_meseros')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                adminTab === 'salon_meseros'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <UserCheck className="w-4 h-4" />
-              <span>Salón & Meseros</span>
-            </button>
-
-            <button
-              id="tab-kds-btn"
-              onClick={() => setAdminTab('kds')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer relative ${
-                adminTab === 'kds'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <ChefHat className="w-4 h-4" />
-              <span>KDS Cocina</span>
-              {activeKdsOrders.length > 0 && (
-                <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-amber-400 text-slate-950 font-black">
-                  {activeKdsOrders.length}
-                </span>
-              )}
-            </button>
-
-            <button
-              id="tab-contabilidad-btn"
-              onClick={() => setAdminTab('contabilidad')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                adminTab === 'contabilidad'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <Wallet className="w-4 h-4" />
-              <span>Contabilidad & Finanzas</span>
-            </button>
-
-            <button
-              id="tab-inventario-btn"
-              onClick={() => setAdminTab('inventario')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer relative ${
-                adminTab === 'inventario'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <Boxes className="w-4 h-4" />
-              <span>Inventario</span>
-              {lowStockItems.length > 0 && (
-                <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-1.5 right-1.5 animate-ping" />
-              )}
-            </button>
-
-            <button
-              id="tab-menu-btn"
-              onClick={() => setAdminTab('menu')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                adminTab === 'menu'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <Utensils className="w-4 h-4" />
-              <span>Carta / Menú</span>
-            </button>
-
-            <button
-              id="tab-empleados-btn"
-              onClick={() => setAdminTab('empleados')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                adminTab === 'empleados'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Empleados</span>
-              <span className="px-1.5 py-0.2 text-[9px] rounded-full bg-slate-800 text-amber-300 font-mono font-bold">
-                BD
-              </span>
-            </button>
-
-            <button
-              id="tab-dian-btn"
-              onClick={() => setAdminTab('dian_config')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                adminTab === 'dian_config'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <FileCheck className="w-4 h-4" />
-              <span>DIAN & Legal</span>
-            </button>
-
-            <button
-              id="tab-google-btn"
-              onClick={() => setAdminTab('google_workspace')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                adminTab === 'google_workspace'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <Cloud className="w-4 h-4 text-amber-400" />
-              <span>Google Cloud & Hub</span>
-            </button>
+          {/* Active Module Indicator */}
+          <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="text-slate-400">Módulo:</span>
+            <span className="font-bold text-amber-400 uppercase tracking-wider">
+              {adminTab === 'ventas' ? 'Control de Ventas' :
+               adminTab === 'salon_meseros' ? 'Salón & Meseros' :
+               adminTab === 'kds' ? 'KDS Cocina' :
+               adminTab === 'contabilidad' ? 'Contabilidad & Finanzas' :
+               adminTab === 'inventario' ? 'Inventario & Bodega' :
+               adminTab === 'menu' ? 'Carta / Menú' :
+               adminTab === 'empleados' ? 'Gestión de Empleados' :
+               adminTab === 'dian_config' ? 'DIAN & Facturación' : 'Google Cloud Hub'}
+            </span>
           </div>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* MAIN TWO-COLUMN LAYOUT: LEFT SIDEBAR NAVIGATION + RIGHT TAB CONTENT       */}
+      {/* ========================================================================= */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        
+        {/* ========================================================================= */}
+        {/* LEFT SIDEBAR NAVIGATION                                                   */}
+        {/* ========================================================================= */}
+        <aside className="w-full lg:w-72 shrink-0 space-y-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-4 lg:sticky lg:top-24">
+            
+            {/* Sidebar Title & Mobile Toggle */}
+            <div className="px-2 pt-1 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 block">
+                  MENÚ DE GERENCIA
+                </span>
+                <span className="text-xs font-bold text-white">
+                  Módulos de Operación
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
+                  className="lg:hidden px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer border border-slate-700 transition"
+                  title="Expandir/Ocultar Menú en móvil"
+                >
+                  <span className="text-[11px]">{isMobileNavOpen ? 'Ocultar' : 'Menú'}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isMobileNavOpen ? 'rotate-180' : ''}`} />
+                </button>
+                <div className="w-7 h-7 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-xs font-black">
+                  G
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-slate-800" />
+
+            {/* Navigation Items Grouped */}
+            <nav className={`space-y-4 ${isMobileNavOpen ? 'block' : 'hidden lg:block'}`}>
+              
+              {/* Group 1: OPERACIONES */}
+              <div className="space-y-1">
+                <span className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono block mb-1">
+                  Operaciones del Salón
+                </span>
+
+                <button
+                  id="tab-ventas-btn"
+                  onClick={() => { setAdminTab('ventas'); setIsMobileNavOpen(false); }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-left ${
+                    adminTab === 'ventas'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <BarChart3 className="w-4 h-4 shrink-0" />
+                    <span>Control de Ventas</span>
+                  </div>
+                </button>
+
+                <button
+                  id="tab-salon-btn"
+                  onClick={() => { setAdminTab('salon_meseros'); setIsMobileNavOpen(false); }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-left ${
+                    adminTab === 'salon_meseros'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <UserCheck className="w-4 h-4 shrink-0" />
+                    <span>Salón & Meseros</span>
+                  </div>
+                </button>
+
+                <button
+                  id="tab-kds-btn"
+                  onClick={() => { setAdminTab('kds'); setIsMobileNavOpen(false); }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-left relative ${
+                    adminTab === 'kds'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <ChefHat className="w-4 h-4 shrink-0" />
+                    <span>KDS Cocina</span>
+                  </div>
+                  {activeKdsOrders.length > 0 && (
+                    <span className={`px-2 py-0.5 text-[10px] rounded-full font-black ${
+                      adminTab === 'kds' ? 'bg-slate-950 text-amber-300' : 'bg-amber-400 text-slate-950'
+                    }`}>
+                      {activeKdsOrders.length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  id="tab-inventario-btn"
+                  onClick={() => { setAdminTab('inventario'); setIsMobileNavOpen(false); }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-left relative ${
+                    adminTab === 'inventario'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Boxes className="w-4 h-4 shrink-0" />
+                    <span>Inventario & Bodega</span>
+                  </div>
+                  {lowStockItems.length > 0 && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" title="Bajo stock" />
+                  )}
+                </button>
+
+                <button
+                  id="tab-menu-btn"
+                  onClick={() => { setAdminTab('menu'); setIsMobileNavOpen(false); }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-left ${
+                    adminTab === 'menu'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Utensils className="w-4 h-4 shrink-0" />
+                    <span>Carta / Menú</span>
+                  </div>
+                </button>
+              </div>
+
+              {/* Group 2: FINANZAS & LEGALIDAD */}
+              <div className="space-y-1 pt-2 border-t border-slate-800/60">
+                <span className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono block mb-1">
+                  Finanzas & Legalidad
+                </span>
+
+                <button
+                  id="tab-contabilidad-btn"
+                  onClick={() => { setAdminTab('contabilidad'); setIsMobileNavOpen(false); }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-left ${
+                    adminTab === 'contabilidad'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Wallet className="w-4 h-4 shrink-0" />
+                    <span>Contabilidad & P&L</span>
+                  </div>
+                </button>
+
+                <button
+                  id="tab-dian-btn"
+                  onClick={() => { setAdminTab('dian_config'); setIsMobileNavOpen(false); }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-left ${
+                    adminTab === 'dian_config'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <FileCheck className="w-4 h-4 shrink-0" />
+                    <span>DIAN & Facturación</span>
+                  </div>
+                </button>
+              </div>
+
+              {/* Group 3: PERSONAL & CLOUD */}
+              <div className="space-y-1 pt-2 border-t border-slate-800/60">
+                <span className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono block mb-1">
+                  Equipo & Integraciones
+                </span>
+
+                <button
+                  id="tab-empleados-btn"
+                  onClick={() => { setAdminTab('empleados'); setIsMobileNavOpen(false); }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-left ${
+                    adminTab === 'empleados'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Users className="w-4 h-4 shrink-0" />
+                    <span>Gestión de Empleados</span>
+                  </div>
+                  <span className={`px-1.5 py-0.2 text-[9px] rounded-full font-mono font-bold ${
+                    adminTab === 'empleados' ? 'bg-slate-950 text-amber-300' : 'bg-slate-800 text-amber-300'
+                  }`}>
+                    BD
+                  </span>
+                </button>
+
+                <button
+                  id="tab-google-btn"
+                  onClick={() => { setAdminTab('google_workspace'); setIsMobileNavOpen(false); }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-left ${
+                    adminTab === 'google_workspace'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Cloud className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Google Cloud Hub</span>
+                  </div>
+                </button>
+              </div>
+            </nav>
+
+            {/* System Status Indicators */}
+            <div className={`pt-3 border-t border-slate-800 text-[11px] text-slate-400 space-y-1.5 ${isMobileNavOpen ? 'block' : 'hidden lg:block'}`}>
+              <div className="flex items-center justify-between">
+                <span>Base de Datos:</span>
+                <span className="text-emerald-400 font-bold font-mono">Firestore</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Resolución DIAN:</span>
+                <span className="text-amber-400 font-mono">{dianPrefix} Habilitada</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Estado Servidor:</span>
+                <span className="text-emerald-400 font-bold">En Línea</span>
+              </div>
+            </div>
+
+          </div>
+        </aside>
+
+        {/* ========================================================================= */}
+        {/* RIGHT MAIN CONTENT AREA                                                   */}
+        {/* ========================================================================= */}
+        <div className="flex-1 min-w-0 w-full space-y-6">
 
       {/* ========================================================================= */}
       {/* 1. TAB: CONTROL DE VENTAS (Métricas Clave: Hoy, Top Dish, Propinas, DIAN)   */}
@@ -1319,6 +1443,9 @@ export const AdminDashboard: React.FC = () => {
           />
         </div>
       )}
+
+        </div> {/* Closes right content area */}
+      </div> {/* Closes main two-column layout */}
 
       {/* Google Workspace Modal */}
       <GoogleWorkspaceModal
