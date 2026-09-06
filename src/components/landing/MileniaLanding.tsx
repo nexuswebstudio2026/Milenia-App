@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Sun, 
   Moon, 
@@ -7,45 +7,17 @@ import {
   ChefHat, 
   Layers, 
   TrendingUp, 
-  CheckCircle2, 
   SlidersHorizontal,
-  DollarSign,
-  Receipt,
-  Plus,
-  Minus,
-  Sparkles,
-  ShieldCheck,
-  Zap,
-  Coffee,
-  Flame,
-  Wine,
-  Home,
-  LogIn,
-  Mail,
-  Menu,
-  X
+  Home, 
+  LogIn, 
+  Mail, 
+  Menu, 
+  X 
 } from 'lucide-react';
 import { LoginModal } from '../auth/LoginModal';
 import { ContactModal } from '../contact/ContactModal';
-import { EmpleadosModal } from '../empleados/EmpleadosModal';
 import { Empleado } from '../../types/empleado';
 import { WorkstationOption } from '../../services/empleadosService';
-
-interface MockMenuItem {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-}
-
-const SIMULATOR_MENU: MockMenuItem[] = [
-  { id: '1', name: 'Punta de Anca Angus (400g)', price: 49000, category: 'Brasas' },
-  { id: '2', name: 'Costillas Glaseadas al Romero', price: 42000, category: 'Brasas' },
-  { id: '3', name: 'Risotto de Setas Silvestres', price: 38000, category: 'Cocina' },
-  { id: '4', name: 'Carpaccio de Res con Parmesano', price: 28000, category: 'Entradas' },
-  { id: '5', name: 'Copa de Vino Reserva', price: 18000, category: 'Cava' },
-  { id: '6', name: 'Cerveza Artesanal Dorada', price: 12000, category: 'Bebidas' }
-];
 
 interface MileniaLandingProps {
   isDarkMode: boolean;
@@ -62,115 +34,28 @@ export const MileniaLanding: React.FC<MileniaLandingProps> = ({
   isAutoTimeMode,
   onLoginSuccess,
 }) => {
-  // Console Tab State
-  const [activeConsoleTab, setActiveConsoleTab] = useState<'salon' | 'kds' | 'carta' | 'metricas'>('salon');
-  
-  // Interactive Salon State
-  const [selectedTable, setSelectedTable] = useState<number>(2);
-  const [tableOrders, setTableOrders] = useState<{ [table: number]: { [itemId: string]: number } }>({
-    1: { '3': 2, '5': 2 },
-    2: { '1': 1, '2': 1, '6': 2 },
-    3: { '4': 1, '5': 2 },
-    4: {},
-    5: { '1': 2, '3': 1 },
-    6: {}
-  });
-
-  const [notification, setNotification] = useState<string | null>(null);
-
   // Navigation & Modals State
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
-  const [isEmpleadosOpen, setIsEmpleadosOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleNavInicio = () => {
     setIsLoginOpen(false);
     setIsContactOpen(false);
-    setIsEmpleadosOpen(false);
     setIsMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleNavIngresar = () => {
     setIsContactOpen(false);
-    setIsEmpleadosOpen(false);
     setIsLoginOpen(true);
     setIsMobileMenuOpen(false);
   };
 
   const handleNavContactos = () => {
     setIsLoginOpen(false);
-    setIsEmpleadosOpen(false);
     setIsContactOpen(true);
     setIsMobileMenuOpen(false);
-  };
-
-  const handleNavEmpleados = () => {
-    setIsLoginOpen(false);
-    setIsContactOpen(false);
-    setIsEmpleadosOpen(true);
-    setIsMobileMenuOpen(false);
-  };
-
-  // Efficiency / Margin Estimator sliders
-  const [estimatorTables, setEstimatorTables] = useState<number>(18);
-  const [estimatorTicket, setEstimatorTicket] = useState<number>(55000);
-  const [estimatorTurnover, setEstimatorTurnover] = useState<number>(3);
-
-  const monthlyVolume = estimatorTables * estimatorTurnover * 26;
-  const monthlyRevenue = monthlyVolume * estimatorTicket;
-  const monthlyFoodWasteSavings = Math.round(monthlyRevenue * 0.038);
-  const monthlyEfficiencyGain = Math.round(monthlyRevenue * 0.055);
-  const totalBenefit = monthlyFoodWasteSavings + monthlyEfficiencyGain;
-
-  // Simulator calculations
-  const currentTableCart = tableOrders[selectedTable] || {};
-  const currentCartEntries: [string, number][] = Object.entries(currentTableCart)
-    .map(([id, qty]) => [id, Number(qty)] as [string, number])
-    .filter(([_, qty]) => qty > 0);
-
-  const rawSubtotal = currentCartEntries.reduce((acc, [id, qty]) => {
-    const it = SIMULATOR_MENU.find(m => m.id === id);
-    return acc + (it ? it.price * qty : 0);
-  }, 0);
-
-  const taxServiceAmount = Math.round(rawSubtotal * 0.08);
-  const grandTotal = rawSubtotal + taxServiceAmount;
-
-  const handleAddItem = (item: MockMenuItem) => {
-    setTableOrders(prev => {
-      const tableCart = { ...(prev[selectedTable] || {}) };
-      tableCart[item.id] = (tableCart[item.id] || 0) + 1;
-      return { ...prev, [selectedTable]: tableCart };
-    });
-  };
-
-  const handleUpdateQty = (itemId: string, delta: number) => {
-    setTableOrders(prev => {
-      const tableCart = { ...(prev[selectedTable] || {}) };
-      const currentQty = tableCart[itemId] || 0;
-      const nextQty = Math.max(0, currentQty + delta);
-      if (nextQty === 0) {
-        delete tableCart[itemId];
-      } else {
-        tableCart[itemId] = nextQty;
-      }
-      return { ...prev, [selectedTable]: tableCart };
-    });
-  };
-
-  const handleSendToKitchen = () => {
-    if (grandTotal === 0) return;
-    setNotification(`Comanda de Mesa ${selectedTable} transmitida a la brigada de cocina.`);
-    setTimeout(() => setNotification(null), 3500);
-  };
-
-  const handleClearTable = () => {
-    if (grandTotal === 0) return;
-    setTableOrders(prev => ({ ...prev, [selectedTable]: {} }));
-    setNotification(`Cuenta de Mesa ${selectedTable} liquidada con éxito.`);
-    setTimeout(() => setNotification(null), 3500);
   };
 
   return (
@@ -384,192 +269,7 @@ export const MileniaLanding: React.FC<MileniaLandingProps> = ({
         </div>
       </section>
 
-      {/* 3. SIMULADOR POS EN VIVO (HERO INTERACTIVE EXPERIENCE) */}
-      <section className="py-16 bg-slate-100/70 dark:bg-slate-900/60 border-y border-slate-200/80 dark:border-slate-800/80">
-        <div className="max-w-6xl mx-auto px-4 sm:px-8">
-          
-          <div className="text-center max-w-2xl mx-auto space-y-3 mb-10">
-            <h2 className="text-2xl sm:text-3xl font-light text-slate-900 dark:text-white">
-              Simulador Operativo en Tiempo Real
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-              Interactúa con el flujo de sala: selecciona una mesa, añade platos de la carta y envía a cocina.
-            </p>
-          </div>
-
-          {/* Simulator Box */}
-          <div className="bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 sm:p-7 relative">
-            
-            {/* Notification Banner */}
-            {notification && (
-              <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>{notification}</span>
-              </div>
-            )}
-
-            {/* Table Selector Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-4 border-b border-slate-100 dark:border-slate-900">
-              {[1, 2, 3, 4, 5, 6].map(num => {
-                const count = Object.keys(tableOrders[num] || {}).length;
-                const isSelected = selectedTable === num;
-                return (
-                  <button
-                    key={num}
-                    onClick={() => setSelectedTable(num)}
-                    className={`px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
-                      isSelected
-                        ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                        : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                    }`}
-                  >
-                    <span>Mesa {num}</span>
-                    <span className={`w-2 h-2 rounded-full ${count > 0 ? (isSelected ? 'bg-slate-950' : 'bg-amber-500') : 'bg-slate-300 dark:bg-slate-700'}`} />
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Main Interactive Grid: Dishes (Left) + Ticket (Right) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              
-              {/* Dishes Grid (7 cols) */}
-              <div className="lg:col-span-7 space-y-3">
-                <div className="text-xs font-mono font-bold uppercase text-slate-400">
-                  Carta / Selección Rápida para Mesa {selectedTable}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {SIMULATOR_MENU.map(item => (
-                    <div
-                      key={item.id}
-                      onClick={() => handleAddItem(item)}
-                      className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-amber-500/60 dark:hover:border-amber-500/60 transition cursor-pointer flex items-center justify-between group"
-                    >
-                      <div className="space-y-1">
-                        <div className="text-[11px] font-mono text-slate-600 dark:text-slate-300 uppercase">
-                          {item.category}
-                        </div>
-                        <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition">
-                          {item.name}
-                        </div>
-                        <div className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300">
-                          ${item.price.toLocaleString()}
-                        </div>
-                      </div>
-
-                      <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-amber-500 group-hover:text-slate-950 flex items-center justify-center transition">
-                        <Plus className="w-4 h-4" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Order Cart / Ticket (5 cols) */}
-              <div className="lg:col-span-5 bg-slate-50 dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <Receipt className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                    <span className="font-bold text-sm text-slate-900 dark:text-white">
-                      Comanda en Curso
-                    </span>
-                  </div>
-                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-bold text-slate-700 dark:text-slate-300">
-                    Mesa {selectedTable}
-                  </span>
-                </div>
-
-                {currentCartEntries.length === 0 ? (
-                  <div className="py-12 text-center text-xs text-slate-400">
-                    Mesa sin platos activos. Selecciona cualquier plato de la carta.
-                  </div>
-                ) : (
-                  <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
-                    {currentCartEntries.map(([id, qty]) => {
-                      const it = SIMULATOR_MENU.find(m => m.id === id);
-                      if (!it) return null;
-                      return (
-                        <div key={id} className="flex items-center justify-between text-xs pb-2 border-b border-slate-200/50 dark:border-slate-800/50">
-                          <div>
-                            <div className="font-bold text-slate-800 dark:text-slate-200">{it.name}</div>
-                            <div className="text-[11px] font-mono text-slate-400">
-                              ${it.price.toLocaleString()} c/u
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleUpdateQty(id, -1)}
-                              className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition cursor-pointer"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="font-mono font-bold w-4 text-center text-slate-900 dark:text-white">
-                              {qty}
-                            </span>
-                            <button
-                              onClick={() => handleUpdateQty(id, 1)}
-                              className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition cursor-pointer"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Subtotal & Totals */}
-                <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-1.5 text-xs">
-                  <div className="flex justify-between text-slate-500 font-mono">
-                    <span>Base:</span>
-                    <span>${rawSubtotal.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-amber-600 dark:text-amber-400 font-mono">
-                    <span>Servicio / Impuesto (8%):</span>
-                    <span>${taxServiceAmount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-sm font-bold text-slate-900 dark:text-white pt-2 border-t border-slate-200 dark:border-slate-800">
-                    <span>Total Mesa:</span>
-                    <span className="font-mono font-bold text-base text-slate-900 dark:text-white">
-                      ${grandTotal.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Operations Actions */}
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <button
-                    disabled={grandTotal === 0}
-                    onClick={handleSendToKitchen}
-                    className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition disabled:opacity-40 cursor-pointer"
-                  >
-                    <ChefHat className="w-3.5 h-3.5 text-amber-400" />
-                    <span>A Cocina</span>
-                  </button>
-
-                  <button
-                    disabled={grandTotal === 0}
-                    onClick={handleClearTable}
-                    className="py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 transition disabled:opacity-40 cursor-pointer shadow-md shadow-amber-500/20"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Cobrar</span>
-                  </button>
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* 4. FOUR ARCHITECTURAL PILLARS */}
+      {/* 3. FOUR ARCHITECTURAL PILLARS */}
       <section className="py-20 lg:py-28 max-w-6xl mx-auto px-4 sm:px-8">
         <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
           <h2 className="text-3xl sm:text-4xl font-light text-slate-900 dark:text-white">
@@ -623,121 +323,7 @@ export const MileniaLanding: React.FC<MileniaLandingProps> = ({
         </div>
       </section>
 
-      {/* 5. INTERACTIVE MARGIN & EFFICIENCY ESTIMATOR */}
-      <section className="py-20 bg-slate-100/70 dark:bg-slate-900/50 border-t border-slate-200/80 dark:border-slate-800/80">
-        <div className="max-w-5xl mx-auto px-4 sm:px-8">
-          
-          <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
-            <h2 className="text-2xl sm:text-3xl font-light text-slate-900 dark:text-white">
-              Simulador de Eficiencia Operativa
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-              Calcula cómo influyen el control milimétrico de mermas y la aceleración de comandas en el rendimiento mensual del restaurante.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-white dark:bg-slate-950 p-6 sm:p-10 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl">
-            
-            {/* Sliders (6 cols) */}
-            <div className="lg:col-span-6 space-y-6">
-              
-              {/* Slider 1: Mesas */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-slate-600 dark:text-slate-400">Mesas en Salón:</span>
-                  <span className="font-mono text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded">
-                    {estimatorTables} mesas
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="4"
-                  max="60"
-                  step="1"
-                  value={estimatorTables}
-                  onChange={(e) => setEstimatorTables(Number(e.target.value))}
-                  className="w-full accent-amber-500 cursor-pointer"
-                />
-              </div>
-
-              {/* Slider 2: Ticket */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-slate-600 dark:text-slate-400">Ticket Promedio:</span>
-                  <span className="font-mono text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded">
-                    ${estimatorTicket.toLocaleString()}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="20000"
-                  max="200000"
-                  step="5000"
-                  value={estimatorTicket}
-                  onChange={(e) => setEstimatorTicket(Number(e.target.value))}
-                  className="w-full accent-amber-500 cursor-pointer"
-                />
-              </div>
-
-              {/* Slider 3: Rotación */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-slate-600 dark:text-slate-400">Rotaciones Diarias por Mesa:</span>
-                  <span className="font-mono text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded">
-                    {estimatorTurnover} turnos/día
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="6"
-                  step="0.5"
-                  value={estimatorTurnover}
-                  onChange={(e) => setEstimatorTurnover(Number(e.target.value))}
-                  className="w-full accent-amber-500 cursor-pointer"
-                />
-              </div>
-
-            </div>
-
-            {/* Calculations Result (6 cols) */}
-            <div className="lg:col-span-6 bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 space-y-4">
-              <div>
-                <div className="text-[11px] font-mono uppercase text-slate-500 tracking-wider">
-                  Beneficio Operativo Estimado
-                </div>
-                <div className="text-3xl sm:text-4xl font-mono font-bold text-amber-600 dark:text-amber-400 mt-1">
-                  +${totalBenefit.toLocaleString()}
-                  <span className="text-xs font-sans text-slate-400 font-normal ml-2">/ mes</span>
-                </div>
-              </div>
-
-              <div className="space-y-2 text-xs pt-3 border-t border-slate-200 dark:border-slate-800 font-medium">
-                <div className="flex justify-between">
-                  <span className="text-slate-600 dark:text-slate-400">Ahorro por escandallos y mermas:</span>
-                  <span className="font-mono font-bold text-slate-900 dark:text-white">
-                    +${monthlyFoodWasteSavings.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-600 dark:text-slate-400">Capacidad adicional por agilidad KDS:</span>
-                  <span className="font-mono font-bold text-slate-900 dark:text-white">
-                    +${monthlyEfficiencyGain.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between text-slate-400 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
-                  <span>Volumen mensual proyectado:</span>
-                  <span className="font-mono text-slate-500">${monthlyRevenue.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* 6. EDITORIAL PRINCIPLE */}
+      {/* 4. EDITORIAL PRINCIPLE */}
       <section className="py-20 text-center">
         <div className="max-w-3xl mx-auto px-4 sm:px-8 space-y-6">
           <p className="text-xl sm:text-2xl font-light italic font-serif text-slate-800 dark:text-slate-200 leading-relaxed">
@@ -796,18 +382,12 @@ export const MileniaLanding: React.FC<MileniaLandingProps> = ({
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
-        onOpenEmpleados={handleNavEmpleados}
         onLoginSuccess={onLoginSuccess}
       />
 
       <ContactModal
         isOpen={isContactOpen}
         onClose={() => setIsContactOpen(false)}
-      />
-
-      <EmpleadosModal
-        isOpen={isEmpleadosOpen}
-        onClose={() => setIsEmpleadosOpen(false)}
       />
 
     </div>

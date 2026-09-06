@@ -12,8 +12,6 @@ import {
   ChefHat, 
   KeyRound,
   Wine,
-  Database,
-  Users,
   Eye,
   EyeOff,
   Sparkles,
@@ -99,14 +97,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setErrorMessage('Ocurrió un error consultando la base de datos de empleados. Verifique su conexión.');
       setIsLoading(false);
     }
-  };
-
-  // Helper to fill demo credentials
-  const fillDemoAccount = (user: string, pin: string, station: string) => {
-    setUsuario(user);
-    setContrasena(pin);
-    setStationId(station);
-    setErrorMessage(null);
   };
 
   const getStationIcon = (id: string) => {
@@ -315,50 +305,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
 
           </form>
-
-          {/* Quick Fill Test Accounts from Database */}
-          <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <span className="font-bold text-slate-300 flex items-center gap-1">
-                <Database className="w-3 h-3 text-amber-400" />
-                <span>Usuario Registrado en Base de Datos:</span>
-              </span>
-              <span className="font-mono text-[10px] text-amber-400">Único usuario activo</span>
-            </div>
-
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { name: 'Martín Velásquez (Gerente)', user: 'gerencia@milenia.rest', pin: '2026', st: 'gerencia' }
-              ].map(demo => (
-                <button
-                  key={demo.user}
-                  type="button"
-                  onClick={() => fillDemoAccount(demo.user, demo.pin, demo.st)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-mono bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-white border border-slate-700 transition cursor-pointer flex items-center gap-1.5"
-                >
-                  <Shield className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{demo.name} (PIN: 2026)</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Option to open Empleados Directory directly */}
-          {onOpenEmpleados && (
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenEmpleados();
-                }}
-                className="w-full py-2.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer border border-slate-700"
-              >
-                <Users className="w-3.5 h-3.5 text-amber-400" />
-                <span>Ver y Gestionar Tabla Empleados (Directorio)</span>
-              </button>
-            </div>
-          )}
 
         </div>
       </div>
