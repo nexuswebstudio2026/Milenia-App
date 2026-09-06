@@ -124,41 +124,41 @@ export const MileniaLanding: React.FC<MileniaLandingProps> = ({
 
           {/* Time & Day/Night Mode Indicator with Switcher */}
           <div className="flex items-center gap-2.5">
-            <div className="hidden lg:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs shadow-inner">
-              <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-              <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                {deviceTimeStr}
-              </span>
-              <span className="text-slate-300 dark:text-slate-700">•</span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                {isDarkMode ? 'Modo Noche' : 'Modo Día'}
-              </span>
-              {isAutoTimeMode && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider">
-                  Auto
-                </span>
-              )}
-            </div>
+            {/* Time & Day/Night Mode Switcher */}
+            <div className="flex items-center gap-1 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+              {/* Digital Clock Display */}
+              <div 
+                id="header-live-clock"
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold text-slate-800 dark:text-slate-200"
+                title="Hora local del sistema"
+              >
+                <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>{deviceTimeStr}</span>
+              </div>
 
-            {/* Elegant Mode Toggle */}
-            <button
-              onClick={onToggleTheme}
-              className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 transition cursor-pointer flex items-center gap-1.5 shadow-sm"
-              title="Alternar Modo Día / Noche"
-              aria-label="Alternar Modo Día / Noche"
-            >
-              {isDarkMode ? (
-                <>
-                  <Moon className="w-4 h-4 text-amber-400 fill-amber-400/30" />
-                  <span className="hidden sm:inline text-xs font-semibold">Noche</span>
-                </>
-              ) : (
-                <>
-                  <Sun className="w-4 h-4 text-amber-600 fill-amber-500/30" />
-                  <span className="hidden sm:inline text-xs font-semibold">Día</span>
-                </>
-              )}
-            </button>
+              <div className="h-4 w-px bg-slate-300 dark:bg-slate-700" />
+
+              {/* Mode Toggle Button */}
+              <button
+                id="header-theme-toggle-btn"
+                onClick={onToggleTheme}
+                className="px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer"
+                title={`Modo actual: ${isDarkMode ? 'Noche' : 'Día'}. Clic para alternar`}
+                aria-label="Alternar Modo Día / Noche"
+              >
+                {isDarkMode ? (
+                  <>
+                    <Moon className="w-3.5 h-3.5 text-amber-400 fill-amber-400/30 shrink-0" />
+                    <span className="text-xs font-semibold">Noche</span>
+                  </>
+                ) : (
+                  <>
+                    <Sun className="w-3.5 h-3.5 text-amber-600 fill-amber-500/30 shrink-0" />
+                    <span className="text-xs font-semibold">Día</span>
+                  </>
+                )}
+              </button>
+            </div>
 
             {/* Mobile Hamburger Menu Toggle */}
             <button

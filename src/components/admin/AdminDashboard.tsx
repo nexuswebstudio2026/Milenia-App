@@ -5,6 +5,8 @@ import { GoogleWorkspaceModal } from '../google/GoogleWorkspaceModal';
 import { getLocalDriveDocuments, archiveDailyZReportToGoogleDrive } from '../../services/googleDriveService';
 import { fetchUpcomingCalendarEvents } from '../../services/googleCalendarService';
 import { EmpleadosView } from '../empleados/EmpleadosView';
+import { SalonManagerView } from './SalonManagerView';
+import { AccountingManagerView } from './AccountingManagerView';
 import { 
   ChefHat, 
   Utensils, 
@@ -50,7 +52,8 @@ import {
   MapPin,
   Upload,
   Download,
-  ExternalLink
+  ExternalLink,
+  Wallet
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -77,7 +80,7 @@ export const AdminDashboard: React.FC = () => {
     showToast
   } = useTasty();
 
-  const [adminTab, setAdminTab] = useState<'ventas' | 'inventario' | 'kds' | 'menu' | 'empleados' | 'dian_config' | 'google_workspace'>('ventas');
+  const [adminTab, setAdminTab] = useState<'ventas' | 'salon_meseros' | 'kds' | 'contabilidad' | 'inventario' | 'menu' | 'empleados' | 'dian_config' | 'google_workspace'>('ventas');
   const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
   const [filterOrderType, setFilterOrderType] = useState<string>('all');
   const [menuSearch, setMenuSearch] = useState('');
@@ -307,19 +310,16 @@ export const AdminDashboard: React.FC = () => {
             </button>
 
             <button
-              id="tab-inventario-btn"
-              onClick={() => setAdminTab('inventario')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer relative ${
-                adminTab === 'inventario'
+              id="tab-salon-btn"
+              onClick={() => setAdminTab('salon_meseros')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                adminTab === 'salon_meseros'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800'
               }`}
             >
-              <Boxes className="w-4 h-4" />
-              <span>Inventario</span>
-              {lowStockItems.length > 0 && (
-                <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-1.5 right-1.5 animate-ping" />
-              )}
+              <UserCheck className="w-4 h-4" />
+              <span>Salón & Meseros</span>
             </button>
 
             <button
@@ -337,6 +337,35 @@ export const AdminDashboard: React.FC = () => {
                 <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-amber-400 text-slate-950 font-black">
                   {activeKdsOrders.length}
                 </span>
+              )}
+            </button>
+
+            <button
+              id="tab-contabilidad-btn"
+              onClick={() => setAdminTab('contabilidad')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                adminTab === 'contabilidad'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Wallet className="w-4 h-4" />
+              <span>Contabilidad & Finanzas</span>
+            </button>
+
+            <button
+              id="tab-inventario-btn"
+              onClick={() => setAdminTab('inventario')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer relative ${
+                adminTab === 'inventario'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Boxes className="w-4 h-4" />
+              <span>Inventario</span>
+              {lowStockItems.length > 0 && (
+                <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-1.5 right-1.5 animate-ping" />
               )}
             </button>
 
@@ -1258,6 +1287,24 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: SALÓN & MESEROS (SUPERVISIÓN EN VIVO, MESAS Y BRIGADA)               */}
+      {/* ========================================================================= */}
+      {adminTab === 'salon_meseros' && (
+        <div className="animate-fadeIn">
+          <SalonManagerView />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: CONTABILIDAD & FINANZAS (P&L, ARQUEO CIERRE Z, CUENTAS POR PAGAR)   */}
+      {/* ========================================================================= */}
+      {adminTab === 'contabilidad' && (
+        <div className="animate-fadeIn">
+          <AccountingManagerView />
         </div>
       )}
 

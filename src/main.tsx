@@ -1,6 +1,7 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App';
+import { TastyProvider } from './context/TastyContext';
 import './index.css';
 
 // Register Service Worker for PWA support
@@ -16,6 +17,8 @@ if ('serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <TastyProvider>
+      <App />
+    </TastyProvider>
   </StrictMode>,
 );

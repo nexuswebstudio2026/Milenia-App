@@ -34,6 +34,7 @@ interface OperationalPanelManagerProps {
   onLogout: () => void;
   isDarkMode: boolean;
   onToggleTheme: () => void;
+  deviceTimeStr?: string;
 }
 
 export const OperationalPanelManager: React.FC<OperationalPanelManagerProps> = ({
@@ -41,7 +42,8 @@ export const OperationalPanelManager: React.FC<OperationalPanelManagerProps> = (
   station,
   onLogout,
   isDarkMode,
-  onToggleTheme
+  onToggleTheme,
+  deviceTimeStr
 }) => {
   const [currentStation, setCurrentStation] = useState<WorkstationOption>(station);
 
@@ -199,6 +201,40 @@ export const OperationalPanelManager: React.FC<OperationalPanelManagerProps> = (
                 })}
               </div>
             )}
+
+            {/* Live Clock & Day/Night Mode Switcher */}
+            <div className="flex items-center gap-1 p-1 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-sm">
+              <div 
+                id="panel-live-clock"
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold text-slate-200"
+                title="Hora local del sistema"
+              >
+                <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>{deviceTimeStr || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+
+              <div className="h-4 w-px bg-slate-800" />
+
+              <button
+                id="panel-theme-toggle-btn"
+                onClick={onToggleTheme}
+                className="px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                title={`Modo actual: ${isDarkMode ? 'Noche' : 'Día'}. Clic para alternar`}
+                aria-label="Alternar Modo Día / Noche"
+              >
+                {isDarkMode ? (
+                  <>
+                    <Moon className="w-3.5 h-3.5 text-amber-400 fill-amber-400/30 shrink-0" />
+                    <span className="hidden sm:inline text-xs font-semibold">Noche</span>
+                  </>
+                ) : (
+                  <>
+                    <Sun className="w-3.5 h-3.5 text-amber-400 fill-amber-500/30 shrink-0" />
+                    <span className="hidden sm:inline text-xs font-semibold">Día</span>
+                  </>
+                )}
+              </button>
+            </div>
 
             {/* Authenticated Staff Pill */}
             <div className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-slate-950/80 border border-slate-800">

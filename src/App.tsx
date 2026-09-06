@@ -30,7 +30,7 @@ export function App() {
     station: WorkstationOption;
   } | null>(null);
 
-  // Periodically update device local time every 20 seconds
+  // Periodically update device local time every second
   useEffect(() => {
     const timer = setInterval(() => {
       const updated = getDeviceTimeTheme();
@@ -40,7 +40,7 @@ export function App() {
       if (isAutoTimeMode) {
         setIsDarkMode(updated.isNight);
       }
-    }, 20000);
+    }, 1000);
 
     return () => clearInterval(timer);
   }, [isAutoTimeMode]);
@@ -75,6 +75,7 @@ export function App() {
             onLogout={() => setActiveEmployeeSession(null)}
             isDarkMode={isDarkMode}
             onToggleTheme={handleToggleTheme}
+            deviceTimeStr={deviceInfo.timeString}
           />
         ) : (
           <MileniaLanding
