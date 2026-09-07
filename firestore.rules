@@ -184,5 +184,22 @@ service cloud.firestore {
     match /tenants/{tenantId}/{document=**} {
       allow read, write: if true;
     }
+
+    // 14. Mensajes de Contacto para la Bandeja de Entrada de Gerencia
+    match /mensajes_contactos/{mensajeId} {
+      allow read, write: if true;
+    }
+
+    match /mensajes_contactos/{mensajeId}/{document=**} {
+      allow read, write: if true;
+    }
+
+    match /mensaje_contactos/{mensajeId} {
+      allow read, write: if true;
+    }
+
+    match /mensaje_contactos/{mensajeId}/{document=**} {
+      allow read, write: if true;
+    }
   }
 }

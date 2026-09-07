@@ -317,4 +317,20 @@ export interface NegocioInfo {
   updatedBy?: string;
 }
 
+export interface MensajeContacto {
+  id: string;
+  nombre: string;
+  restaurante: string;
+  email: string;
+  telefono?: string;
+  asunto?: string;
+  mensaje: string;
+  estado: 'no_leido' | 'leido' | 'respondido' | 'archivado';
+  restaurantId?: string;
+  canal?: string;
+  createdAt: string;
+  respondidoAt?: string;
+  notasInternas?: string;
+}
+
 

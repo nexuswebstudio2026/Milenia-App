@@ -245,9 +245,37 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["nombre", "nit"]
+    },
+    "MensajeContacto": {
+      "title": "MensajeContacto",
+      "description": "Tabla y colección de mensajes enviados por clientes o usuarios desde el formulario de contacto para la bandeja de entrada de gerencia",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nombre": { "type": "string", "maxLength": 150 },
+        "restaurante": { "type": "string", "maxLength": 150 },
+        "email": { "type": "string", "maxLength": 150 },
+        "telefono": { "type": "string", "maxLength": 40 },
+        "asunto": { "type": "string", "maxLength": 150 },
+        "mensaje": { "type": "string", "maxLength": 2000 },
+        "estado": { "type": "string", "enum": ["no_leido", "leido", "respondido", "archivado"] },
+        "restaurantId": { "type": "string", "maxLength": 50 },
+        "canal": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string" },
+        "respondidoAt": { "type": "string" }
+      },
+      "required": ["nombre", "email", "mensaje", "createdAt"]
     }
   },
   "firestore": {
+    "/mensajes_contactos/{mensajeId}": {
+      "schema": "MensajeContacto",
+      "description": "Tabla y base de datos oficial de mensajes de contactos para la bandeja de entrada de gerencia"
+    },
+    "/mensaje_contactos/{mensajeId}": {
+      "schema": "MensajeContacto",
+      "description": "Alias de la tabla de mensaje de contactos"
+    },
     "/negocio_info/{infoId}": {
       "schema": "NegocioInfo",
       "description": "Tabla y colección oficial en Firebase Firestore con la información del negocio, logo, eslogan, NIT y galería de fotos"
