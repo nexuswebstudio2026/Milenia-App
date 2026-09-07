@@ -7,6 +7,7 @@ import { fetchUpcomingCalendarEvents } from '../../services/googleCalendarServic
 import { EmpleadosView } from '../empleados/EmpleadosView';
 import { SalonManagerView } from './SalonManagerView';
 import { AccountingManagerView } from './AccountingManagerView';
+import { BusinessConfigTab } from './BusinessConfigTab';
 import { 
   ChefHat, 
   Utensils, 
@@ -61,6 +62,7 @@ import { motion, AnimatePresence } from 'motion/react';
 export const AdminDashboard: React.FC = () => {
   const { 
     currentTenant,
+    negocioInfo,
     orders, 
     updateOrderStatus, 
     menuItems, 
@@ -81,7 +83,7 @@ export const AdminDashboard: React.FC = () => {
     showToast
   } = useTasty();
 
-  const [adminTab, setAdminTab] = useState<'ventas' | 'salon_meseros' | 'kds' | 'contabilidad' | 'inventario' | 'menu' | 'empleados' | 'dian_config' | 'google_workspace'>('ventas');
+  const [adminTab, setAdminTab] = useState<'ventas' | 'salon_meseros' | 'kds' | 'contabilidad' | 'inventario' | 'menu' | 'empleados' | 'dian_config' | 'google_workspace' | 'configuracion'>('ventas');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
   const [filterOrderType, setFilterOrderType] = useState<string>('all');
@@ -284,15 +286,15 @@ export const AdminDashboard: React.FC = () => {
                 SaaS Multitenant Colombia
               </span>
               <span className="text-xs text-slate-400 font-mono">
-                Unique_ID: {currentTenant.id} • NIT: {currentTenant.branding.nit}
+                Unique_ID: {currentTenant.id} • NIT: {negocioInfo?.nit || currentTenant.branding.nit}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2">
-              <span>{currentTenant.name}</span>
+              <span>{negocioInfo?.nombre || currentTenant.name}</span>
               <span className="text-amber-400 font-serif italic text-xl">Panel Administrativo</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-              Control integral de ventas, inventario con descuento automático, KDS de cocina y facturación electrónica DIAN.
+              {negocioInfo?.eslogan ? `${negocioInfo.eslogan} • ` : ''}Control integral de ventas, inventario con descuento automático, KDS de cocina y facturación electrónica DIAN.
             </p>
           </div>
 
@@ -523,6 +525,33 @@ export const AdminDashboard: React.FC = () => {
                     <Cloud className="w-4 h-4 text-amber-400 shrink-0" />
                     <span>Google Cloud Hub</span>
                   </div>
+                </button>
+              </div>
+
+              {/* Group 4: CONFIGURACIÓN & MARCA */}
+              <div className="space-y-1 pt-2 border-t border-slate-800/60">
+                <span className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono block mb-1">
+                  Configuración & Marca
+                </span>
+
+                <button
+                  id="tab-configuracion-btn"
+                  onClick={() => { setAdminTab('configuracion'); setIsMobileNavOpen(false); }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-left ${
+                    adminTab === 'configuracion'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Store className={`w-4 h-4 shrink-0 ${adminTab === 'configuracion' ? 'text-slate-950' : 'text-amber-400'}`} />
+                    <span>Configuración Negocio</span>
+                  </div>
+                  <span className={`px-1.5 py-0.2 text-[9px] rounded-full font-mono font-bold ${
+                    adminTab === 'configuracion' ? 'bg-slate-950 text-amber-300' : 'bg-emerald-500/20 text-emerald-400'
+                  }`}>
+                    CRUD
+                  </span>
                 </button>
               </div>
             </nav>
@@ -1441,6 +1470,15 @@ export const AdminDashboard: React.FC = () => {
             title="Gestión de Empleados del Restaurante" 
             subtitle="Administración de colaboradores, credenciales de acceso, asignación de turnos y sincronización en tiempo real con Firestore"
           />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 6. TAB: CONFIGURACIÓN E INFORMACIÓN DEL NEGOCIO (CRUD FIRESTORE)          */}
+      {/* ========================================================================= */}
+      {adminTab === 'configuracion' && (
+        <div className="animate-fadeIn">
+          <BusinessConfigTab />
         </div>
       )}
 

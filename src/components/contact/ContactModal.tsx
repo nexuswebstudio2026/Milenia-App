@@ -12,6 +12,7 @@ import {
   Building2,
   Sparkles
 } from 'lucide-react';
+import { useTasty } from '../../context/TastyContext';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ interface ContactModalProps {
 }
 
 export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
+  const { negocioInfo } = useTasty();
   const [name, setName] = useState('');
   const [restaurantName, setRestaurantName] = useState('');
   const [email, setEmail] = useState('');
@@ -68,25 +70,33 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
         <div className="p-6 sm:p-8 overflow-y-auto space-y-6">
           {/* Header */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center text-slate-950 font-black shadow-md shadow-amber-500/20">
-              <Utensils className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div>
-              <div className="font-mono text-xl font-black tracking-wider text-slate-900 dark:text-white uppercase leading-none">
-                MILENIA
+            {negocioInfo?.logo ? (
+              <img 
+                src={negocioInfo.logo} 
+                alt={negocioInfo.nombre}
+                className="w-10 h-10 rounded-2xl object-cover border border-amber-500/30 shadow-md bg-slate-900 shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center text-slate-950 font-black shadow-md shadow-amber-500/20 shrink-0">
+                <Utensils className="w-5 h-5 stroke-[2.5]" />
               </div>
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                Línea Directa & Contactos
+            )}
+            <div>
+              <div className="font-mono text-lg sm:text-xl font-black tracking-wider text-slate-900 dark:text-white uppercase leading-none truncate max-w-xs">
+                {negocioInfo?.nombre || 'Tasty Restaurant'}
+              </div>
+              <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 truncate block mt-0.5">
+                {negocioInfo?.eslogan || 'Atención & Reservas'}
               </span>
             </div>
           </div>
 
           <div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Contacto & Atención Milenia
+              Contacto & Atención al Cliente
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Comunícate con nuestro equipo especializado en arquitectura de software gastronómico.
+              Comunícate directamente con la administración de {negocioInfo?.nombre || 'nuestro restaurante'}.
             </p>
           </div>
 
@@ -97,28 +107,28 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
                 <Mail className="w-3.5 h-3.5" />
                 <span>Correo Directo</span>
               </div>
-              <p className="text-xs font-mono font-medium text-slate-800 dark:text-slate-200">
-                contacto@milenia.rest
+              <p className="text-xs font-mono font-medium text-slate-800 dark:text-slate-200 truncate">
+                {negocioInfo?.email || 'contacto@tasty.com'}
               </p>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-1">
               <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold">
                 <Phone className="w-3.5 h-3.5" />
-                <span>Línea Telefónica</span>
+                <span>Línea / WhatsApp</span>
               </div>
-              <p className="text-xs font-mono font-medium text-slate-800 dark:text-slate-200">
-                +1 (800) 645-3642
+              <p className="text-xs font-mono font-medium text-slate-800 dark:text-slate-200 truncate">
+                {negocioInfo?.telefono || '+57 300 123 4567'}
               </p>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-1">
               <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold">
                 <Clock className="w-3.5 h-3.5" />
-                <span>Horario Soporte</span>
+                <span>Horario de Atención</span>
               </div>
-              <p className="text-xs font-medium text-slate-800 dark:text-slate-200">
-                Lunes a Sábado, 8am - 10pm
+              <p className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate">
+                {negocioInfo?.horarios || 'Lun - Dom: 12:00 PM - 11:00 PM'}
               </p>
             </div>
           </div>

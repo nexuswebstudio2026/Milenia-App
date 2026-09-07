@@ -142,6 +142,15 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // 11.1 Configuración e Información del Negocio (CRUD: Nombre, Logo, Eslogan, NIT, Galería)
+    match /negocio_info/{infoId} {
+      allow read, write: if true;
+    }
+
+    match /negocio_info/{document=**} {
+      allow read, write: if true;
+    }
+
     // 12. Resumen Financiero Consolidado (Ingresos, Gastos, Balance Neto)
     match /resumen_financiero/{docId} {
       allow read, write: if true;

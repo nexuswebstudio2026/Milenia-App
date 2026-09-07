@@ -218,9 +218,40 @@
         "createdAt": { "type": "string" }
       },
       "required": ["name", "restaurantName", "city", "phone", "createdAt"]
+    },
+    "NegocioInfo": {
+      "title": "NegocioInfo",
+      "description": "Información corporativa y comercial del negocio (nombre, logo, eslogan, NIT, galería fotográfica y datos de contacto)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nombre": { "type": "string", "maxLength": 150 },
+        "logo": { "type": "string", "maxLength": 1500 },
+        "eslogan": { "type": "string", "maxLength": 250 },
+        "nit": { "type": "string", "maxLength": 50 },
+        "telefono": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "maxLength": 150 },
+        "direccion": { "type": "string", "maxLength": 200 },
+        "ciudad": { "type": "string", "maxLength": 100 },
+        "horarios": { "type": "string", "maxLength": 200 },
+        "sitioWeb": { "type": "string", "maxLength": 200 },
+        "redesSociales": { "type": "object" },
+        "galeria": { "type": "array" },
+        "descripcion": { "type": "string", "maxLength": 1000 },
+        "regimenTributario": { "type": "string", "maxLength": 100 },
+        "resolucionDian": { "type": "string", "maxLength": 100 },
+        "sede": { "type": "string", "maxLength": 100 },
+        "activa": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["nombre", "nit"]
     }
   },
   "firestore": {
+    "/negocio_info/{infoId}": {
+      "schema": "NegocioInfo",
+      "description": "Tabla y colección oficial en Firebase Firestore con la información del negocio, logo, eslogan, NIT y galería de fotos"
+    },
     "/solicitudes_afiliados/{solicitudId}": {
       "schema": "SolicitudAfiliacion",
       "description": "Tabla y colección principal de solicitudes de demostración y afiliación de restaurantes"

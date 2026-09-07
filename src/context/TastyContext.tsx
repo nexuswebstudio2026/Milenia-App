@@ -25,8 +25,16 @@ import {
   TableStatus,
   InventoryItem,
   DianResolutionInfo,
-  EmployeeShiftLog
+  EmployeeShiftLog,
+  NegocioInfo
 } from '../types';
+import { 
+  DEFAULT_NEGOCIO_INFO,
+  getNegocioInfoActivo,
+  subscribeToNegocioInfo,
+  saveNegocioInfo,
+  LOCAL_STORAGE_KEY
+} from '../services/negocioInfoService';
 import { 
   INITIAL_CATEGORIES, 
   INITIAL_MENU_ITEMS, 
@@ -249,6 +257,11 @@ interface TastyContextType {
   // Global Dietary Filter
   dietaryFilter: DietaryPreference | 'all';
   setDietaryFilter: (filter: DietaryPreference | 'all') => void;
+
+  // Negocio Info (Información Corporativa & Configuración del Negocio en Firestore)
+  negocioInfo: NegocioInfo;
+  setNegocioInfo: React.Dispatch<React.SetStateAction<NegocioInfo>>;
+  updateNegocioInfoState: (info: Partial<NegocioInfo>) => Promise<NegocioInfo>;
 }
 
 // Automatic theme calculation:
@@ -273,6 +286,58 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [employees, setEmployees] = useState<TenantEmployee[]>(INITIAL_EMPLOYEES);
   const [tables, setTables] = useState<RestaurantTable[]>(INITIAL_TABLES);
   const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
+
+  // Negocio Info (Información Corporativa y Configuración del Negocio desde Firestore)
+  const [negocioInfo, setNegocioInfo] = useState<NegocioInfo>(() => {
+    try {
+      const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.find((n: NegocioInfo) => n.activa) || parsed[0];
+        } else if (parsed && parsed.nombre) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignorar error de parsing
+    }
+    return DEFAULT_NEGOCIO_INFO;
+  });
+
+  // Real-time synchronization of NegocioInfo from Firestore
+  useEffect(() => {
+    let unsubscribe: () => void = () => {};
+    const initNegocio = async () => {
+      try {
+        const active = await getNegocioInfoActivo();
+        if (active) {
+          setNegocioInfo(active);
+        }
+        unsubscribe = subscribeToNegocioInfo((list) => {
+          if (list && list.length > 0) {
+            const activeDoc = list.find(n => n.activa) || list[0];
+            if (activeDoc) {
+              setNegocioInfo(activeDoc);
+            }
+          }
+        });
+      } catch (err) {
+        console.warn('Could not sync negocio_info in TastyContext:', err);
+      }
+    };
+    initNegocio();
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const updateNegocioInfoState = async (info: Partial<NegocioInfo>): Promise<NegocioInfo> => {
+    const updated = { ...negocioInfo, ...info, updatedAt: new Date().toISOString() };
+    const saved = await saveNegocioInfo(updated);
+    setNegocioInfo(saved);
+    return saved;
+  };
 
   // Firestore Synchronizer for 'aliados' (table in Cloud Firestore)
   useEffect(() => {
@@ -340,12 +405,32 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const currentTenantId = currentRoute.restaurantId || '1';
   const currentTenant: TenantRestaurant = useMemo(() => {
-    return (
+    const found = (
       tenants.find(t => t.id === currentTenantId || t.slug === currentTenantId) || 
       tenants[0] || 
       INITIAL_TENANTS[0]
     );
-  }, [tenants, currentTenantId]);
+
+    // If viewing the primary business / tenant 1, merge live negocioInfo from Firestore
+    if (found.id === '1' || found.slug === 'tasty' || found.slug === 'camilo' || (!currentRoute.restaurantId && currentTenantId === '1')) {
+      return {
+        ...found,
+        name: negocioInfo?.nombre || found.name,
+        city: negocioInfo?.ciudad || found.city,
+        address: negocioInfo?.direccion || found.address,
+        phone: negocioInfo?.telefono || found.phone,
+        email: negocioInfo?.email || found.email,
+        branding: {
+          ...found.branding,
+          logoUrl: negocioInfo?.logo || found.branding.logoUrl,
+          tagline: negocioInfo?.eslogan || found.branding.tagline,
+          nit: negocioInfo?.nit || found.branding.nit
+        }
+      };
+    }
+
+    return found;
+  }, [tenants, currentTenantId, currentRoute.restaurantId, negocioInfo]);
 
   const tenantEmployees = useMemo(() => {
     if (!currentTenant) return [];
@@ -1518,7 +1603,12 @@ export const TastyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setRewardsProfile,
         redeemRewardBenefit,
         dietaryFilter,
-        setDietaryFilter
+        setDietaryFilter,
+
+        // Negocio Info (Información Corporativa & Configuración en Firestore)
+        negocioInfo,
+        setNegocioInfo,
+        updateNegocioInfoState
       }}
     >
       {children}

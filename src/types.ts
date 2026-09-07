@@ -267,3 +267,54 @@ export interface RestaurantConfig {
   acceptingReservations: boolean;
 }
 
+export interface NegocioFoto {
+  id: string;
+  url: string;
+  titulo: string;
+  categoria?: 'General' | 'Platos' | 'Instalaciones' | 'Bar' | 'Eventos' | 'Terraza' | string;
+  destacada?: boolean;
+  descripcion?: string;
+  fecha?: string;
+}
+
+export interface DiaAtencion {
+  dia: 'Lunes' | 'Martes' | 'Miércoles' | 'Jueves' | 'Viernes' | 'Sábado' | 'Domingo';
+  abierto: boolean;
+  apertura: string; // "11:30"
+  cierre: string;   // "23:00"
+}
+
+export interface NegocioInfo {
+  id: string;
+  nombre: string;
+  logo: string;
+  eslogan: string;
+  nit: string;
+  telefono: string;
+  email: string;
+  direccion: string;
+  ciudad: string;
+  departamento?: string;
+  pais?: string;
+  horarios: string;
+  diasAtencion?: DiaAtencion[];
+  sitioWeb: string;
+  redesSociales: {
+    instagram?: string;
+    facebook?: string;
+    whatsapp?: string;
+    tiktok?: string;
+    x?: string;
+    threads?: string;
+  };
+  galeria: NegocioFoto[];
+  descripcion: string;
+  regimenTributario?: string;
+  resolucionDian?: string;
+  sede?: string;
+  activa?: boolean;
+  updatedAt: string;
+  updatedBy?: string;
+}
+
+

@@ -34,6 +34,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onOpenInstallModal }) => {
   const { 
     currentTenant,
+    negocioInfo,
     currentEmployee,
     currentView, 
     setCurrentView, 
@@ -196,20 +197,31 @@ export const Header: React.FC<HeaderProps> = ({ onOpenInstallModal }) => {
             >
               {currentTenant.id === '1' ? (
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-orange-500/20 border border-orange-400/40">
-                    🔥
-                  </div>
+                  {(negocioInfo?.logo || currentTenant.branding.logoUrl) ? (
+                    <img 
+                      src={negocioInfo?.logo || currentTenant.branding.logoUrl} 
+                      alt={negocioInfo?.nombre || currentTenant.name}
+                      className="w-10 h-10 rounded-2xl object-cover shadow-md border border-amber-500/30 bg-slate-900 shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-orange-500/20 border border-orange-400/40 shrink-0">
+                      🔥
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-center gap-1.5">
                       <span className="font-black text-sm sm:text-base text-slate-900 dark:text-white tracking-tight">
-                        {currentTenant.name}
+                        {negocioInfo?.nombre || currentTenant.name}
                       </span>
                       <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded">
                         ID: 1
                       </span>
                     </div>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                      NIT: {currentTenant.branding.nit} • {currentTenant.city.split(',')[0]}
+                      NIT: {negocioInfo?.nit || currentTenant.branding.nit} • {(negocioInfo?.ciudad || currentTenant.city).split(',')[0]}
                     </p>
                   </div>
                 </div>

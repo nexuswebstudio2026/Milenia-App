@@ -12,12 +12,20 @@ import {
   LogIn, 
   Mail, 
   Menu, 
-  X 
+  X,
+  Building2,
+  MapPin,
+  Phone,
+  Image as ImageIcon,
+  ShieldCheck,
+  Sparkles,
+  Globe
 } from 'lucide-react';
 import { LoginModal } from '../auth/LoginModal';
 import { ContactModal } from '../contact/ContactModal';
 import { Empleado } from '../../types/empleado';
 import { WorkstationOption } from '../../services/empleadosService';
+import { useTasty } from '../../context/TastyContext';
 
 interface MileniaLandingProps {
   isDarkMode: boolean;
@@ -34,6 +42,8 @@ export const MileniaLanding: React.FC<MileniaLandingProps> = ({
   isAutoTimeMode,
   onLoginSuccess,
 }) => {
+  const { negocioInfo } = useTasty();
+
   // Navigation & Modals State
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
@@ -65,20 +75,32 @@ export const MileniaLanding: React.FC<MileniaLandingProps> = ({
       <header className="border-b border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md sticky top-0 z-40 transition-colors duration-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
           
-          {/* Pure Wordmark */}
+          {/* Dynamic Business Brand Wordmark from Firestore */}
           <div 
             onClick={handleNavInicio}
             className="flex items-center gap-3.5 cursor-pointer group select-none"
+            title={`${negocioInfo.nombre} • ${negocioInfo.eslogan}`}
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-600 via-amber-500 to-amber-400 dark:from-amber-500 dark:to-amber-300 flex items-center justify-center text-slate-950 font-black shadow-md shadow-amber-500/10 group-hover:scale-105 transition">
-              <Utensils className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div>
-              <span className="font-mono text-2xl font-black tracking-widest text-slate-900 dark:text-white uppercase block leading-none">
-                MILENIA
+            {negocioInfo.logo ? (
+              <img 
+                src={negocioInfo.logo} 
+                alt={negocioInfo.nombre}
+                className="w-11 h-11 rounded-2xl object-cover border border-amber-500/30 shadow-md shadow-amber-500/10 group-hover:scale-105 transition shrink-0 bg-slate-900"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-600 via-amber-500 to-amber-400 dark:from-amber-500 dark:to-amber-300 flex items-center justify-center text-slate-950 font-black shadow-md shadow-amber-500/10 group-hover:scale-105 transition shrink-0">
+                <Utensils className="w-5 h-5 stroke-[2.5]" />
+              </div>
+            )}
+            <div className="flex flex-col min-w-0">
+              <span className="font-mono text-base sm:text-xl font-black tracking-wide text-slate-900 dark:text-white uppercase block leading-none truncate max-w-[200px] sm:max-w-xs md:max-w-md">
+                {negocioInfo.nombre}
               </span>
-              <span className="text-[10px] font-medium tracking-wider text-slate-600 dark:text-slate-300 uppercase">
-                Software Gastronómico
+              <span className="text-[10px] sm:text-[11px] font-semibold tracking-wider text-amber-600 dark:text-amber-400 uppercase block mt-1 leading-tight truncate max-w-[200px] sm:max-w-xs md:max-w-md">
+                {negocioInfo.eslogan}
               </span>
             </div>
           </div>
@@ -228,11 +250,11 @@ export const MileniaLanding: React.FC<MileniaLandingProps> = ({
 
         <div className="max-w-6xl mx-auto px-4 sm:px-8 relative z-10 text-center space-y-8">
           
-          {/* Refined Eyebrow */}
+          {/* Refined Eyebrow with Real Business Corporate Info */}
           <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            <span className="text-xs font-medium tracking-wider text-slate-600 dark:text-slate-400 uppercase font-mono">
-              Arquitectura de Software para Alta Gastronomía
+            <span className="text-xs font-semibold tracking-wider text-slate-700 dark:text-slate-300 uppercase font-mono">
+              {negocioInfo.nombre} • NIT {negocioInfo.nit}
             </span>
           </div>
 
@@ -264,6 +286,147 @@ export const MileniaLanding: React.FC<MileniaLandingProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
               Márgenes Lúcidos
             </span>
+          </div>
+
+          {/* Corporate Business Info & Official Details Card */}
+          <div className="mt-12 p-6 sm:p-8 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-800/90 shadow-xl backdrop-blur-md max-w-4xl mx-auto text-left transition-colors duration-300">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-4">
+                {negocioInfo.logo ? (
+                  <img 
+                    src={negocioInfo.logo} 
+                    alt={negocioInfo.nombre}
+                    className="w-14 h-14 rounded-2xl object-cover border border-amber-500/30 shadow-md bg-slate-900 shrink-0"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-xl shrink-0">
+                    <Building2 className="w-7 h-7" />
+                  </div>
+                )}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                      {negocioInfo.nombre}
+                    </h2>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 uppercase tracking-wider">
+                      Verificado DIAN
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
+                    {negocioInfo.eslogan}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+                <span className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60">
+                  NIT: <strong className="text-slate-800 dark:text-slate-200">{negocioInfo.nit}</strong>
+                </span>
+                <span className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60">
+                  Sede: <strong className="text-slate-800 dark:text-slate-200">{negocioInfo.sede || 'Principal'}</strong>
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Contact & Location Badges */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-6 text-xs">
+              <div className="flex items-start gap-3">
+                <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[11px] text-slate-400 font-medium block">Ubicación & Dirección</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 leading-tight block">
+                    {negocioInfo.direccion}
+                  </span>
+                  <span className="text-[11px] text-slate-500 block">
+                    {negocioInfo.ciudad}{negocioInfo.departamento ? `, ${negocioInfo.departamento}` : ''}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Phone className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[11px] text-slate-400 font-medium block">Línea & WhatsApp</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 block font-mono">
+                    {negocioInfo.telefono}
+                  </span>
+                  <span className="text-[11px] text-slate-500 block truncate">{negocioInfo.email}</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Clock className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[11px] text-slate-400 font-medium block">Horarios de Atención</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 block leading-tight">
+                    {negocioInfo.horarios}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Globe className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[11px] text-slate-400 font-medium block">Canal Digital Oficial</span>
+                  {negocioInfo.sitioWeb ? (
+                    <a 
+                      href={negocioInfo.sitioWeb} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="font-semibold text-amber-600 dark:text-amber-400 hover:underline block leading-tight truncate"
+                    >
+                      {negocioInfo.sitioWeb.replace(/^https?:\/\//, '')}
+                    </a>
+                  ) : (
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block leading-tight">
+                      Sede Oficial Web
+                    </span>
+                  )}
+                  <span className="text-[11px] text-slate-500 block">
+                    {negocioInfo.redesSociales?.instagram || negocioInfo.redesSociales?.facebook || 'Colombia'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Galería Fotográfica oficial */}
+            {negocioInfo.galeria && negocioInfo.galeria.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-amber-500" />
+                    Galería Fotográfica Oficial ({negocioInfo.galeria.length} fotos)
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    Sincronizada con Firebase Firestore
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {negocioInfo.galeria.slice(0, 4).map((foto) => (
+                    <div 
+                      key={foto.id}
+                      className="group relative rounded-2xl overflow-hidden aspect-video bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-sm"
+                    >
+                      <img 
+                        src={foto.url} 
+                        alt={foto.titulo}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-2.5">
+                        <span className="text-[11px] font-bold text-white truncate drop-shadow-sm">
+                          {foto.titulo}
+                        </span>
+                        <span className="text-[9px] text-amber-400 font-mono">
+                          {foto.categoria}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
         </div>
@@ -373,7 +536,7 @@ export const MileniaLanding: React.FC<MileniaLandingProps> = ({
           </div>
 
           <div className="text-[11px] text-slate-400">
-            © {new Date().getFullYear()} MILENIA. Todos los derechos reservados.
+            © {new Date().getFullYear()} Nexus Web Studio. Todos los derechos reservados.
           </div>
         </div>
       </footer>

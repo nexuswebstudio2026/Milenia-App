@@ -11,27 +11,27 @@ import {
 export const INITIAL_TENANTS: TenantRestaurant[] = [
   {
     id: '1',
-    slug: 'camilo',
-    name: 'Parrilla & Fuego Camilo',
-    city: 'Medellín, Antioquia',
-    address: 'Cra. 37 #8A-12, El Poblado',
-    phone: '+57 304-347-0984',
-    email: 'contacto@parrillacamilo.co',
+    slug: 'tasty',
+    name: 'Tasty Restaurant & Bar Gourmet',
+    city: 'Bogotá D.C., Colombia',
+    address: 'Calle 93 # 12-45, Chicó Empresarial',
+    phone: '+57 304 347 0984',
+    email: 'contacto@tastyrestaurant.co',
     createdAt: '2025-01-15',
     tablesCount: 8,
     activeOrdersCount: 4,
     totalMonthlySalesCop: 28450000,
     branding: {
-      logoUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=200&q=80',
+      logoUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=300&auto=format&fit=crop&q=80',
       primaryColor: '#ea580c', // Orange-600 Flame
       accentColor: '#f59e0b', // Amber-500
       themeStyle: 'rustic',
       bannerImage: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
-      tagline: 'Cortes Madurados a la Brasa & Tradición Paisa',
+      tagline: 'Experiencia Culinaria & Sabores de Vanguardia',
       currency: 'COP',
       currencySymbol: '$',
-      dianResolution: 'Resolución DIAN No. 18764032910 de 2025',
-      nit: '901.884.231-9',
+      dianResolution: 'Resolución DIAN No. 18764000192 de 2026',
+      nit: '901.450.888-1',
       tipSuggestedPercentage: 10
     },
     subscription: {

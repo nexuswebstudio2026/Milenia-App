@@ -41,7 +41,7 @@ export const INITIAL_ALIADOS: MileniaAlly[] = [
   {
     id: '1',
     allyNumber: '#001',
-    name: 'Parrilla & Fuego Camilo',
+    name: 'Tasty Restaurant & Bar Gourmet',
     nit: '901.450.888-1',
     city: 'Bogotá D.C.',
     address: 'Calle 93 # 12-45, Chicó',
