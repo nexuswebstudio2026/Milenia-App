@@ -55,9 +55,12 @@ import {
   Download,
   ExternalLink,
   Wallet,
-  ChevronDown
+  ChevronDown,
+  Inbox
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { BandejaEntradaMensajes } from './BandejaEntradaMensajes';
+import { suscribirMensajesContacto } from '../../services/contactoService';
 
 export const AdminDashboard: React.FC = () => {
   const { 
@@ -83,13 +86,23 @@ export const AdminDashboard: React.FC = () => {
     showToast
   } = useTasty();
 
-  const [adminTab, setAdminTab] = useState<'ventas' | 'salon_meseros' | 'kds' | 'contabilidad' | 'inventario' | 'menu' | 'empleados' | 'dian_config' | 'google_workspace' | 'configuracion'>('ventas');
+  const [adminTab, setAdminTab] = useState<'ventas' | 'salon_meseros' | 'kds' | 'contabilidad' | 'inventario' | 'menu' | 'empleados' | 'dian_config' | 'google_workspace' | 'configuracion' | 'mensajes'>('ventas');
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
   const [filterOrderType, setFilterOrderType] = useState<string>('all');
   const [menuSearch, setMenuSearch] = useState('');
   const [invSearch, setInvSearch] = useState('');
   const [invCategoryFilter, setInvCategoryFilter] = useState<string>('all');
+
+  // Suscribirse a mensajes de contacto para mostrar conteo de no leídos en tiempo real
+  React.useEffect(() => {
+    const unsub = suscribirMensajesContacto((items) => {
+      const count = items.filter(m => m.estado === 'no_leido').length;
+      setUnreadMessagesCount(count);
+    });
+    return () => unsub();
+  }, []);
 
   // Format currency in Colombian Pesos
   const formatCOP = (amount: number) => {
@@ -552,6 +565,32 @@ export const AdminDashboard: React.FC = () => {
                   }`}>
                     CRUD
                   </span>
+                </button>
+
+                <button
+                  id="tab-mensajes-btn"
+                  onClick={() => { setAdminTab('mensajes'); setIsMobileNavOpen(false); }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-left ${
+                    adminTab === 'mensajes'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Inbox className={`w-4 h-4 shrink-0 ${adminTab === 'mensajes' ? 'text-slate-950' : 'text-amber-400'}`} />
+                    <span>Bandeja de Entrada</span>
+                  </div>
+                  {unreadMessagesCount > 0 ? (
+                    <span className="px-2 py-0.5 text-[10px] rounded-full font-mono font-black bg-red-500 text-white animate-pulse">
+                      {unreadMessagesCount} nuevo{unreadMessagesCount > 1 ? 's' : ''}
+                    </span>
+                  ) : (
+                    <span className={`px-1.5 py-0.2 text-[9px] rounded-full font-mono font-bold ${
+                      adminTab === 'mensajes' ? 'bg-slate-950 text-amber-300' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      Leads
+                    </span>
+                  )}
                 </button>
               </div>
             </nav>
@@ -1479,6 +1518,15 @@ export const AdminDashboard: React.FC = () => {
       {adminTab === 'configuracion' && (
         <div className="animate-fadeIn">
           <BusinessConfigTab />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 7. TAB: BANDEJA DE ENTRADA DE MENSAJES DE CONTACTOS (FIRESTORE)           */}
+      {/* ========================================================================= */}
+      {adminTab === 'mensajes' && (
+        <div className="animate-fadeIn">
+          <BandejaEntradaMensajes />
         </div>
       )}
 

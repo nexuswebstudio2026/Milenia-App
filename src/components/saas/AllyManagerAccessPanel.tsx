@@ -59,12 +59,15 @@ import {
   BookOpen,
   Tag,
   IdCard,
-  UserPlus
+  UserPlus,
+  Inbox
 } from 'lucide-react';
 import { formatCop } from '../../utils/currency';
 import { useCurrentDomain } from '../../utils/domainHelper';
 import { motion, AnimatePresence } from 'motion/react';
 import { AllyUsersManagement } from '../admin/AllyUsersManagement';
+import { BandejaEntradaMensajes } from '../admin/BandejaEntradaMensajes';
+import { suscribirMensajesContacto } from '../../services/contactoService';
 
 export type AllyManagerRoleKey = 
   | 'gerente'
@@ -84,6 +87,7 @@ export type AllyManagerTab =
   | 'personal' 
   | 'inventario' 
   | 'dian_caja' 
+  | 'bandeja_entrada'
   | 'configuracion' 
   | 'enlaces';
 
@@ -113,7 +117,7 @@ const ROLES_DIRECTORY: RoleConfig[] = [
     borderColor: 'border-amber-500/30',
     bgColor: 'bg-amber-500/10',
     description: 'Control total de operaciones, ingresos, facturación DIAN, métricas del salón, carta de platos y personal.',
-    allowedTabs: ['resumen', 'mesas', 'cocina', 'menu_platos', 'personal', 'inventario', 'dian_caja', 'configuracion', 'enlaces']
+    allowedTabs: ['resumen', 'mesas', 'cocina', 'menu_platos', 'personal', 'inventario', 'dian_caja', 'bandeja_entrada', 'configuracion', 'enlaces']
   },
   {
     key: 'gerente',
@@ -126,7 +130,7 @@ const ROLES_DIRECTORY: RoleConfig[] = [
     borderColor: 'border-amber-500/30',
     bgColor: 'bg-amber-500/10',
     description: 'Supervisión diaria del restaurante aliado, metas comerciales, carta, mesas, empleados y configuración.',
-    allowedTabs: ['resumen', 'mesas', 'cocina', 'menu_platos', 'personal', 'inventario', 'dian_caja', 'configuracion', 'enlaces']
+    allowedTabs: ['resumen', 'mesas', 'cocina', 'menu_platos', 'personal', 'inventario', 'dian_caja', 'bandeja_entrada', 'configuracion', 'enlaces']
   },
   {
     key: 'administrador',
@@ -139,7 +143,7 @@ const ROLES_DIRECTORY: RoleConfig[] = [
     borderColor: 'border-blue-500/30',
     bgColor: 'bg-blue-500/10',
     description: 'Gestión de mesas en vivo, inventario, arqueos de caja, menú y supervisión de turnos de personal.',
-    allowedTabs: ['resumen', 'mesas', 'cocina', 'menu_platos', 'personal', 'inventario', 'dian_caja', 'configuracion', 'enlaces']
+    allowedTabs: ['resumen', 'mesas', 'cocina', 'menu_platos', 'personal', 'inventario', 'dian_caja', 'bandeja_entrada', 'configuracion', 'enlaces']
   },
   {
     key: 'director_operaciones',
@@ -275,6 +279,17 @@ export const AllyManagerAccessPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AllyManagerTab>(() => {
     return activeRoleConfig.allowedTabs[0] || 'resumen';
   });
+
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
+
+  // Suscribirse a mensajes de contacto para mostrar conteo de no leídos en tiempo real
+  React.useEffect(() => {
+    const unsub = suscribirMensajesContacto((items) => {
+      const count = items.filter(m => m.estado === 'no_leido').length;
+      setUnreadMessagesCount(count);
+    });
+    return () => unsub();
+  }, []);
 
   // Ensure active tab is allowed for current cargo
   React.useEffect(() => {
@@ -736,6 +751,26 @@ export const AllyManagerAccessPanel: React.FC = () => {
           >
             <Receipt className="w-4 h-4" />
             <span>Facturación DIAN & Caja</span>
+          </button>
+        )}
+
+        {activeRoleConfig.allowedTabs.includes('bandeja_entrada') && (
+          <button
+            id="tab-bandeja-entrada-btn"
+            onClick={() => setActiveTab('bandeja_entrada')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              activeTab === 'bandeja_entrada'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            <Inbox className="w-4 h-4" />
+            <span>Bandeja de Entrada</span>
+            {unreadMessagesCount > 0 && (
+              <span className="px-1.5 py-0.2 text-[10px] rounded-full font-mono font-bold bg-red-500 text-white animate-pulse">
+                {unreadMessagesCount}
+              </span>
+            )}
           </button>
         )}
 
@@ -1816,6 +1851,15 @@ export const AllyManagerAccessPanel: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* TAB: BANDEJA DE ENTRADA DE MENSAJES DE CONTACTOS (FIRESTORE)              */}
+      {/* ------------------------------------------------------------------------- */}
+      {activeTab === 'bandeja_entrada' && (
+        <div className="space-y-6 animate-fadeIn">
+          <BandejaEntradaMensajes />
         </div>
       )}
 
